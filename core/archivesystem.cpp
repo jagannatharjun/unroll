@@ -28,8 +28,6 @@ public:
     {
     }
 
-    virtual bool isDir() = 0;
-
     ArchiveDir *parent() { return parent_; }
 
     QString name() { return name_; }
@@ -42,7 +40,7 @@ class ArchiveFile : public ArchiveNode
 public:
     using ArchiveNode::ArchiveNode;
 
-    bool isDir() override { return false; }
+    bool isDir(int i) override { return false; }
 
     int fileCount() override { return 0; }
     QString fileName(int i) override { return {}; }
@@ -63,7 +61,7 @@ public:
         qDeleteAll(children);
     }
 
-    bool isDir() override { return true; }
+    bool isDir(int i) override { return dynamic_cast<ArchiveDir *>(children[i]) != nullptr; }
 
     int fileCount() override { return children.size(); }
     QString fileName(int i) override { return children[i]->name(); }
@@ -168,6 +166,7 @@ public:
     SHAREDDIRECTORY_WRAP(QString, fileName)
     SHAREDDIRECTORY_WRAP(QString, filePath)
     SHAREDDIRECTORY_WRAP(qint64, fileSize)
+    SHAREDDIRECTORY_WRAP(bool, isDir)
 
 #undef SHAREDDIRECTORY_WRAP
 };

@@ -11,6 +11,7 @@ struct File
     QString name;
     QString path;
     qint64 size;
+    bool isdir;
 };
 
 class RegularDirectory : public Directory
@@ -27,6 +28,7 @@ public:
     QString fileName(int i) override { return files[i].name; }
     QString filePath(int i) override { return files[i].path; }
     qint64 fileSize(int i) override { return files[i].size; }
+    bool isDir(int i) override { return files[i].isdir; }
 };
 
 }
@@ -34,6 +36,9 @@ public:
 std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
 {
     QDir d(url.toLocalFile());
+    if (!d.exists())
+        return {};
+
     QFileInfoList list = d.entryInfoList();
 
     auto r = std::make_unique<RegularDirectory>();
@@ -45,7 +50,7 @@ std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
         QFileInfo fileInfo = list.at(i);
         if (fileInfo.fileName() == "." || fileInfo.fileName() == "..") continue;
 
-        r->files.push_back(File {fileInfo.fileName(), fileInfo.absoluteFilePath(), fileInfo.size()});
+        r->files.push_back(File {fileInfo.fileName(), fileInfo.absoluteFilePath(), fileInfo.size(), fileInfo.isDir()});
     }
 
     return std::move(r);

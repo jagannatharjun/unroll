@@ -19,6 +19,7 @@ public:
     virtual QString fileName(int i) = 0;
     virtual QString filePath(int i) = 0;
     virtual qint64 fileSize(int i) = 0;
+    virtual bool isDir(int i) = 0;
 };
 
 

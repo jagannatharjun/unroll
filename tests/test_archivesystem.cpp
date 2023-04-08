@@ -30,6 +30,7 @@ private slots:
         const auto test = [&](QHash<QString, qint64> files)
         {
             QVERIFY(f);
+            QCOMPARE(files.size(), f->fileCount());
 
             for (int i = 0; i < f->fileCount(); ++i) {
                 QVERIFY(files.contains(f->fileName(i)));

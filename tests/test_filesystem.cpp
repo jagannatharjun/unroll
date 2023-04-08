@@ -59,6 +59,7 @@ private slots:
             for (int j = 0; j < testfiles.size(); ++j) {
                 const auto &f = testfiles[j];
                 if (fd->fileName(i) == f.first) {
+                    QVERIFY(!fd->isDir(i));
                     QCOMPARE(fd->fileSize(i), f.second);
                     QVERIFY(!v[j]);
 

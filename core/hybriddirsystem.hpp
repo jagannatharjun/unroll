@@ -3,7 +3,8 @@
 
 #include "directorysystem.hpp"
 
-#include <QFuture>
+#include <QReadWriteLock>
+#include <QHash>
 
 class FileSystem;
 class ArchiveSystem;
@@ -22,8 +23,13 @@ public:
     std::unique_ptr<Directory> open(Directory *dir, int child) override;
 
 private:
+    void updatesource(Directory * dir, DirectorySystem *source);
+    DirectorySystem *source(Directory *dir);
+
     std::unique_ptr<FileSystem> m_filesystem;
     std::unique_ptr<ArchiveSystem> m_archivesystem;
+
+    QReadWriteLock m_lock;
     QHash<Directory *, DirectorySystem *> m_sources;
 };
 

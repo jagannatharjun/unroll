@@ -21,7 +21,7 @@ std::unique_ptr<Directory> HybridDirSystem::open(const QUrl &url)
     const auto trysystem = [this, url](DirectorySystem *system)
     {
         auto r = system->open(url);
-        if (r) m_sources[r.get()] = system;
+        if (r) updatesource(r.get(), system);
         return r;
     };
 
@@ -35,11 +35,11 @@ std::unique_ptr<Directory> HybridDirSystem::open(Directory *dir, int child)
 {
     std::unique_ptr<Directory> result;
 
-    if (auto system = m_sources.value(dir, nullptr))
+    if (auto system = source(dir))
     {
         result = system->open(dir, child);
         if (result)
-            m_sources[result.get()] = system;
+            updatesource(result.get(), system);
     }
 
     if (!result) // retry with child url
@@ -49,5 +49,25 @@ std::unique_ptr<Directory> HybridDirSystem::open(Directory *dir, int child)
     }
 
     return result;
+}
+
+void HybridDirSystem::updatesource(Directory *dir, DirectorySystem *source)
+{
+    if (dir)
+    {
+        QWriteLocker l(&m_lock);
+        m_sources[dir] = source;
+    }
+}
+
+DirectorySystem *HybridDirSystem::source(Directory *dir)
+{
+    if (dir)
+    {
+        QReadLocker l(&m_lock);
+        return m_sources.value(dir);
+    }
+
+    return nullptr;
 }
 

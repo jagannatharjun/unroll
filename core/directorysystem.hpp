@@ -8,6 +8,10 @@
 
 // TODO: - better back system
 // and fileUrl
+
+// ALL functions must be thread-safe
+// ALL functions of interface can be called from any number of threads
+
 class Directory
 {
 public:

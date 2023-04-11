@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QVector>
 #include <QUrl>
+#include <QUrlQuery>
 
 #include <archive.h>
 #include <archive_entry.h>
@@ -12,18 +13,52 @@ namespace
 
 class ArchiveDir;
 
+const QString CHILD_KEY = "child";
+
+// TODO handle archive urls view URL's query parameter, not pound
+// extend tests
+struct ArchiveUrl
+{
+
+    static ArchiveUrl makeurl(const QString &path, const QString &child)
+    {
+        QUrl url;
+        url.setScheme("archivesystem");
+        url.setPath(path);
+        url.setQuery(QUrlQuery({{CHILD_KEY, child}}));
+        return ArchiveUrl {url};
+    }
+
+    QUrl url;
+
+    QString path()
+    {
+        return url.path(QUrl::PrettyDecoded) + child();
+    }
+
+    QString child()
+    {
+        return QUrlQuery(url).queryItemValue(CHILD_KEY);
+    }
+
+    QString archivepath()
+    {
+        return url.path(QUrl::PrettyDecoded);
+    }
+};
+
 class ArchiveNode : public Directory
 {
 public:
     ArchiveDir *parent_;
     QString name_;
-    QString path_;
+    ArchiveUrl url_;
     qint64 size_;
 
-    ArchiveNode(ArchiveDir *parent, QString name, QString path, qint64 size)
+    ArchiveNode(ArchiveDir *parent, QString name, ArchiveUrl url, qint64 size)
         : parent_ {parent}
         , name_ {name}
-        , path_ {path}
+        , url_ {url}
         , size_ {size}
     {
     }
@@ -31,7 +66,8 @@ public:
     ArchiveDir *parent() { return parent_; }
 
     QString name() { return name_; }
-    QString path() { return path_; }
+    QString path() { return url_.path(); }
+    QUrl url() { return url_.url; }
     qint64 size() { return size_; }
 };
 
@@ -46,6 +82,7 @@ public:
     QString fileName(int i) override { return {}; }
     QString filePath(int i) override { return {}; }
     qint64 fileSize(int i) override { return 0; }
+    QUrl fileUrl(int i) override { return {}; }
 };
 
 
@@ -66,6 +103,7 @@ public:
     int fileCount() override { return children.size(); }
     QString fileName(int i) override { return children[i]->name(); }
     QString filePath(int i) override { return children[i]->path(); }
+    QUrl fileUrl(int i) override { return children[i]->url(); }
     qint64 fileSize(int i) override { return children[i]->size(); }
 };
 
@@ -96,8 +134,7 @@ std::unique_ptr<Directory> buildTree(const QString &filePath)
     }
 
     archive_entry *entry {};
-    ArchiveDir *root = new ArchiveDir(nullptr, pathName(filePath), filePath, 0);
-    QString rootpath = filePath + "#";
+    ArchiveDir *root = new ArchiveDir(nullptr, pathName(filePath), ArchiveUrl::makeurl(filePath, {}), 0);
 
     QHash<ArchiveDir *, QHash<QString, ArchiveDir *>> dirMap;
 
@@ -112,7 +149,7 @@ std::unique_ptr<Directory> buildTree(const QString &filePath)
         ArchiveDir *current = root;
         current->size_ += size;
 
-        QString nodepath = rootpath;
+        QString nodepath;
 
         for (const auto &dirpart : dirparts)
         {
@@ -121,7 +158,7 @@ std::unique_ptr<Directory> buildTree(const QString &filePath)
             ArchiveDir *& next = dirMap[current][dirpart];
             if (!next)
             {
-                next = new ArchiveDir(current, dirpart, nodepath, 0);
+                next = new ArchiveDir(current, dirpart, ArchiveUrl::makeurl(filePath, nodepath), 0);
                 current->children.push_back(next);
             }
 
@@ -131,8 +168,10 @@ std::unique_ptr<Directory> buildTree(const QString &filePath)
 
         if (!name.isEmpty())
         {
+            nodepath += QString("/") + name;
+
             const auto size = archive_entry_size(entry);
-            auto file = new ArchiveFile(current, name, nodepath, size);
+            auto file = new ArchiveFile(current, name, ArchiveUrl::makeurl(filePath, nodepath), size);
 
             current->children.push_back(file);
         }
@@ -157,6 +196,7 @@ public:
 
     SHAREDDIRECTORY_WRAP(QString, path)
     SHAREDDIRECTORY_WRAP(QString, name)
+    SHAREDDIRECTORY_WRAP(QUrl, url)
     SHAREDDIRECTORY_WRAP(qint64, size)
     SHAREDDIRECTORY_WRAP(int, fileCount)
 
@@ -165,6 +205,7 @@ public:
 
     SHAREDDIRECTORY_WRAP(QString, fileName)
     SHAREDDIRECTORY_WRAP(QString, filePath)
+    SHAREDDIRECTORY_WRAP(QUrl, fileUrl)
     SHAREDDIRECTORY_WRAP(qint64, fileSize)
     SHAREDDIRECTORY_WRAP(bool, isDir)
 

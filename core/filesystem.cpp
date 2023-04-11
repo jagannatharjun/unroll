@@ -23,10 +23,12 @@ public:
 
     QString name() override { return name_; }
     QString path() override { return path_; }
+    QUrl url() override { return QUrl::fromLocalFile(path_); }
 
     int fileCount() override { return files.size(); }
     QString fileName(int i) override { return files[i].name; }
     QString filePath(int i) override { return files[i].path; }
+    QUrl fileUrl(int i) override { return QUrl::fromLocalFile(files[i].path); }
     qint64 fileSize(int i) override { return files[i].size; }
     bool isDir(int i) override { return files[i].isdir; }
 };
@@ -60,3 +62,4 @@ std::unique_ptr<Directory> FileSystem::open(Directory *dir, int child)
 {
     return open(dir->filePath(child));
 }
+

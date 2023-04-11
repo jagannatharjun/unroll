@@ -8,10 +8,10 @@
 class AsyncDirSystem
 {
 public:
-    AsyncDirSystem(std::unique_ptr<DirectorySystem> s) : m_system {std::move(s)} {}
+    AsyncDirSystem(std::unique_ptr<DirectorySystem> s);
 
-    QFuture<std::unique_ptr<Directory>> open(const QUrl &url);
-    QFuture<std::unique_ptr<Directory>> open(Directory *dir, int child);
+    QFuture<std::shared_ptr<Directory>> open(const QUrl &url);
+    QFuture<std::shared_ptr<Directory>> open(std::shared_ptr<Directory> dir, int child);
 
 private:
     std::unique_ptr<DirectorySystem> m_system;

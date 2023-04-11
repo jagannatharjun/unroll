@@ -10,7 +10,7 @@
 #include <QString>
 #include <QDebug>
 
-class ArchiveFileSystem : public QObject
+class TestArchiveFileSystem : public QObject
 {
     Q_OBJECT
 public:
@@ -22,34 +22,47 @@ private slots:
     void testArchiveFileSystem()
     {
         ArchiveSystem s;
-        const auto archivepath = QFileInfo(__FILE__).dir().absoluteFilePath("archivetest.zip");
+        auto d = QDir(QFileInfo(__FILE__).dir().absoluteFilePath("archivedir"));
+        const auto archivepath = d.absoluteFilePath("archivetest.zip");
+
         auto f = s.open(QUrl::fromLocalFile(archivepath));
 
-
         QCOMPARE(f->name(), "archivetest.zip");
-        const auto test = [&](QHash<QString, qint64> files)
+
+        struct Node { QString path; qint64 size; };
+
+        const auto test = [&](QHash<QString, Node> files)
         {
             QVERIFY(f);
-            QCOMPARE(files.size(), f->fileCount());
+            QCOMPARE(f->fileCount(), files.size());
 
             for (int i = 0; i < f->fileCount(); ++i) {
                 QVERIFY(files.contains(f->fileName(i)));
-                QCOMPARE(files[f->fileName(i)], f->fileSize(i));
+                QCOMPARE(f->fileSize(i), files[f->fileName(i)].size);
+                QCOMPARE(f->filePath(i), files[f->fileName(i)].path);
 
                 // remove the node, so duplicate can be caught
                 files.remove(f->fileName(i));
             }
         };
 
-        QHash<QString, qint64> root {{"test.txt", 13}, {"lol", 16}};
+
+        d = QDir(archivepath);
+        QHash<QString, Node> root
+        {
+            {"test.txt", {d.absoluteFilePath("test.txt"), 13}},
+            {"lol", {d.absoluteFilePath("lol"), 16}}
+        };
         test(root);
 
+        QCOMPARE(f->fileName(0), "lol");
         f = s.open(f.get(), 0);
-        QHash<QString, qint64> level2 {{"tar", 16}};
+        QHash<QString, Node> level2 {{"tar", {d.absoluteFilePath("lol/tar"), 16}}};
         test(level2);
 
+        QCOMPARE(f->fileName(0), "tar");
         f = s.open(f.get(), 0);
-        QHash<QString, qint64> level3 {{"new.txt", 16}};
+        QHash<QString, Node> level3 {{"new.txt", {d.absoluteFilePath("lol/tar/new.txt"),16}}};
         test(level3);
     }
 
@@ -57,5 +70,5 @@ private slots:
 
 
 
-QTEST_MAIN(ArchiveFileSystem)
+QTEST_MAIN(TestArchiveFileSystem)
 #include "test_archivesystem.moc"

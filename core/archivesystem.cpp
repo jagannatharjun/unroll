@@ -179,7 +179,6 @@ std::unique_ptr<Directory> buildTree(const QString &filePath)
         archive_read_data_skip(a);
     }
 
-
     return std::unique_ptr<Directory>(root);
 }
 

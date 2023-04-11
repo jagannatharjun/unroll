@@ -2,6 +2,7 @@
 #include <qtest.h>
 
 #include "../core/filesystem.hpp"
+#include "../core/hybriddirsystem.hpp"
 #include "qtestcase.h"
 #include <QDir>
 
@@ -15,8 +16,7 @@ class TestFileSystem : public QObject
 public:
     using QObject::QObject;
 
-private slots:
-    void testFileSystem()
+    void test(DirectorySystem &system)
     {
         QString testdir = "./test-dir/";
         QDir d(testdir);
@@ -39,16 +39,15 @@ private slots:
         };
 
         std::array<std::pair<QString, int>, 3> testfiles =
-        {
-            std::pair {"this is a file", 98},
-            {"this is a second file", 87},
-            {"thirdfile", 69}
-        };
+            {
+                std::pair {"this is a file", 98},
+                {"this is a second file", 87},
+                {"thirdfile", 69}
+            };
 
         for (const auto &f : testfiles)
             write(f.first, f.second);
 
-        FileSystem system;
         auto fd = system.open(QUrl::fromLocalFile("./test-dir/"));
 
         QCOMPARE(fd->fileCount(), testfiles.size());
@@ -67,7 +66,22 @@ private slots:
                 }
             }
         }
+
     }
+
+private slots:
+    void testFileSystem()
+    {
+        FileSystem s;
+        test(s);
+    }
+
+    void testHybridSystem()
+    {
+        HybridDirSystem s;
+        test(s);
+    }
+
 
 };
 

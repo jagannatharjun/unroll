@@ -2,6 +2,7 @@
 #include <qtest.h>
 
 #include "../core/archivesystem.hpp"
+#include "../core/hybriddirsystem.hpp"
 #include "qtestcase.h"
 #include <QDir>
 
@@ -16,12 +17,8 @@ class TestArchiveFileSystem : public QObject
 public:
     using QObject::QObject;
 
-
-private slots:
-
-    void testArchiveFileSystem()
+    void test(DirectorySystem &s)
     {
-        ArchiveSystem s;
         auto d = QDir(QFileInfo(__FILE__).dir().absoluteFilePath("archivedir"));
         const auto archivepath = d.absoluteFilePath("archivetest.zip");
 
@@ -49,10 +46,10 @@ private slots:
 
         d = QDir(archivepath);
         QHash<QString, Node> root
-        {
-            {"test.txt", {d.absoluteFilePath("test.txt"), 13}},
-            {"lol", {d.absoluteFilePath("lol"), 16}}
-        };
+            {
+                {"test.txt", {d.absoluteFilePath("test.txt"), 13}},
+                {"lol", {d.absoluteFilePath("lol"), 16}}
+            };
         test(root);
 
         QCOMPARE(f->fileName(0), "lol");
@@ -64,6 +61,20 @@ private slots:
         f = s.open(f.get(), 0);
         QHash<QString, Node> level3 {{"new.txt", {d.absoluteFilePath("lol/tar/new.txt"),16}}};
         test(level3);
+
+    }
+
+private slots:
+    void testArchiveFileSystem()
+    {
+        ArchiveSystem s;
+        test(s);
+    }
+
+    void testHybridFileSystem()
+    {
+        HybridDirSystem s;
+        test(s);
     }
 
 };

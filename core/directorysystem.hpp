@@ -12,6 +12,7 @@ class Directory
 {
 public:
     virtual ~Directory() = default;
+
     virtual QString path() = 0;
     virtual QString name() = 0;
     virtual QUrl url() = 0;
@@ -30,6 +31,8 @@ public:
 class DirectorySystem
 {
 public:
+    virtual ~DirectorySystem() = default;
+
     virtual std::unique_ptr<Directory> open(const QUrl &url) = 0;
     virtual std::unique_ptr<Directory> open(Directory *dir, int child) = 0;
 //    virtual std::unique_ptr<Directory> parent(Directory *dir) = 0;

@@ -5,13 +5,16 @@
 
 #include <QFuture>
 
-class MultiDirSystem : public DirectorySystem
+class FileSystem;
+class ArchiveSystem;
+
+class HybridDirSystem : public DirectorySystem
 {
-    Q_DISABLE_COPY_MOVE(MultiDirSystem)
+    Q_DISABLE_COPY_MOVE(HybridDirSystem)
 
 public:
-    MultiDirSystem();
-    ~MultiDirSystem();
+    HybridDirSystem();
+    ~HybridDirSystem();
 
     // DirectorySystem interface
 public:
@@ -19,8 +22,9 @@ public:
     std::unique_ptr<Directory> open(Directory *dir, int child) override;
 
 private:
-    QVector<DirectorySystem *> m_systems;
-    QHash<Directory*, DirectorySystem *> m_source;
+    std::unique_ptr<FileSystem> m_filesystem;
+    std::unique_ptr<ArchiveSystem> m_archivesystem;
+    QHash<Directory *, DirectorySystem *> m_sources;
 };
 
 #endif // MULTIDIRSYSTEM_HPP

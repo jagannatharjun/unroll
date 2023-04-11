@@ -53,21 +53,17 @@ std::unique_ptr<Directory> HybridDirSystem::open(Directory *dir, int child)
 
 void HybridDirSystem::updatesource(Directory *dir, DirectorySystem *source)
 {
-    if (dir)
-    {
-        QWriteLocker l(&m_lock);
-        m_sources[dir] = source;
-    }
+    assert(dir);
+
+    QWriteLocker l(&m_lock);
+    m_sources[dir] = source;
 }
 
 DirectorySystem *HybridDirSystem::source(Directory *dir)
 {
-    if (dir)
-    {
-        QReadLocker l(&m_lock);
-        return m_sources.value(dir);
-    }
+    assert(dir);
 
-    return nullptr;
+    QReadLocker l(&m_lock);
+    return m_sources.value(dir);
 }
 

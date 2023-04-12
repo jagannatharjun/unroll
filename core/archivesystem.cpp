@@ -182,15 +182,15 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
         if (!name.isEmpty())
         {
             nodepath += QString("/") + name;
-            if (!child && (nodepath == childpath))
-            {
-                child = current;
-            }
 
             const auto size = archive_entry_size(entry);
             auto file = new ArchiveFile(current, name, ArchiveUrl::makeurl(filePath, nodepath), size);
 
             current->children.push_back(file);
+            if (!child && (nodepath == childpath))
+            {
+                child = file;
+            }
         }
 
         archive_read_data_skip(a);

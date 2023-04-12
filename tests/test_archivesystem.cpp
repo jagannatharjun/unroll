@@ -57,11 +57,16 @@ public:
         QHash<QString, Node> level2 {{"tar", {d.absoluteFilePath("lol/tar"), 16}}};
         test(level2);
 
+
         QCOMPARE(f->fileName(0), "tar");
-        f = s.open(f.get(), 0);
         QHash<QString, Node> level3 {{"new.txt", {d.absoluteFilePath("lol/tar/new.txt"),16}}};
+
+        auto old = std::move(f);
+        f = s.open(old->fileUrl(0));
         test(level3);
 
+        f = s.open(old.get(), 0);
+        test(level3);
     }
 
 private slots:

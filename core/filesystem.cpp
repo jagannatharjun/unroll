@@ -37,6 +37,11 @@ public:
 
 std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
 {
+    // check before otherwise toLocalFile returns empty path
+    // and we search current directory
+    if (!url.isLocalFile())
+        return {};
+
     QDir d(url.toLocalFile());
     if (!d.exists())
         return {};

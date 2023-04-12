@@ -13,7 +13,8 @@ namespace
 
 class ArchiveDir;
 
-const QString CHILD_KEY = "child";
+static const QString CHILD_KEY = "child";
+static const QString URL_SCHEME = "archivesystem";
 
 // TODO handle archive urls view URL's query parameter, not pound
 // extend tests
@@ -23,7 +24,7 @@ struct ArchiveUrl
     static ArchiveUrl makeurl(const QString &path, const QString &child)
     {
         QUrl url;
-        url.setScheme("archivesystem");
+        url.setScheme(URL_SCHEME);
         url.setPath(path);
         url.setQuery(QUrlQuery({{CHILD_KEY, child}}));
         return ArchiveUrl {url};
@@ -31,17 +32,17 @@ struct ArchiveUrl
 
     QUrl url;
 
-    QString path()
+    QString filepath() const
     {
         return url.path(QUrl::PrettyDecoded) + child();
     }
 
-    QString child()
+    QString child() const
     {
         return QUrlQuery(url).queryItemValue(CHILD_KEY);
     }
 
-    QString archivepath()
+    QString archivepath() const
     {
         return url.path(QUrl::PrettyDecoded);
     }
@@ -66,7 +67,7 @@ public:
     ArchiveDir *parent() { return parent_; }
 
     QString name() { return name_; }
-    QString path() { return url_.path(); }
+    QString path() { return url_.filepath(); }
     QUrl url() { return url_.url; }
     qint64 size() { return size_; }
 };
@@ -114,7 +115,13 @@ QString pathName(const QString &filePath)
     return d.dirName();
 }
 
-std::unique_ptr<Directory> buildTree(const QString &filePath)
+struct BuildTreeResult
+{
+    std::unique_ptr<ArchiveDir> root;
+    ArchiveNode *child {}; // owned by root
+};
+
+BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
 {
     archive *a = archive_read_new();
     if (!a)
@@ -135,6 +142,7 @@ std::unique_ptr<Directory> buildTree(const QString &filePath)
 
     archive_entry *entry {};
     ArchiveDir *root = new ArchiveDir(nullptr, pathName(filePath), ArchiveUrl::makeurl(filePath, {}), 0);
+    ArchiveNode *child {};
 
     QHash<ArchiveDir *, QHash<QString, ArchiveDir *>> dirMap;
 
@@ -149,7 +157,7 @@ std::unique_ptr<Directory> buildTree(const QString &filePath)
         ArchiveDir *current = root;
         current->size_ += size;
 
-        QString nodepath;
+        QString nodepath; // current nodepath per traversal
 
         for (const auto &dirpart : dirparts)
         {
@@ -166,9 +174,18 @@ std::unique_ptr<Directory> buildTree(const QString &filePath)
             current = next;
         }
 
+        if (!child && (nodepath == childpath))
+        {
+            child = current;
+        }
+
         if (!name.isEmpty())
         {
             nodepath += QString("/") + name;
+            if (!child && (nodepath == childpath))
+            {
+                child = current;
+            }
 
             const auto size = archive_entry_size(entry);
             auto file = new ArchiveFile(current, name, ArchiveUrl::makeurl(filePath, nodepath), size);
@@ -179,7 +196,7 @@ std::unique_ptr<Directory> buildTree(const QString &filePath)
         archive_read_data_skip(a);
     }
 
-    return std::unique_ptr<Directory>(root);
+    return BuildTreeResult {std::unique_ptr<ArchiveDir>(root), child};
 }
 
 
@@ -222,11 +239,27 @@ ArchiveSystem::ArchiveSystem()
 
 std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
 {
-    auto r = buildTree(url.toLocalFile());
-    auto *d = r.get();
+    std::unique_ptr<Directory> root;
+    Directory *result {};
 
+    if (url.isLocalFile())
+    {
+        root = buildTree(url.toLocalFile(), {}).root;
+        result = root.get();
+    }
+    else if (url.scheme() == URL_SCHEME)
+    {
+        const ArchiveUrl archiveurl {url};
+        auto tree = buildTree(archiveurl.archivepath(), archiveurl.child());
+        root = std::move(tree.root);
+        result = tree.child;
+    }
+
+    if (!result) return nullptr;
+
+    assert(root);
     // returned a ref-counted instance so that we can reuse this in open(Directory *) call
-    return std::make_unique<SharedDirectory>(std::move(r), d);
+    return std::make_unique<SharedDirectory>(std::move(root), result);
 }
 
 std::unique_ptr<Directory> ArchiveSystem::open(Directory *dir, int child)

@@ -30,6 +30,11 @@ struct ArchiveUrl
         return ArchiveUrl {url};
     }
 
+    static bool isarchiveurl(const QUrl &url)
+    {
+        return url.scheme() == URL_SCHEME;
+    }
+
     QUrl url;
 
     QString filepath() const
@@ -228,6 +233,35 @@ public:
 #undef SHAREDDIRECTORY_WRAP
 };
 
+bool canopenarchive(const QString &filepath)
+{
+    struct archive *a = archive_read_new();
+    archive_read_support_format_all(a);
+
+    int r = archive_read_open_filename(a, filepath.toStdString().c_str(), 10240);
+    archive_read_free(a);
+
+    return (r == ARCHIVE_OK);
+}
+
+struct GetChildDirResult
+{
+    SharedDirectory *realdir {};
+    ArchiveDir *child {};
+};
+
+GetChildDirResult getdirchild(Directory *dir, int child)
+{
+    auto rootwrapper = dynamic_cast<SharedDirectory *> (dir);
+    if (!rootwrapper) return {};
+
+    auto thisroot = dynamic_cast<ArchiveDir *>( rootwrapper->d );
+    if (!thisroot) return {};
+
+    auto next = dynamic_cast<ArchiveDir *>( thisroot->children.at(child) );
+    return {rootwrapper, next};
+}
+
 } // namespace
 
 
@@ -235,6 +269,27 @@ public:
 ArchiveSystem::ArchiveSystem()
 {
 
+}
+
+bool ArchiveSystem::canopen(const QUrl &url)
+{
+    if (url.isLocalFile())
+    {
+        return canopenarchive(url.toLocalFile());
+    }
+
+    if (ArchiveUrl::isarchiveurl(url))
+    {
+        // TODO handle child path? what if archive is password protected
+        return canopenarchive(ArchiveUrl {url}.archivepath());
+    }
+
+    return false;
+}
+
+bool ArchiveSystem::canopen(Directory *dir, int child)
+{
+    return getdirchild(dir, child).child != nullptr;
 }
 
 std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
@@ -247,7 +302,7 @@ std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
         root = buildTree(url.toLocalFile(), {}).root;
         result = root.get();
     }
-    else if (url.scheme() == URL_SCHEME)
+    else if (ArchiveUrl::isarchiveurl(url))
     {
         const ArchiveUrl archiveurl {url};
         auto tree = buildTree(archiveurl.archivepath(), archiveurl.child());
@@ -264,14 +319,8 @@ std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
 
 std::unique_ptr<Directory> ArchiveSystem::open(Directory *dir, int child)
 {
-    auto rootwrapper = dynamic_cast<SharedDirectory *> (dir);
-    if (!rootwrapper) return nullptr;
+    auto r = getdirchild(dir, child);
+    if (!r.child) return nullptr;
 
-    auto root = dynamic_cast<ArchiveDir *>( rootwrapper->d );
-    if (!root) return nullptr;
-
-    auto next = dynamic_cast<ArchiveDir *>( root->children.at(child) );
-    if (!next) return nullptr;
-
-    return std::make_unique<SharedDirectory>(rootwrapper->r, next);
+    return std::make_unique<SharedDirectory>(r.realdir->r, r.child);
 }

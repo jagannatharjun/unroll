@@ -24,12 +24,14 @@ void DirectorySystemModel::open(const QUrl &url)
     emit isLoadingChanged();
 }
 
-void DirectorySystemModel::open(int index)
+void DirectorySystemModel::openindex(int index)
 {
     beginResetModel();
+    assert(m_dir);
+    auto parent = m_dir;
     m_dir.reset();
 
-    m_watcher.setFuture(m_loader.open(m_dir, index));
+    m_watcher.setFuture(m_loader.open(parent, index));
     emit isLoadingChanged();
 }
 
@@ -60,6 +62,8 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
         return m_dir->filePath(r);
     case SizeRole:
         return m_dir->fileSize(r);
+    case IsDirRole:
+        return m_dir->isDir(r);
     }
 
     return {};
@@ -71,5 +75,6 @@ QHash<int, QByteArray> DirectorySystemModel::roleNames() const
         {NameRole, "name"},
         {PathRole, "path"},
         {SizeRole, "size"},
+        {IsDirRole, "isdir"},
     };
 }

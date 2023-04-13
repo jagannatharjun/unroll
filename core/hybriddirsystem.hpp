@@ -19,6 +19,9 @@ public:
 
     // DirectorySystem interface
 public:
+    bool canopen(const QUrl &url) override;
+    bool canopen(Directory  *dir, int child) override;
+
     std::unique_ptr<Directory> open(const QUrl &url) override;
     std::unique_ptr<Directory> open(Directory *dir, int child) override;
 
@@ -28,6 +31,7 @@ private:
 
     std::unique_ptr<FileSystem> m_filesystem;
     std::unique_ptr<ArchiveSystem> m_archivesystem;
+    QVector<DirectorySystem *> m_systems;
 
     QReadWriteLock m_lock;
     QHash<Directory *, DirectorySystem *> m_sources;

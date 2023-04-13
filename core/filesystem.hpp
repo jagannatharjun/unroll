@@ -9,6 +9,10 @@ class QUrl;
 class FileSystem : public DirectorySystem
 {
 public:
+
+    bool canopen(const QUrl &url) override;
+    bool canopen(Directory  *dir, int child) override;
+
     std::unique_ptr<Directory> open(const QUrl &url) override;
     std::unique_ptr<Directory> open(Directory *dir, int child) override;
 };

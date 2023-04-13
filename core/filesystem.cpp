@@ -35,6 +35,16 @@ public:
 
 }
 
+bool FileSystem::canopen(const QUrl &url)
+{
+    return url.isLocalFile() && QDir(url.toLocalFile()).exists();
+}
+
+bool FileSystem::canopen(Directory *dir, int child)
+{
+    return canopen(dir->fileUrl(child));
+}
+
 std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
 {
     // check before otherwise toLocalFile returns empty path

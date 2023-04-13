@@ -6,7 +6,7 @@
 #include <QFileInfo>
 
 HybridDirSystem::HybridDirSystem()
-    : m_filesystem (new FileSystem), m_archivesystem (new ArchiveSystem)
+    : m_filesystem (new FileSystem), m_archivesystem (new ArchiveSystem) , m_systems { m_filesystem.get(), m_archivesystem.get() }
 {
 }
 
@@ -15,6 +15,28 @@ HybridDirSystem::~HybridDirSystem()
 
 }
 
+bool HybridDirSystem::canopen(const QUrl &url)
+{
+    return m_filesystem->canopen(url) || m_archivesystem->canopen(url);
+}
+
+bool HybridDirSystem::canopen(Directory *dir, int child)
+{
+    DirectorySystem *sourcesystem = source(dir);
+    if (sourcesystem)
+    {
+        // only return is source can open this, otherwise test with other available systems
+        if (sourcesystem->canopen(dir, child)) return true;
+    }
+
+    for (auto system : qAsConst(m_systems))
+    {
+        if (system == sourcesystem) continue; // don't double check since this operation can be expensive
+        if (system->canopen(dir->fileUrl(child))) return true;
+    }
+
+    return false;
+}
 
 std::unique_ptr<Directory> HybridDirSystem::open(const QUrl &url)
 {

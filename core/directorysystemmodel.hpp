@@ -15,7 +15,8 @@ public:
     {
         NameRole = Qt::UserRole + 1,
         PathRole,
-        SizeRole
+        SizeRole,
+        IsDirRole
     };
 
     explicit DirectorySystemModel(QObject *parent = nullptr);
@@ -30,7 +31,7 @@ public:
 
 public slots:
     void open(const QUrl &url);
-    void open(int index);
+    void openindex(int index);
 
 signals:
     void isLoadingChanged();

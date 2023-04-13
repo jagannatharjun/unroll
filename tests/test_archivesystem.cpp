@@ -21,8 +21,10 @@ public:
     {
         auto d = QDir(QFileInfo(__FILE__).dir().absoluteFilePath("archivedir"));
         const auto archivepath = d.absoluteFilePath("archivetest.zip");
+        const auto archiveurl = QUrl::fromLocalFile(archivepath);
 
-        auto f = s.open(QUrl::fromLocalFile(archivepath));
+        QVERIFY(s.canopen(archiveurl));
+        auto f = s.open(archiveurl);
 
         QCOMPARE(f->name(), "archivetest.zip");
 
@@ -81,7 +83,6 @@ private slots:
         HybridDirSystem s;
         test(s);
     }
-
 };
 
 

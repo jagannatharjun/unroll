@@ -1,5 +1,6 @@
 
 set(SOURCES
+        viewcontroller.hpp viewcontroller.cpp
         main.cpp
 	qml.qrc
 )

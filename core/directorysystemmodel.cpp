@@ -1,46 +1,27 @@
 #include "directorysystemmodel.hpp"
-#include "hybriddirsystem.hpp"
+
+#include "directorysystem.hpp"
 
 DirectorySystemModel::DirectorySystemModel(QObject *parent)
     : QAbstractListModel{parent}
-    , m_loader { std::make_unique<HybridDirSystem>() }
 {
-    using Watcher = decltype(m_watcher);
-    connect(&m_watcher, &Watcher::finished
-            , this, &DirectorySystemModel::handleLoadingFinished);
 }
 
-bool DirectorySystemModel::isLoading() const
+DirectorySystemModel::~DirectorySystemModel()
 {
-    return m_watcher.isRunning();
+
 }
 
-void DirectorySystemModel::open(const QUrl &url)
+void DirectorySystemModel::setDirectory(std::shared_ptr<Directory> dir)
 {
     beginResetModel();
-    m_dir.reset();
-
-    m_watcher.setFuture(m_loader.open(url));
-    emit isLoadingChanged();
-}
-
-void DirectorySystemModel::openindex(int index)
-{
-    beginResetModel();
-    assert(m_dir);
-    auto parent = m_dir;
-    m_dir.reset();
-
-    m_watcher.setFuture(m_loader.open(parent, index));
-    emit isLoadingChanged();
-}
-
-void DirectorySystemModel::handleLoadingFinished()
-{
-    m_dir = m_watcher.result();
+    m_dir = dir;
     endResetModel();
+}
 
-    emit isLoadingChanged();
+std::shared_ptr<Directory> DirectorySystemModel::directory()
+{
+    return m_dir;
 }
 
 int DirectorySystemModel::rowCount(const QModelIndex &) const

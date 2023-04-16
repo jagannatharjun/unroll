@@ -1,7 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-
-#include "../core/directorysystemmodel.hpp"
+#include <QAbstractItemModel>
+#include "viewcontroller.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -10,7 +10,8 @@ int main(int argc, char *argv[])
 #endif
     QGuiApplication app(argc, argv);
 
-    qmlRegisterType<DirectorySystemModel>("filebrowser", 0, 1, "DirectorySystemModel");
+    qRegisterMetaType<QAbstractItemModel *>();
+    qmlRegisterType<ViewController>("filebrowser", 0, 1, "ViewController");
 
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/main.qml"));

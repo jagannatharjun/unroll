@@ -10,24 +10,29 @@ Window {
     visible: true
     title: qsTr("Hello World")
 
+    ViewController {
+        id: controller
+
+        Component.onCompleted: {
+            controller.openUrl("file:///e:/");
+        }
+    }
+
     ListView {
         anchors.fill: parent
 
-        model: DirectorySystemModel {
-            id: directoryModel
-        }
+        model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
 
         delegate: ItemDelegate {
             text: model.name
-            onClicked: {
-                // how to handle archive?
-//                if (model.isdir)
-                    directoryModel.openindex(index)
-            }
-        }
 
-        Component.onCompleted: {
-            directoryModel.open("file:///e:/")
+            onClicked: {
+                controller.clicked(index)
+            }
+
+            onDoubleClicked: {
+                controller.doubleClicked(index)
+            }
         }
     }
 }

@@ -2,14 +2,13 @@
 #define DIRECTORYSYSTEMMODEL_HPP
 
 #include <QAbstractListModel>
-#include <QFutureWatcher>
+#include <memory>
 
-#include "asyncdirsystem.hpp"
+class Directory;
 
 class DirectorySystemModel : public QAbstractListModel
 {
     Q_OBJECT
-    Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
 public:
     enum Roles
     {
@@ -20,8 +19,10 @@ public:
     };
 
     explicit DirectorySystemModel(QObject *parent = nullptr);
+    ~DirectorySystemModel();
 
-    bool isLoading() const;
+    void setDirectory(std::shared_ptr<Directory> dir);
+    std::shared_ptr<Directory> directory();
 
     // QAbstractItemModel interface
 public:
@@ -29,22 +30,8 @@ public:
     QVariant data(const QModelIndex &index, int role) const;
     QHash<int, QByteArray> roleNames() const;
 
-public slots:
-    void open(const QUrl &url);
-    void openindex(int index);
-
-signals:
-    void isLoadingChanged();
-
-private slots:
-    void handleLoadingFinished();
-
 private:
-    using DirResult = std::shared_ptr<Directory>;
-
-    AsyncDirSystem m_loader;
-    DirResult m_dir;
-    QFutureWatcher<DirResult> m_watcher;
+    std::shared_ptr<Directory> m_dir;
 };
 
 #endif // DIRECTORYSYSTEMMODEL_HPP

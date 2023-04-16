@@ -1,11 +1,10 @@
 #include <QObject>
 #include <QTest>
-#include <QSignalSpy>
 
 #include "../core/directorysystemmodel.hpp"
+#include "../core/hybriddirsystem.hpp"
 #include "qtestcase.h"
 
-#include <QJsonValue>
 
 class TestDirectorySystemModel : public QObject
 {
@@ -23,12 +22,10 @@ private slots:
         const auto archivepath = root.absoluteFilePath("archivedir");
 
         DirectorySystemModel m;
-        QSignalSpy s(&m, &DirectorySystemModel::isLoadingChanged);
+        HybridDirSystem system;
 
-        QCOMPARE(m.isLoading(), false);
-        m.open(QUrl::fromLocalFile(archivepath));
-        QVERIFY(s.wait()); // wait till loading finished
 
+        m.setDirectory(system.open(QUrl::fromLocalFile(archivepath)));
         QCOMPARE(m.rowCount(), 3);
 
         // name : {path, size}

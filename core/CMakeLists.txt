@@ -2,7 +2,6 @@
 add_library(core directorysystem.hpp
     filesystem.hpp filesystem.cpp
     archivesystem.hpp archivesystem.cpp
-    asyncdirsystem.hpp asyncdirsystem.cpp
     hybriddirsystem.hpp hybriddirsystem.cpp
     directorysystemmodel.hpp directorysystemmodel.cpp)
 

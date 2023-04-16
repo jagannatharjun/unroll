@@ -18,12 +18,14 @@ class ViewController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QAbstractItemModel* model READ model CONSTANT)
+    Q_PROPERTY(QString url READ url NOTIFY urlChanged)
 
 public:
     ViewController(QObject *parent = nullptr);
     ~ViewController();
 
     QAbstractItemModel *model();
+    QString url() const;
 
 
 public slots:
@@ -31,6 +33,9 @@ public slots:
 
     void clicked(int index);
     void doubleClicked(int index);
+
+signals:
+    void urlChanged();
 
 private slots:
     void updateModel();

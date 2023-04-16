@@ -54,6 +54,11 @@ QAbstractItemModel *ViewController::model()
     return m_model.get();
 }
 
+QString ViewController::url() const
+{
+    return m_model->directory() ? m_model->directory()->url().toString() : QString {};
+}
+
 void ViewController::openUrl(const QUrl &url)
 {
     m_urlWatcher.setFuture(open_async(m_system, url));
@@ -96,6 +101,9 @@ void ViewController::updateModel()
 {
     auto s = dynamic_cast<decltype (m_urlWatcher) *>(sender());
     if (s && s->result())
+    {
         m_model->setDirectory(s->result());
+        emit urlChanged();
+    }
 }
 

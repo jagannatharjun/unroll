@@ -61,6 +61,10 @@ Window {
         delegate: ItemDelegate {
             text: model.name
 
+            width: view.width
+
+            highlighted: view.currentIndex == index
+
             onClicked: {
                 view.currentIndex = index
 

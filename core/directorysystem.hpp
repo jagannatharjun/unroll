@@ -6,9 +6,6 @@
 #include <QUrl>
 
 
-// TODO: - better back system
-// and fileUrl
-
 // ALL functions must be thread-safe
 // ALL functions of interface can be called from any number of threads
 
@@ -21,8 +18,10 @@ public:
     virtual QString name() = 0;
     virtual QUrl url() = 0;
 
-    virtual qint64 size() { return -1; } // it's optional
+    // this is optional
+    virtual qint64 size() { return -1; }
 
+    // children property
     virtual int fileCount() = 0;
     virtual QString fileName(int i) = 0;
     virtual QString filePath(int i) = 0;

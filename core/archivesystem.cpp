@@ -4,6 +4,7 @@
 #include <QVector>
 #include <QUrl>
 #include <QUrlQuery>
+#include <QTemporaryFile>
 
 #include <archive.h>
 #include <archive_entry.h>
@@ -126,19 +127,21 @@ struct BuildTreeResult
     ArchiveNode *child {}; // owned by root
 };
 
+
+
 BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
 {
-    archive *a = archive_read_new();
+    std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
     if (!a)
     {
         qWarning("failed archive_read_new");
         return {};
     }
 
-    archive_read_support_filter_all(a);
-    archive_read_support_format_all(a);
+    archive_read_support_filter_all(a.get());
+    archive_read_support_format_all(a.get());
 
-    const int r = archive_read_open_filename_w(a, filePath.toStdWString().c_str(), 10240);
+    const int r = archive_read_open_filename_w(a.get(), filePath.toStdWString().c_str(), 10240);
     if (r != ARCHIVE_OK)
     {
         qWarning("failed to archive read open filename %d", r);
@@ -151,7 +154,7 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
 
     QHash<ArchiveDir *, QHash<QString, ArchiveDir *>> dirMap;
 
-    while (archive_read_next_header(a, &entry) == ARCHIVE_OK)
+    while (archive_read_next_header(a.get(), &entry) == ARCHIVE_OK)
     {
         const QString path = archive_entry_pathname(entry);
         const auto size = archive_entry_size(entry);
@@ -198,10 +201,54 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
             }
         }
 
-        archive_read_data_skip(a);
+        archive_read_data_skip(a.get());
     }
 
     return BuildTreeResult {std::unique_ptr<ArchiveDir>(root), child};
+}
+
+
+void extractFile(const QString &filePath, const QString &childpath, QIODevice *output)
+{
+    std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
+    if (!a)
+    {
+        qWarning("failed archive_read_new");
+        return ;
+    }
+
+    archive_read_support_filter_all(a.get());
+    archive_read_support_format_all(a.get());
+
+    const int r = archive_read_open_filename_w(a.get(), filePath.toStdWString().c_str(), 10240);
+    if (r != ARCHIVE_OK)
+    {
+        qWarning("failed to archive read open filename %d", r);
+        return ;
+    }
+
+    archive_entry *entry {};
+    while (archive_read_next_header(a.get(), &entry) == ARCHIVE_OK)
+    {
+        // child always starts with '/'
+        const QString path = QString('/') + archive_entry_pathname(entry);
+        if (path == childpath)
+        {
+            const size_t bufsize = 1024;
+            std::unique_ptr<char[]> buf(new char[bufsize]);
+            la_ssize_t readsize = 0;
+            while ((readsize = archive_read_data(a.get(), buf.get(), bufsize)) != 0)
+            {
+                output->write(buf.get(), readsize);
+            }
+
+            break;
+        }
+        else
+        {
+            archive_read_data_skip(a.get());
+        }
+    }
 }
 
 
@@ -261,6 +308,18 @@ GetChildDirResult getdirchild(Directory *dir, int child)
     auto next = dynamic_cast<ArchiveDir *>( thisroot->children.at(child) );
     return {rootwrapper, next};
 }
+
+class ArchiveTempIOSource : public IOSource
+{
+public:
+    QTemporaryFile file;
+
+    QString readPath() override
+    {
+        return file.fileName();
+    }
+
+};
 
 } // namespace
 
@@ -323,4 +382,26 @@ std::unique_ptr<Directory> ArchiveSystem::open(Directory *dir, int child)
     if (!r.child) return nullptr;
 
     return std::make_unique<SharedDirectory>(r.realdir->r, r.child);
+}
+
+std::unique_ptr<IOSource> ArchiveSystem::iosource(Directory *dir, int child)
+{
+    auto result = std::make_unique<ArchiveTempIOSource>();
+
+    const ArchiveUrl url{dir->fileUrl(child)};
+    const QDir tempdir(QDir::tempPath());
+    const QString templateName = "XXXXXXXXXXXXXXXXXXXX." + QFileInfo(url.child()).completeSuffix();
+
+    result->file.setFileTemplate(tempdir.absoluteFilePath(templateName));
+    if (!result->file.open())
+    {
+        throw std::runtime_error {"failed to open file"};
+    }
+
+    extractFile(url.archivepath(), url.child(), &result->file);
+
+    // this is necessary to flush the content, otherwise reader may get invalid content
+    result->file.close();
+
+    return result;
 }

@@ -33,6 +33,19 @@ public:
     bool isDir(int i) override { return files[i].isdir; }
 };
 
+class RegularIOSource : public IOSource
+{
+public:
+    QString filePath_;
+
+    RegularIOSource(const QString &filePath) : filePath_ {filePath} {}
+
+    QString readPath() override
+    {
+        return filePath_;
+    }
+};
+
 }
 
 bool FileSystem::canopen(const QUrl &url)
@@ -76,5 +89,10 @@ std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
 std::unique_ptr<Directory> FileSystem::open(Directory *dir, int child)
 {
     return open(dir->filePath(child));
+}
+
+std::unique_ptr<IOSource> FileSystem::iosource(Directory *dir, int child)
+{
+    return std::make_unique<RegularIOSource>(dir->fileName(child));
 }
 

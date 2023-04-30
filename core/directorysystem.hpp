@@ -9,6 +9,7 @@
 // ALL functions must be thread-safe
 // ALL functions of interface can be called from any number of threads
 
+// Directory is only observer, no opercation can be applied
 class Directory
 {
 public:
@@ -31,6 +32,16 @@ public:
 };
 
 
+
+class IOSource
+{
+public:
+    // All return values are only valid till the assosicated IOSource is alive
+    virtual QString readPath() = 0;
+};
+
+
+
 class DirectorySystem
 {
 public:
@@ -41,7 +52,9 @@ public:
 
     virtual std::unique_ptr<Directory> open(const QUrl &url) = 0;
     virtual std::unique_ptr<Directory> open(Directory *dir, int child) = 0;
-//    virtual std::unique_ptr<Directory> parent(Directory *dir) = 0;
+    //    virtual std::unique_ptr<Directory> parent(Directory *dir) = 0;
+
+    virtual std::unique_ptr<IOSource> iosource(Directory *dir, int child) = 0;
 };
 
 

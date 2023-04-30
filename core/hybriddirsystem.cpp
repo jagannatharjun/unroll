@@ -73,6 +73,16 @@ std::unique_ptr<Directory> HybridDirSystem::open(Directory *dir, int child)
     return result;
 }
 
+std::unique_ptr<IOSource> HybridDirSystem::iosource(Directory *dir, int child)
+{
+    if (auto system = source(dir))
+    {
+        return system->iosource(dir, child);
+    }
+
+    return nullptr;
+}
+
 void HybridDirSystem::updatesource(Directory *dir, DirectorySystem *source)
 {
     assert(dir);

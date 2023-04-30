@@ -28,7 +28,7 @@ public:
 
         QCOMPARE(f->name(), "archivetest.zip");
 
-        struct Node { QString path; qint64 size; };
+        struct Node { QString path; qint64 size; QByteArray content {}; };
 
         const auto test = [&](QHash<QString, Node> files)
         {
@@ -37,8 +37,19 @@ public:
 
             for (int i = 0; i < f->fileCount(); ++i) {
                 QVERIFY(files.contains(f->fileName(i)));
-                QCOMPARE(f->fileSize(i), files[f->fileName(i)].size);
-                QCOMPARE(f->filePath(i), files[f->fileName(i)].path);
+
+                const auto &node = files[f->fileName(i)];
+                QCOMPARE(f->fileSize(i), node.size);
+                QCOMPARE(f->filePath(i), node.path);
+                if (!node.content.isNull())
+                {
+                    auto iosource = s.iosource(f.get(), i);
+                    QFile readsource(iosource->readPath());
+                    QVERIFY(readsource.open(QIODevice::ReadOnly));
+
+                    const QByteArray content = readsource.readAll();
+                    QCOMPARE(content, node.content);
+                }
 
                 // remove the node, so duplicate can be caught
                 files.remove(f->fileName(i));
@@ -61,7 +72,7 @@ public:
 
 
         QCOMPARE(f->fileName(0), "tar");
-        QHash<QString, Node> level3 {{"new.txt", {d.absoluteFilePath("lol/tar/new.txt"),16}}};
+        QHash<QString, Node> level3 {{"new.txt", {d.absoluteFilePath("lol/tar/new.txt"),16, "lolpoisonutrypop"}}};
 
         auto old = std::move(f);
         f = s.open(old->fileUrl(0));

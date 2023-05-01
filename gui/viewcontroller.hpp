@@ -46,10 +46,13 @@ private:
 
     std::shared_ptr<Directory> validParent(const int index);
 
-    QThreadPool m_pool;
     std::shared_ptr<DirectorySystem> m_system;
     std::unique_ptr<DirectorySystemModel> m_model;
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;
+
+    // place this at end so it get destroyed first, this
+    // make sure any pending operation don't use invalid resource
+    QThreadPool m_pool;
 };
 
 #endif // VIEWCONTROLLER_HPP

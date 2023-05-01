@@ -6,35 +6,6 @@
 
 #include <QtConcurrent/QtConcurrent>
 
-namespace
-{
-
-QFuture<std::shared_ptr<Directory>> open_async(std::shared_ptr<DirectorySystem> system, const QUrl &url)
-{
-    return QtConcurrent::run([system, url]() -> std::shared_ptr<Directory>
-    {
-        return system->open(url);
-    });
-}
-
-QFuture<std::shared_ptr<Directory>> open_async(std::shared_ptr<DirectorySystem> system, std::shared_ptr<Directory> dir, int child)
-{
-    return QtConcurrent::run([system, dir, child]() -> std::shared_ptr<Directory>
-    {
-        return system->open(dir.get(), child);
-    });
-}
-
-QFuture<std::shared_ptr<Directory>> doubleClickAction_async(std::shared_ptr<DirectorySystem> system, std::shared_ptr<Directory> dir, int child)
-{
-    return QtConcurrent::run([system, dir, child]() -> std::shared_ptr<Directory>
-    {
-        std::shared_ptr<Directory> result = system->open(dir.get(), child);
-        return result;
-    });
-}
-
-}
 
 ViewController::ViewController(QObject *parent)
     : QObject {parent}
@@ -61,7 +32,30 @@ QString ViewController::url() const
 
 void ViewController::openUrl(const QUrl &url)
 {
-    m_urlWatcher.setFuture(open_async(m_system, url));
+    const auto open = [](
+            std::shared_ptr<DirectorySystem> system,
+            const QUrl &url) -> std::shared_ptr<Directory>
+    {
+        return system->open(url);
+    };
+
+    m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, url));
+}
+
+void ViewController::openIndex(const int index)
+{
+    const auto open = [](
+            std::shared_ptr<DirectorySystem> system,
+            std::shared_ptr<Directory> dir,
+            int child) -> std::shared_ptr<Directory>
+    {
+        return system->open(dir.get(), child);
+    };
+
+    if (auto parent = validParent(index))
+    {
+        m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, parent, index));
+    }
 }
 
 void ViewController::clicked(int index)
@@ -71,17 +65,17 @@ void ViewController::clicked(int index)
 
 void ViewController::doubleClicked(int index)
 {
-    if (auto parent = validParent(index))
+    const auto action = [](
+              std::shared_ptr<DirectorySystem> system
+            , std::shared_ptr<Directory> dir
+            , int child) -> std::shared_ptr<Directory>
     {
-        m_urlWatcher.setFuture(doubleClickAction_async(m_system, parent, index));
-    }
-}
+        return system->open(dir.get(), child);
+    };
 
-void ViewController::openIndex(const int index)
-{
     if (auto parent = validParent(index))
     {
-        m_urlWatcher.setFuture(open_async(m_system, parent, index));
+        m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, action, m_system, parent, index));
     }
 }
 

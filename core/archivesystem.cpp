@@ -114,6 +114,50 @@ public:
     qint64 fileSize(int i) override { return children[i]->size(); }
 };
 
+/*
+ * Used to keep a reference true reference to root when returing child as parse result
+*/
+class SharedDirectory : public Directory
+{
+public:
+    std::shared_ptr<Directory> r;
+    Directory *d;
+
+    SharedDirectory(std::shared_ptr<Directory> r, Directory *d) : r {r}, d {d} {}
+
+#define SHAREDDIRECTORY_WRAP(type, name) type name () override { return d->name (); }
+
+    SHAREDDIRECTORY_WRAP(QString, path)
+    SHAREDDIRECTORY_WRAP(QString, name)
+    SHAREDDIRECTORY_WRAP(QUrl, url)
+    SHAREDDIRECTORY_WRAP(qint64, size)
+    SHAREDDIRECTORY_WRAP(int, fileCount)
+
+#undef SHAREDDIRECTORY_WRAP
+#define SHAREDDIRECTORY_WRAP(type, name) type name (int i) override { return d->name (i); }
+
+    SHAREDDIRECTORY_WRAP(QString, fileName)
+    SHAREDDIRECTORY_WRAP(QString, filePath)
+    SHAREDDIRECTORY_WRAP(QUrl, fileUrl)
+    SHAREDDIRECTORY_WRAP(qint64, fileSize)
+    SHAREDDIRECTORY_WRAP(bool, isDir)
+
+#undef SHAREDDIRECTORY_WRAP
+};
+
+
+class ArchiveTempIOSource : public IOSource
+{
+public:
+    QTemporaryFile file;
+
+    QString readPath() override
+    {
+        return file.fileName();
+    }
+
+};
+
 
 QString pathName(const QString &filePath)
 {
@@ -121,12 +165,12 @@ QString pathName(const QString &filePath)
     return d.dirName();
 }
 
+
 struct BuildTreeResult
 {
     std::unique_ptr<ArchiveDir> root;
     ArchiveNode *child {}; // owned by root
 };
-
 
 
 BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
@@ -252,34 +296,6 @@ void extractFile(const QString &filePath, const QString &childpath, QIODevice *o
 }
 
 
-class SharedDirectory : public Directory
-{
-public:
-    std::shared_ptr<Directory> r;
-    Directory *d;
-
-    SharedDirectory(std::shared_ptr<Directory> r, Directory *d) : r {r}, d {d} {}
-
-#define SHAREDDIRECTORY_WRAP(type, name) type name () override { return d->name (); }
-
-    SHAREDDIRECTORY_WRAP(QString, path)
-    SHAREDDIRECTORY_WRAP(QString, name)
-    SHAREDDIRECTORY_WRAP(QUrl, url)
-    SHAREDDIRECTORY_WRAP(qint64, size)
-    SHAREDDIRECTORY_WRAP(int, fileCount)
-
-#undef SHAREDDIRECTORY_WRAP
-#define SHAREDDIRECTORY_WRAP(type, name) type name (int i) override { return d->name (i); }
-
-    SHAREDDIRECTORY_WRAP(QString, fileName)
-    SHAREDDIRECTORY_WRAP(QString, filePath)
-    SHAREDDIRECTORY_WRAP(QUrl, fileUrl)
-    SHAREDDIRECTORY_WRAP(qint64, fileSize)
-    SHAREDDIRECTORY_WRAP(bool, isDir)
-
-#undef SHAREDDIRECTORY_WRAP
-};
-
 bool canopenarchive(const QString &filepath)
 {
     struct archive *a = archive_read_new();
@@ -308,18 +324,6 @@ GetChildDirResult getdirchild(Directory *dir, int child)
     auto next = dynamic_cast<ArchiveDir *>( thisroot->children.at(child) );
     return {rootwrapper, next};
 }
-
-class ArchiveTempIOSource : public IOSource
-{
-public:
-    QTemporaryFile file;
-
-    QString readPath() override
-    {
-        return file.fileName();
-    }
-
-};
 
 } // namespace
 
@@ -395,7 +399,9 @@ std::unique_ptr<IOSource> ArchiveSystem::iosource(Directory *dir, int child)
     result->file.setFileTemplate(tempdir.absoluteFilePath(templateName));
     if (!result->file.open())
     {
-        throw std::runtime_error {"failed to open file"};
+        // TODO: error handling
+        qWarning("failed to open temporary file");
+        return nullptr;
     }
 
     extractFile(url.archivepath(), url.child(), &result->file);

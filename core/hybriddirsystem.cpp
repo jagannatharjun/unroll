@@ -66,7 +66,6 @@ std::unique_ptr<Directory> HybridDirSystem::open(Directory *dir, int child)
 
     if (!result) // retry with child url
     {
-        qWarning("failed to get value from source trying open('%s')", qPrintable(dir->fileUrl(child).toString()));
         result = open(dir->fileUrl(child));
     }
 

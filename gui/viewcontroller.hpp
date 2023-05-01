@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QFutureWatcher>
 #include <QAbstractItemModel>
+#include <QThreadPool>
 
 class QAbstractItemModel;
 class DirectorySystemModel;
@@ -45,6 +46,7 @@ private:
 
     std::shared_ptr<Directory> validParent(const int index);
 
+    QThreadPool m_pool;
     std::shared_ptr<DirectorySystem> m_system;
     std::unique_ptr<DirectorySystemModel> m_model;
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;

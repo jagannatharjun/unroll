@@ -36,6 +36,8 @@ public:
 class IOSource
 {
 public:
+    virtual ~IOSource() = default;
+
     // All return values are only valid till the assosicated IOSource is alive
     virtual QString readPath() = 0;
 };

@@ -1,0 +1,13 @@
+CORE:
+1. Open archives inside archive
+2. Password handling
+3. Operation progress
+4. report change in directories
+
+
+GUI:
+1. File Icons
+2. File Preview
+3. Error Handling
+4. Sorting
+5. Table View

@@ -78,6 +78,7 @@ public:
     qint64 size() { return size_; }
 };
 
+
 class ArchiveFile : public ArchiveNode
 {
 public:
@@ -298,11 +299,10 @@ void extractFile(const QString &filePath, const QString &childpath, QIODevice *o
 
 bool canopenarchive(const QString &filepath)
 {
-    struct archive *a = archive_read_new();
-    archive_read_support_format_all(a);
+    std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
+    archive_read_support_format_all(a.get());
 
-    int r = archive_read_open_filename(a, filepath.toStdString().c_str(), 10240);
-    archive_read_free(a);
+    int r = archive_read_open_filename(a.get(), filepath.toStdString().c_str(), 10240);
 
     return (r == ARCHIVE_OK);
 }

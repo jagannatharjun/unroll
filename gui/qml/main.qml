@@ -1,6 +1,8 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Dialogs
+import Qt.labs.platform
 
 import filebrowser 0.1
 import "preview" as Preview
@@ -31,6 +33,7 @@ Window {
         controller.openUrl(url)
     }
 
+
     ViewController {
         id: controller
 
@@ -41,7 +44,6 @@ Window {
         }
 
         onShowPreview: function (data) {
-            print("readpath", data.readPath())
             previewloader.setSource("qrc:/preview/ImagePreview.qml", {"previewdata": data})
         }
 
@@ -56,8 +58,27 @@ Window {
         onClicked: root.back()
     }
 
+    FolderDialog {
+        id: folderDialog
+
+        onAccepted: {
+            push(folderDialog.folder)
+        }
+    }
+
     SplitView {
         anchors.fill: parent
+
+        focus: true
+
+        Keys.priority: Keys.AfterItem
+        Keys.onPressed: (event) => {
+            if (event.key === Qt.Key_O && (event.modifiers & Qt.ControlModifier)) {
+                folderDialog.open()
+            } else if (event.key === Qt.Key_Back || event.key === Qt.Key_Backspace) {
+                back()
+            }
+        }
 
         ListView {
             id: view
@@ -67,31 +88,53 @@ Window {
 
             boundsBehavior: Flickable.StopAtBounds
 
+            focus: true
+            keyNavigationEnabled: true
+
             model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
 
             delegate: ItemDelegate {
                 text: model.name
 
+                focus: true
+
                 width: view.width
 
                 highlighted: view.currentIndex == index
 
-                onClicked: {
-                    view.currentIndex = index
+                onActiveFocusChanged: {
+                    if (!activeFocus)
+                        return
 
-                    controller.clicked(index)
+                    view._makeCurrentItem(index)
+                }
+
+                onClicked: {
+                    view._makeCurrentItem(index)
                 }
 
                 onDoubleClicked: {
                     controller.doubleClicked(index)
                 }
+
+                Keys.onPressed: (event) =>   {
+                    if (event.key === Qt.Key_Return)
+                        controller.doubleClicked(index)
+                }
+            }
+
+            function _makeCurrentItem(index) {
+                view.currentIndex = index
+                view.forceActiveFocus(Qt.MouseFocusReason)
+
+                controller.clicked(index)
             }
         }
 
         Loader {
             id: previewloader
 
-            SplitView.preferredWidth: root.width / 3
+            SplitView.preferredWidth: root.width / 2
             SplitView.fillHeight: true
 
             asynchronous: true

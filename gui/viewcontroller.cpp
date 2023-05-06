@@ -77,6 +77,8 @@ void ViewController::clicked(int index)
         return system->iosource(dir.get(), child);
     };
 
+
+
     if (auto parent = validParent(index))
     {
         m_iosourceWatcher.setFuture(QtConcurrent::run(&m_pool, getiosource, m_system, parent, index));

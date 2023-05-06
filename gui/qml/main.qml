@@ -44,6 +44,7 @@ Window {
         }
 
         onShowPreview: function (data) {
+            print(data.fileType())
             previewloader.setSource("qrc:/preview/ImagePreview.qml", {"previewdata": data})
         }
 

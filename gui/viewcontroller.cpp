@@ -6,6 +6,7 @@
 #include "../core/filetype.hpp"
 
 #include <QtConcurrent/QtConcurrent>
+#include <QMimeData>
 
 
 ViewController::ViewController(QObject *parent)
@@ -14,7 +15,7 @@ ViewController::ViewController(QObject *parent)
     , m_model { std::make_unique<DirectorySystemModel>()}
 {
     connect(&m_urlWatcher, &QFutureWatcherBase::finished, this, &ViewController::updateModel);
-    connect(&m_iosourceWatcher, &QFutureWatcherBase::finished, this, &ViewController::updatePreview);
+    connect(&m_previewWatcher, &QFutureWatcherBase::finished, this, &ViewController::updatePreview);
 }
 
 ViewController::~ViewController()
@@ -65,23 +66,28 @@ void ViewController::clicked(int index)
     const auto getiosource = [](
             std::shared_ptr<DirectorySystem> system,
             std::shared_ptr<Directory> dir,
-            int child) -> std::shared_ptr<IOSource>
+            int child) -> PreviewData
     {
         if (dir->isDir(child))
-            return nullptr;
+            return {};
 
-        const auto type = FileType().findType(dir->filePath(child));
-        if (type != FileType::ImageFile && type != FileType::VideoFile)
-            return nullptr;
+        // some directory system has custom urls, so you can directly use fileUrl here
+        const auto mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(dir->filePath(child))).name();
+        PreviewData::FileType filetype = PreviewData::Unknown;
+        const auto types = {std::pair {PreviewData::ImageFile, "image"}, {PreviewData::AudioFile, "audio"}, {PreviewData::VideoFile, "video"}};
+        for (const auto type : types) {
+            if (mime.startsWith(type.second)) {
+                filetype = type.first;
+                break;
+            }
+        }
 
-        return system->iosource(dir.get(), child);
+        return PreviewData(system->iosource(dir.get(), child), filetype);
     };
-
-
 
     if (auto parent = validParent(index))
     {
-        m_iosourceWatcher.setFuture(QtConcurrent::run(&m_pool, getiosource, m_system, parent, index));
+        m_previewWatcher.setFuture(QtConcurrent::run(&m_pool, getiosource, m_system, parent, index));
     }
 }
 
@@ -125,8 +131,8 @@ void ViewController::updateModel()
 
 void ViewController::updatePreview()
 {
-    auto s = dynamic_cast<decltype (m_iosourceWatcher) *>(sender());
-    if (s && s->result())
+    auto s = dynamic_cast<decltype (m_previewWatcher) *>(sender());
+    if (s && s->result().valid())
     {
         emit showPreview(PreviewData(s->result()));
     }

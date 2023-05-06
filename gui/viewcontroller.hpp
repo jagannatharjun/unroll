@@ -18,13 +18,29 @@ class PreviewData
 {
     Q_GADGET
 public:
-    PreviewData(std::shared_ptr<IOSource> source) : source {source} {}
+    enum FileType
+    {
+        Unknown,
+        ImageFile,
+        AudioFile,
+        VideoFile
+    };
+
+    Q_ENUM(FileType)
+
+    PreviewData() = default; // construct invalid PreviewData
+    PreviewData(std::shared_ptr<IOSource> source, FileType type) : source {source}, m_type {type} {}
 
     Q_INVOKABLE QString readPath() const { return source->readPath(); }
     Q_INVOKABLE QUrl readUrl() const { return QUrl::fromLocalFile(readPath()); }
 
+    Q_INVOKABLE FileType fileType() const { return m_type; }
+
+    bool valid() const { return !!source; }
+
 private:
     std::shared_ptr<IOSource> source;
+    FileType m_type;
 };
 
 
@@ -65,7 +81,7 @@ private:
     std::unique_ptr<DirectorySystemModel> m_model;
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;
 
-    QFutureWatcher<std::shared_ptr<IOSource>> m_iosourceWatcher;
+    QFutureWatcher<PreviewData> m_previewWatcher;
 
     // place this at end so it get destroyed first, this
     // make sure any pending operation don't use invalid resource

@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+    </qresource>
+	<qresource prefix="/preview">
+        <file alias="ImagePreview.qml">preview/ImagePreview.qml</file>
+	</qresource>
+</RCC>

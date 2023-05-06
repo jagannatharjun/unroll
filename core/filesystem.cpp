@@ -93,6 +93,6 @@ std::unique_ptr<Directory> FileSystem::open(Directory *dir, int child)
 
 std::unique_ptr<IOSource> FileSystem::iosource(Directory *dir, int child)
 {
-    return std::make_unique<RegularIOSource>(dir->fileName(child));
+    return std::make_unique<RegularIOSource>(dir->filePath(child));
 }
 

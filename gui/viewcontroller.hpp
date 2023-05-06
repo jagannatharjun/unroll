@@ -8,12 +8,25 @@
 #include <QAbstractItemModel>
 #include <QThreadPool>
 
+#include "../core/directorysystem.hpp"
+
 class QAbstractItemModel;
 class DirectorySystemModel;
-class DirectorySystem;
-class Directory;
 
-class AsyncSystemManager;
+
+class PreviewData
+{
+    Q_GADGET
+public:
+    PreviewData(std::shared_ptr<IOSource> source) : source {source} {}
+
+    Q_INVOKABLE QString readPath() const { return source->readPath(); }
+    Q_INVOKABLE QUrl readUrl() const { return QUrl::fromLocalFile(readPath()); }
+
+private:
+    std::shared_ptr<IOSource> source;
+};
+
 
 class ViewController : public QObject
 {
@@ -37,9 +50,11 @@ public slots:
 
 signals:
     void urlChanged();
+    void showPreview(PreviewData data);
 
 private slots:
     void updateModel();
+    void updatePreview();
 
 private:
     void openIndex(const int index);
@@ -49,6 +64,8 @@ private:
     std::shared_ptr<DirectorySystem> m_system;
     std::unique_ptr<DirectorySystemModel> m_model;
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;
+
+    QFutureWatcher<std::shared_ptr<IOSource>> m_iosourceWatcher;
 
     // place this at end so it get destroyed first, this
     // make sure any pending operation don't use invalid resource

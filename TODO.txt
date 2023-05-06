@@ -3,6 +3,7 @@ CORE:
 2. Password handling
 3. Operation progress
 4. report change in directories
+5. may use mimetype instead of switch
 
 
 GUI:

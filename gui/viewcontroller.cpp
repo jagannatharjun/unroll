@@ -3,6 +3,7 @@
 
 #include "../core/directorysystemmodel.hpp"
 #include "../core/hybriddirsystem.hpp"
+#include "../core/filetype.hpp"
 
 #include <QtConcurrent/QtConcurrent>
 
@@ -13,6 +14,7 @@ ViewController::ViewController(QObject *parent)
     , m_model { std::make_unique<DirectorySystemModel>()}
 {
     connect(&m_urlWatcher, &QFutureWatcherBase::finished, this, &ViewController::updateModel);
+    connect(&m_iosourceWatcher, &QFutureWatcherBase::finished, this, &ViewController::updatePreview);
 }
 
 ViewController::~ViewController()
@@ -60,7 +62,25 @@ void ViewController::openIndex(const int index)
 
 void ViewController::clicked(int index)
 {
+    const auto getiosource = [](
+            std::shared_ptr<DirectorySystem> system,
+            std::shared_ptr<Directory> dir,
+            int child) -> std::shared_ptr<IOSource>
+    {
+        if (dir->isDir(child))
+            return nullptr;
 
+        const auto type = FileType().findType(dir->filePath(child));
+        if (type != FileType::ImageFile && type != FileType::VideoFile)
+            return nullptr;
+
+        return system->iosource(dir.get(), child);
+    };
+
+    if (auto parent = validParent(index))
+    {
+        m_iosourceWatcher.setFuture(QtConcurrent::run(&m_pool, getiosource, m_system, parent, index));
+    }
 }
 
 void ViewController::doubleClicked(int index)
@@ -98,6 +118,15 @@ void ViewController::updateModel()
     {
         m_model->setDirectory(s->result());
         emit urlChanged();
+    }
+}
+
+void ViewController::updatePreview()
+{
+    auto s = dynamic_cast<decltype (m_iosourceWatcher) *>(sender());
+    if (s && s->result())
+    {
+        emit showPreview(PreviewData(s->result()));
     }
 }
 

@@ -282,7 +282,7 @@ void extractFile(const QString &filePath, const QString &childpath, QIODevice *o
             const size_t bufsize = 1024;
             std::unique_ptr<char[]> buf(new char[bufsize]);
             la_ssize_t readsize = 0;
-            while ((readsize = archive_read_data(a.get(), buf.get(), bufsize)) != 0)
+            while ((readsize = archive_read_data(a.get(), buf.get(), bufsize)) > 0)
             {
                 output->write(buf.get(), readsize);
             }

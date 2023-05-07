@@ -1,8 +1,9 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
+        <file>DirectoryView.qml</file>
     </qresource>
-	<qresource prefix="/preview">
+    <qresource prefix="/preview">
         <file alias="ImagePreview.qml">preview/ImagePreview.qml</file>
-	</qresource>
+    </qresource>
 </RCC>

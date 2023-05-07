@@ -16,40 +16,54 @@ Window {
     title: qsTr("Hello World")
 
     property var history: []
+    property int initialIndex: 0
 
     function back() {
         if (history.length > 1) {
             history.pop()
 
             var top = history[history.length - 1]
-            push(top)
+            root.initialIndex = top["intialIndex"]
+            controller.openUrl(top["directory"])
+
         }
     }
 
-    function push(url) {
-        // try to open url first, if it succeded
-        // controller.url will updated, and only then
-        // history will be updated
-        controller.openUrl(url)
+    // serializes current history point
+    function historyPoint() {
+        return {"directory": controller.url, "intialIndex": view.currentIndex}
     }
 
+    function updateHistory() {
+        history[history.length - 1] = historyPoint()
+    }
 
     ViewController {
         id: controller
 
         onUrlChanged: {
-            if (history.length == 0 || history[history.length - 1] !== controller.url) {
-                history.push(controller.url)
+            if (history.length == 0 || history[history.length - 1]["directory"] !== controller.url) {
+                history.push(historyPoint())
+
+                // current url changed update initialindex
+                initialIndex = 0
+            }
+
+            if (initialIndex !== view.currentIndex) {
+                view.makeCurrentItem(initialIndex)
+                view.positionViewAtIndex(initialIndex, ListView.Contain)
             }
         }
 
         onShowPreview: function (data) {
-            print(data.fileType())
             previewloader.setSource("qrc:/preview/ImagePreview.qml", {"previewdata": data})
         }
 
         Component.onCompleted: {
-            push("file:///C:/Users/prince/Pictures/")
+            // try to open url first, if it succeded
+            // controller.url will updated, and only then
+            // history will be updated
+            controller.openUrl("file:///C:/Users/prince/Pictures/")
         }
     }
 
@@ -94,6 +108,8 @@ Window {
 
             model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
 
+            onCurrentIndexChanged: root.updateHistory()
+
             delegate: ItemDelegate {
                 text: model.name
 
@@ -101,17 +117,17 @@ Window {
 
                 width: view.width
 
-                highlighted: view.currentIndex == index
+                highlighted: view.currentIndex === index
 
                 onActiveFocusChanged: {
                     if (!activeFocus)
                         return
 
-                    view._makeCurrentItem(index)
+                    view.makeCurrentItem(index)
                 }
 
                 onClicked: {
-                    view._makeCurrentItem(index)
+                    view.makeCurrentItem(index)
                 }
 
                 onDoubleClicked: {
@@ -124,7 +140,7 @@ Window {
                 }
             }
 
-            function _makeCurrentItem(index) {
+            function makeCurrentItem(index) {
                 view.currentIndex = index
                 view.forceActiveFocus(Qt.MouseFocusReason)
 

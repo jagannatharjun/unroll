@@ -370,6 +370,7 @@ std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
         const ArchiveUrl archiveurl {url};
         auto tree = buildTree(archiveurl.archivepath(), archiveurl.child());
         root = std::move(tree.root);
+
         result = tree.child;
     }
 

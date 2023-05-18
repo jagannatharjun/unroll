@@ -121,7 +121,10 @@ public:
 class SharedDirectory : public Directory
 {
 public:
+    // reference to root
     std::shared_ptr<ArchiveDir> r;
+
+    // root's subdirectory we wrap
     ArchiveDir *d;
 
     SharedDirectory(std::shared_ptr<ArchiveDir> r, ArchiveDir *d) : r {r}, d {d} {}

@@ -315,8 +315,8 @@ GetChildDirResult getdirchild(Directory *dir, int child)
     auto dirwrapper = dynamic_cast<SharedDirectory *> (dir);
     if (!dirwrapper) return {};
 
-    auto thisroot = dynamic_cast<ArchiveDir *>( dirwrapper->d );
-    if (!thisroot) return {};
+    auto thisroot = dirwrapper->d;
+    assert(thisroot);
 
     auto next = dynamic_cast<ArchiveDir *>( thisroot->children.at(child) );
     return {dirwrapper, next};

@@ -29,7 +29,7 @@ public:
         QByteArray buf;
         const auto write = [&](const QString f, int s) {
             QFile io(d.absoluteFilePath(f));
-            assert(io.open(QIODevice::WriteOnly));
+            QVERIFY(io.open(QIODevice::WriteOnly));
 
             buf.resize(s);
             for (int i = 0; i < buf.size(); ++i)

@@ -167,6 +167,37 @@ QString pathName(const QString &filePath)
 }
 
 
+void iterate_archivefiles(const QString &archivepath, std::function<bool(archive * archive, archive_entry *entry)> functor)
+{
+    std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
+    if (!a)
+    {
+        qWarning("failed archive_read_new");
+        return ;
+    }
+
+    archive_read_support_filter_all(a.get());
+    archive_read_support_format_all(a.get());
+
+    const int r = archive_read_open_filename_w(a.get(), archivepath.toStdWString().c_str(), 10240);
+    if (r != ARCHIVE_OK)
+    {
+        qWarning("failed to archive read open filename %d", r);
+        return ;
+    }
+
+    archive_entry *entry {};
+    while (archive_read_next_header(a.get(), &entry) == ARCHIVE_OK)
+    {
+        if (functor(a.get(), entry))
+            break;
+
+        archive_read_data_skip(a.get());
+    }
+}
+
+
+
 struct BuildTreeResult
 {
     std::unique_ptr<ArchiveDir> root;
@@ -176,30 +207,12 @@ struct BuildTreeResult
 
 BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
 {
-    std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
-    if (!a)
-    {
-        qWarning("failed archive_read_new");
-        return {};
-    }
-
-    archive_read_support_filter_all(a.get());
-    archive_read_support_format_all(a.get());
-
-    const int r = archive_read_open_filename_w(a.get(), filePath.toStdWString().c_str(), 10240);
-    if (r != ARCHIVE_OK)
-    {
-        qWarning("failed to archive read open filename %d", r);
-        return {};
-    }
-
-    archive_entry *entry {};
     ArchiveDir *root = new ArchiveDir(nullptr, pathName(filePath), ArchiveUrl::makeurl(filePath, {}), 0);
     ArchiveNode *child {};
 
     QHash<ArchiveDir *, QHash<QString, ArchiveDir *>> dirMap;
 
-    while (archive_read_next_header(a.get(), &entry) == ARCHIVE_OK)
+    const auto insertFileNode = [&](archive *, archive_entry *entry)
     {
         const QString path = archive_entry_pathname(entry);
         const auto size = archive_entry_size(entry);
@@ -246,54 +259,35 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
             }
         }
 
-        archive_read_data_skip(a.get());
-    }
+        return false; // continue
+    };
 
+    iterate_archivefiles(filePath, insertFileNode);
     return BuildTreeResult {std::unique_ptr<ArchiveDir>(root), child};
 }
 
 
 void extractFile(const QString &filePath, const QString &childpath, QIODevice *output)
 {
-    std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
-    if (!a)
-    {
-        qWarning("failed archive_read_new");
-        return ;
-    }
-
-    archive_read_support_filter_all(a.get());
-    archive_read_support_format_all(a.get());
-
-    const int r = archive_read_open_filename_w(a.get(), filePath.toStdWString().c_str(), 10240);
-    if (r != ARCHIVE_OK)
-    {
-        qWarning("failed to archive read open filename %d", r);
-        return ;
-    }
-
-    archive_entry *entry {};
-    while (archive_read_next_header(a.get(), &entry) == ARCHIVE_OK)
+    const auto extract = [&](archive *a, archive_entry *entry)
     {
         // child always starts with '/'
         const QString path = QString('/') + archive_entry_pathname(entry);
-        if (path == childpath)
-        {
-            const size_t bufsize = 1024;
-            std::unique_ptr<char[]> buf(new char[bufsize]);
-            la_ssize_t readsize = 0;
-            while ((readsize = archive_read_data(a.get(), buf.get(), bufsize)) > 0)
-            {
-                output->write(buf.get(), readsize);
-            }
+        if (path != childpath)
+            return false;
 
-            break;
-        }
-        else
+        const size_t bufsize = 1024;
+        std::unique_ptr<char[]> buf(new char[bufsize]);
+        la_ssize_t readsize = 0;
+        while ((readsize = archive_read_data(a, buf.get(), bufsize)) > 0)
         {
-            archive_read_data_skip(a.get());
+            output->write(buf.get(), readsize);
         }
-    }
+
+        return true; // break traversal
+    };
+
+    iterate_archivefiles(filePath, extract);
 }
 
 

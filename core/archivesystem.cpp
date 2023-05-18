@@ -170,7 +170,7 @@ QString pathName(const QString &filePath)
 }
 
 
-void iterate_archivefiles(const QString &archivepath, std::function<bool(archive * archive, archive_entry *entry)> functor)
+void iterate_archiveentries(const QString &archivepath, std::function<bool(archive * archive, archive_entry *entry)> functor)
 {
     std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
     if (!a)
@@ -265,7 +265,7 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
         return false; // continue
     };
 
-    iterate_archivefiles(filePath, insertFileNode);
+    iterate_archiveentries(filePath, insertFileNode);
     return BuildTreeResult {std::unique_ptr<ArchiveDir>(root), child};
 }
 
@@ -290,7 +290,7 @@ void extractFile(const QString &filePath, const QString &childpath, QIODevice *o
         return true; // break traversal
     };
 
-    iterate_archivefiles(filePath, extract);
+    iterate_archiveentries(filePath, extract);
 }
 
 

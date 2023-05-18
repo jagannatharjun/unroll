@@ -303,20 +303,20 @@ bool canopenarchive(const QString &filepath)
 
 struct GetChildDirResult
 {
-    SharedDirectory *realdir {};
+    SharedDirectory *dirwrapper {};
     ArchiveDir *child {};
 };
 
 GetChildDirResult getdirchild(Directory *dir, int child)
 {
-    auto rootwrapper = dynamic_cast<SharedDirectory *> (dir);
-    if (!rootwrapper) return {};
+    auto dirwrapper = dynamic_cast<SharedDirectory *> (dir);
+    if (!dirwrapper) return {};
 
-    auto thisroot = dynamic_cast<ArchiveDir *>( rootwrapper->d );
+    auto thisroot = dynamic_cast<ArchiveDir *>( dirwrapper->d );
     if (!thisroot) return {};
 
     auto next = dynamic_cast<ArchiveDir *>( thisroot->children.at(child) );
-    return {rootwrapper, next};
+    return {dirwrapper, next};
 }
 
 } // namespace
@@ -380,7 +380,7 @@ std::unique_ptr<Directory> ArchiveSystem::open(Directory *dir, int child)
     auto r = getdirchild(dir, child);
     if (!r.child) return nullptr;
 
-    return std::make_unique<SharedDirectory>(r.realdir->r, r.child);
+    return std::make_unique<SharedDirectory>(r.dirwrapper->r, r.child);
 }
 
 std::unique_ptr<IOSource> ArchiveSystem::iosource(Directory *dir, int child)

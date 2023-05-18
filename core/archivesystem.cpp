@@ -121,10 +121,10 @@ public:
 class SharedDirectory : public Directory
 {
 public:
-    std::shared_ptr<Directory> r;
-    Directory *d;
+    std::shared_ptr<ArchiveDir> r;
+    ArchiveDir *d;
 
-    SharedDirectory(std::shared_ptr<Directory> r, Directory *d) : r {r}, d {d} {}
+    SharedDirectory(std::shared_ptr<ArchiveDir> r, ArchiveDir *d) : r {r}, d {d} {}
 
 #define SHAREDDIRECTORY_WRAP(type, name) type name () override { return d->name (); }
 
@@ -351,8 +351,8 @@ bool ArchiveSystem::canopen(Directory *dir, int child)
 
 std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
 {
-    std::unique_ptr<Directory> root;
-    Directory *result {};
+    std::unique_ptr<ArchiveDir> root;
+    ArchiveDir *result {};
 
     if (url.isLocalFile())
     {
@@ -365,7 +365,7 @@ std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
         auto tree = buildTree(archiveurl.archivepath(), archiveurl.child());
         root = std::move(tree.root);
 
-        result = tree.child;
+        result = dynamic_cast<ArchiveDir *>(tree.child);
     }
 
     if (!result) return nullptr;

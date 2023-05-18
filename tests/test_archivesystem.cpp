@@ -30,20 +30,23 @@ public:
 
         struct Node { QString path; qint64 size; QByteArray content {}; };
 
-        const auto test = [&](QHash<QString, Node> files)
+        const auto test = [&](QHash<QString, Node> files, Directory *d = nullptr)
         {
-            QVERIFY(f);
-            QCOMPARE(f->fileCount(), files.size());
+            if (!d)
+                d = f.get();
 
-            for (int i = 0; i < f->fileCount(); ++i) {
-                QVERIFY(files.contains(f->fileName(i)));
+            QVERIFY(d);
+            QCOMPARE(d->fileCount(), files.size());
 
-                const auto &node = files[f->fileName(i)];
-                QCOMPARE(f->fileSize(i), node.size);
-                QCOMPARE(f->filePath(i), node.path);
+            for (int i = 0; i < d->fileCount(); ++i) {
+                QVERIFY(files.contains(d->fileName(i)));
+
+                const auto &node = files[d->fileName(i)];
+                QCOMPARE(d->fileSize(i), node.size);
+                QCOMPARE(d->filePath(i), node.path);
                 if (!node.content.isNull())
                 {
-                    auto iosource = s.iosource(f.get(), i);
+                    auto iosource = s.iosource(d, i);
                     QFile readsource(iosource->readPath());
                     QVERIFY(readsource.open(QIODevice::ReadOnly));
 
@@ -52,7 +55,7 @@ public:
                 }
 
                 // remove the node, so duplicate can be caught
-                files.remove(f->fileName(i));
+                files.remove(d->fileName(i));
             }
         };
 
@@ -65,11 +68,16 @@ public:
             };
         test(root);
 
+        QCOMPARE(f->fileName(1), "test.txt");
+        QVERIFY(!s.open(f.get(), 1)); // try to open file
+
         QCOMPARE(f->fileName(0), "lol");
         f = s.open(f.get(), 0);
         QHash<QString, Node> level2 {{"tar", {d.absoluteFilePath("lol/tar"), 16}}};
         test(level2);
 
+        auto second = s.open(f->url());
+        test(level2, second.get());
 
         QCOMPARE(f->fileName(0), "tar");
         QHash<QString, Node> level3 {{"new.txt", {d.absoluteFilePath("lol/tar/new.txt"),16, "lolpoisonutrypop"}}};

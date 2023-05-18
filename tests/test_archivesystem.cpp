@@ -23,6 +23,9 @@ public:
         const auto archivepath = d.absoluteFilePath("archivetest.zip");
         const auto archiveurl = QUrl::fromLocalFile(archivepath);
 
+        QVERIFY(!s.open(QUrl::fromLocalFile("notexistentfile"))); // test with url that doesn't exist
+        QVERIFY(!s.open(QUrl::fromLocalFile(__FILE__))); // test with not a archive file
+
         QVERIFY(s.canopen(archiveurl));
         auto f = s.open(archiveurl);
 

@@ -170,13 +170,13 @@ QString pathName(const QString &filePath)
 }
 
 
-void iterate_archiveentries(const QString &archivepath, std::function<bool(archive * archive, archive_entry *entry)> functor)
+bool iterate_archiveentries(const QString &archivepath, std::function<bool(archive * archive, archive_entry *entry)> functor)
 {
     std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
     if (!a)
     {
         qWarning("failed archive_read_new");
-        return ;
+        return false;
     }
 
     archive_read_support_filter_all(a.get());
@@ -186,17 +186,19 @@ void iterate_archiveentries(const QString &archivepath, std::function<bool(archi
     if (r != ARCHIVE_OK)
     {
         qWarning("failed to archive read open filename %d", r);
-        return ;
+        return false;
     }
 
     archive_entry *entry {};
     while (archive_read_next_header(a.get(), &entry) == ARCHIVE_OK)
     {
         if (functor(a.get(), entry))
-            break;
+            return true;
 
         archive_read_data_skip(a.get());
     }
+
+    return true;
 }
 
 
@@ -265,7 +267,9 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
         return false; // continue
     };
 
-    iterate_archiveentries(filePath, insertFileNode);
+    if (!iterate_archiveentries(filePath, insertFileNode))
+        return {};
+
     return BuildTreeResult {std::unique_ptr<ArchiveDir>(root), child};
 }
 

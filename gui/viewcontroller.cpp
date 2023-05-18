@@ -11,9 +11,18 @@
 
 ViewController::ViewController(QObject *parent)
     : QObject {parent}
-    , m_system { std::make_unique<HybridDirSystem>()}
-    , m_model { std::make_unique<DirectorySystemModel>()}
+    , m_model {std::make_unique<DirectorySystemModel>()}
+    , m_selectionModel {std::make_unique<QItemSelectionModel>()}
+    , m_system {std::make_unique<HybridDirSystem>()}
 {
+    connect(m_selectionModel.get(), &QItemSelectionModel::currentRowChanged, this, [this](const QModelIndex &current)
+    {
+        if (!m_model->checkIndex(current))
+            return;
+
+        setPreview(current.row());
+    });
+
     connect(&m_urlWatcher, &QFutureWatcherBase::finished, this, &ViewController::updateModel);
     connect(&m_previewWatcher, &QFutureWatcherBase::finished, this, &ViewController::updatePreview);
 }
@@ -26,6 +35,11 @@ ViewController::~ViewController()
 QAbstractItemModel *ViewController::model()
 {
     return m_model.get();
+}
+
+QItemSelectionModel *ViewController::selectionModel()
+{
+    return m_selectionModel.get();
 }
 
 QString ViewController::url() const
@@ -45,7 +59,7 @@ void ViewController::openUrl(const QUrl &url)
     m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, url));
 }
 
-void ViewController::openIndex(const int index)
+void ViewController::openRow(const int row)
 {
     const auto open = [](
             std::shared_ptr<DirectorySystem> system,
@@ -55,13 +69,13 @@ void ViewController::openIndex(const int index)
         return system->open(dir.get(), child);
     };
 
-    if (auto parent = validParent(index))
+    if (auto parent = validParent(row))
     {
-        m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, parent, index));
+        m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, parent, row));
     }
 }
 
-void ViewController::clicked(int index)
+void ViewController::setPreview(int row)
 {
     const auto getiosource = [](
             std::shared_ptr<DirectorySystem> system,
@@ -85,28 +99,11 @@ void ViewController::clicked(int index)
         return PreviewData(system->iosource(dir.get(), child), filetype);
     };
 
-    if (auto parent = validParent(index))
+    if (auto parent = validParent(row))
     {
-        m_previewWatcher.setFuture(QtConcurrent::run(&m_pool, getiosource, m_system, parent, index));
+        m_previewWatcher.setFuture(QtConcurrent::run(&m_pool, getiosource, m_system, parent, row));
     }
 }
-
-void ViewController::doubleClicked(int index)
-{
-    const auto action = [](
-              std::shared_ptr<DirectorySystem> system
-            , std::shared_ptr<Directory> dir
-            , int child) -> std::shared_ptr<Directory>
-    {
-        return system->open(dir.get(), child);
-    };
-
-    if (auto parent = validParent(index))
-    {
-        m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, action, m_system, parent, index));
-    }
-}
-
 
 std::shared_ptr<Directory> ViewController::validParent(const int index)
 {
@@ -124,8 +121,13 @@ void ViewController::updateModel()
     auto s = dynamic_cast<decltype (m_urlWatcher) *>(sender());
     if (s && s->result())
     {
+        // first trigger url change on UI side, so that view can redo itself based on new URL
+        m_url = s->result()->url();
         m_model->setDirectory(s->result());
+
         emit urlChanged();
+
+        m_selectionModel->clear();
     }
 }
 

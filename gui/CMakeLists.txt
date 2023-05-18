@@ -1,6 +1,7 @@
 
 set(SOURCES
         viewcontroller.hpp viewcontroller.cpp
+	historycontroller.hpp historycontroller.cpp
         main.cpp
 	qml/qml.qrc
 )

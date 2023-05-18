@@ -3,7 +3,6 @@ CORE:
 2. Password handling
 3. Operation progress
 4. report change in directories
-5. may use mimetype instead of switch
 
 
 GUI:
@@ -11,4 +10,5 @@ GUI:
 2. File Preview
 3. Error Handling
 4. Sorting
-5. Table View
+5. No sound in video preview
+6. Add table header

@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Window 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Window
+import QtQuick.Controls
 import QtQuick.Dialogs
 import Qt.labs.platform
 
@@ -10,50 +10,13 @@ import "preview" as Preview
 Window {
     id: root
 
-    width: 640
+    width: 780
     height: 480
     visible: true
     title: qsTr("File Browser")
 
-    property var history: []
-    property int initialIndex: 0
-
-    function back() {
-        if (history.length > 1) {
-            history.pop()
-
-            var top = history[history.length - 1]
-            root.initialIndex = top["intialIndex"]
-            controller.openUrl(top["directory"])
-
-        }
-    }
-
-    // serializes current history point
-    function historyPoint() {
-        return {"directory": controller.url, "intialIndex": view.currentIndex}
-    }
-
-    function updateHistory() {
-        history[history.length - 1] = historyPoint()
-    }
-
     ViewController {
         id: controller
-
-        onUrlChanged: {
-            if (history.length == 0 || history[history.length - 1]["directory"] !== controller.url) {
-                history.push(historyPoint())
-
-                // current url changed update initialindex
-                initialIndex = 0
-            }
-
-            if (initialIndex !== view.currentIndex) {
-                view.makeCurrentItem(initialIndex)
-                view.positionViewAtIndex(initialIndex, ListView.Contain)
-            }
-        }
 
         onShowPreview: function (data) {
             if (data.fileType() === PreviewData.ImageFile)
@@ -61,26 +24,29 @@ Window {
             else
                 previewloader.setSource("qrc:/preview/Player.qml", {"previewdata": data})
         }
+    }
+
+    HistoryController {
+        id: history
+
+        view: controller
 
         Component.onCompleted: {
-            // try to open url first, if it succeded
-            // controller.url will updated, and only then
-            // history will be updated
-            controller.openUrl("file:///C:/Users/prince/Pictures/")
+            history.pushUrl("file:///C:/Users/prince/Pictures/")
         }
     }
 
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.BackButton
-        onClicked: root.back()
+        onClicked: history.pop()
     }
 
     FolderDialog {
         id: folderDialog
 
         onAccepted: {
-            controller.openUrl(folderDialog.folder)
+            history.push(folderDialog.folder)
         }
     }
 
@@ -94,11 +60,11 @@ Window {
             if (event.key === Qt.Key_O && (event.modifiers & Qt.ControlModifier)) {
                 folderDialog.open()
             } else if (event.key === Qt.Key_Back || event.key === Qt.Key_Backspace) {
-                back()
+                history.pop()
             }
         }
 
-        ListView {
+        TableView {
             id: view
 
             SplitView.fillWidth: true
@@ -108,56 +74,81 @@ Window {
 
             focus: true
             keyNavigationEnabled: true
+            pointerNavigationEnabled: true
 
             model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
+            selectionModel: controller.selectionModel
+            reuseItems: true
 
-            onCurrentIndexChanged: root.updateHistory()
+            selectionBehavior: TableView.SelectRows
+
+            rightMargin: vscrollbar.width
+            bottomMargin: hscrollbar.height
+
+            columnWidthProvider: function (column) {
+                if (column === 0) return 300
+                return  200
+            }
 
             delegate: ItemDelegate {
-                text: model.name
+                required property bool selected
+                required property bool current
+
+                text: model.display
 
                 focus: true
 
-                width: view.width
-
-                highlighted: view.currentIndex === index
-
-                onActiveFocusChanged: {
-                    if (!activeFocus)
-                        return
-
-                    view.makeCurrentItem(index)
-                }
+                highlighted: selected || current
 
                 onClicked: {
-                    view.makeCurrentItem(index)
+                    forceActiveFocus(Qt.MouseFocusReason)
+                    select()
                 }
 
                 onDoubleClicked: {
-                    controller.doubleClicked(index)
+                    forceActiveFocus(Qt.MouseFocusReason)
+                    select()
+                    history.pushRow(row)
                 }
 
                 Keys.onPressed: (event) =>   {
                     if (event.key === Qt.Key_Return)
-                        controller.doubleClicked(index)
+                        history.pushRow(row)
+                }
+
+                function select() {
+                    view.selectionModel.setCurrentIndex(view.model.index(row, column), ItemSelectionModel.SelectCurrent)
                 }
             }
 
-            function makeCurrentItem(index) {
-                view.currentIndex = index
-                view.forceActiveFocus(Qt.MouseFocusReason)
+            ScrollBar.vertical: ScrollBar {
+                id: vscrollbar
 
-                controller.clicked(index)
+                policy: ScrollBar.AsNeeded
+            }
+
+            ScrollBar.horizontal: ScrollBar {
+                id: hscrollbar
+
+                policy: ScrollBar.AsNeeded
             }
         }
 
-        Loader {
-            id: previewloader
+        Pane {
+            // tableview content can overflow, so wrap preview inside Pane,
+            // so the extra content is not visible
 
             SplitView.preferredWidth: root.width / 2
+            SplitView.fillWidth: true
             SplitView.fillHeight: true
 
-            asynchronous: true
+            Loader {
+                id: previewloader
+
+                anchors.fill: parent
+                asynchronous: true
+            }
+
         }
     }
 }

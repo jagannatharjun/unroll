@@ -2,8 +2,28 @@
 
 #include "directorysystem.hpp"
 
+#include <QTextStream>
+
+namespace
+{
+
+QString formatSize(qint64 size) {
+    static const char * units[] = {"Bytes", "KB", "MB", "GB", "TB", "PB", "EB"};
+    int idx = 0;
+
+    double bytes = size;
+    while(bytes >= 1024 && idx < sizeof (units) - 1) {
+        bytes /= 1024;
+        idx++;
+    }
+
+    return QString("%1 %2").arg(bytes, 0, 'f', 2).arg(units[idx]);
+}
+
+}
+
 DirectorySystemModel::DirectorySystemModel(QObject *parent)
-    : QAbstractListModel{parent}
+    : QAbstractTableModel{parent}
 {
 }
 
@@ -29,14 +49,38 @@ int DirectorySystemModel::rowCount(const QModelIndex &) const
     return m_dir ? m_dir->fileCount() : 0;
 }
 
+int DirectorySystemModel::columnCount(const QModelIndex &parent) const
+{
+    return ColumnCount;
+}
+
 QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
 {
     if (!m_dir || !checkIndex(index))
         return {};
 
+
     const int r = index.row();
+    const int c = index.column();
+
+    const auto displayRole = [&]() -> QString
+    {
+        switch (c) {
+        case NameColumn:
+            return m_dir->fileName(r);
+        case PathColumn:
+            return m_dir->filePath(r);
+        case SizeColumn:
+            return formatSize(m_dir->fileSize(r));
+        }
+
+        return "";
+    };
+
     switch (role)
     {
+    case Qt::DisplayRole:
+        return displayRole();
     case NameRole:
         return m_dir->fileName(r);
     case PathRole:
@@ -50,9 +94,28 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
     return {};
 }
 
+QVariant DirectorySystemModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if (role != Qt::DisplayRole)
+        return {};
+
+    switch (section)
+    {
+    case NameColumn:
+        return "Name";
+    case PathColumn:
+        return "Path";
+    case SizeColumn:
+        return "Size";
+    }
+
+    return {};
+}
+
 QHash<int, QByteArray> DirectorySystemModel::roleNames() const
 {
     return {
+        {Qt::DisplayRole, "display"},
         {NameRole, "name"},
         {PathRole, "path"},
         {SizeRole, "size"},

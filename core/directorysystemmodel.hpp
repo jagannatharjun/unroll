@@ -6,7 +6,7 @@
 
 class Directory;
 
-class DirectorySystemModel : public QAbstractListModel
+class DirectorySystemModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
@@ -18,6 +18,15 @@ public:
         IsDirRole
     };
 
+    enum Columns
+    {
+        NameColumn,
+        PathColumn,
+        SizeColumn,
+
+        ColumnCount
+    };
+
     explicit DirectorySystemModel(QObject *parent = nullptr);
     ~DirectorySystemModel();
 
@@ -27,11 +36,15 @@ public:
     // QAbstractItemModel interface
 public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent) const;
+
     QVariant data(const QModelIndex &index, int role) const;
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const;
     QHash<int, QByteArray> roleNames() const;
 
 private:
     std::shared_ptr<Directory> m_dir;
+
 };
 
 #endif // DIRECTORYSYSTEMMODEL_HPP

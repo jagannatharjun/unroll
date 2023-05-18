@@ -3,9 +3,12 @@
 #define VIEWCONTROLLER_HPP
 
 #include <memory>
+#include <stack>
+
 #include <QObject>
 #include <QFutureWatcher>
 #include <QAbstractItemModel>
+#include <QItemSelectionModel>
 #include <QThreadPool>
 
 #include "../core/directorysystem.hpp"
@@ -48,6 +51,8 @@ class ViewController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QAbstractItemModel* model READ model CONSTANT)
+    Q_PROPERTY(QItemSelectionModel* selectionModel READ selectionModel CONSTANT)
+
     Q_PROPERTY(QString url READ url NOTIFY urlChanged)
 
 public:
@@ -55,14 +60,15 @@ public:
     ~ViewController();
 
     QAbstractItemModel *model();
+    QItemSelectionModel *selectionModel();
+
     QString url() const;
 
 
 public slots:
     void openUrl(const QUrl &url);
-
-    void clicked(int index);
-    void doubleClicked(int index);
+    void openRow(const int row);
+    void setPreview(int row);
 
 signals:
     void urlChanged();
@@ -73,12 +79,16 @@ private slots:
     void updatePreview();
 
 private:
-    void openIndex(const int index);
-
     std::shared_ptr<Directory> validParent(const int index);
 
-    std::shared_ptr<DirectorySystem> m_system;
+    // store current url of m_model, store it seperately so
+    // that url() and model updates are always in sync
+    QUrl m_url;
+
     std::unique_ptr<DirectorySystemModel> m_model;
+    std::unique_ptr<QItemSelectionModel> m_selectionModel;
+
+    std::shared_ptr<DirectorySystem> m_system;
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;
 
     QFutureWatcher<PreviewData> m_previewWatcher;
@@ -87,5 +97,6 @@ private:
     // make sure any pending operation don't use invalid resource
     QThreadPool m_pool;
 };
+
 
 #endif // VIEWCONTROLLER_HPP

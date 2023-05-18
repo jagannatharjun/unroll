@@ -77,7 +77,7 @@ Window {
         id: folderDialog
 
         onAccepted: {
-            push(folderDialog.folder)
+            controller.openUrl(folderDialog.folder)
         }
     }
 
@@ -157,6 +157,4 @@ Window {
             asynchronous: true
         }
     }
-
-
 }

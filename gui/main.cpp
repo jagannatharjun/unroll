@@ -12,6 +12,7 @@ int main(int argc, char *argv[])
 
     qRegisterMetaType<QAbstractItemModel *>();
     qmlRegisterType<ViewController>("filebrowser", 0, 1, "ViewController");
+    qmlRegisterType<PreviewData>("filebrowser", 0, 1, "PreviewData");
 
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/main.qml"));

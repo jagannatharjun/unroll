@@ -13,7 +13,7 @@ Window {
     width: 640
     height: 480
     visible: true
-    title: qsTr("Hello World")
+    title: qsTr("File Browser")
 
     property var history: []
     property int initialIndex: 0
@@ -56,7 +56,10 @@ Window {
         }
 
         onShowPreview: function (data) {
-            previewloader.setSource("qrc:/preview/ImagePreview.qml", {"previewdata": data})
+            if (data.fileType() === PreviewData.ImageFile)
+                previewloader.setSource("qrc:/preview/ImagePreview.qml", {"previewdata": data})
+            else
+                previewloader.setSource("qrc:/preview/Player.qml", {"previewdata": data})
         }
 
         Component.onCompleted: {

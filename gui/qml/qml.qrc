@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>DirectoryView.qml</file>
+        <file>TableViewExt.qml</file>
     </qresource>
     <qresource prefix="/preview">
         <file alias="ImagePreview.qml">preview/ImagePreview.qml</file>

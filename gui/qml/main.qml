@@ -58,12 +58,6 @@ Window {
         }
     }
 
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.BackButton
-        onClicked: history.pop()
-    }
-
     FolderDialog {
         id: folderDialog
 
@@ -120,6 +114,15 @@ Window {
                 asynchronous: true
             }
 
+        }
+    }
+
+    // place it over everything so no one can steal it
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.BackButton
+        onClicked: {
+            history.pop()
         }
     }
 }

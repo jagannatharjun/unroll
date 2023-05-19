@@ -32,7 +32,10 @@ Window {
 
         view: controller
 
-        onResetFocus: (row, column) => {
+        onResetFocus: function (row, column) {
+            var index = tableView.model.index(row, column)
+            tableView.selectionModel.select(index, ItemSelectionModel.SelectCurrent)
+
             // FIXME: TableView.positionView* doesn't work inside this function, use a timer
             viewplacer.row = row
             viewplacer.col = column
@@ -87,7 +90,11 @@ Window {
             SplitView.fillHeight: true
 
             model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
-            selectionModel: controller.selectionModel
+            selectionModel: ItemSelectionModel {
+                onCurrentChanged: {
+                    history.updateCurrentIndex(currentIndex.row, currentIndex.column)
+                }
+            }
 
             onActionAtIndex: function (row) {
                 history.pushRow(row)

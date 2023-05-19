@@ -24,10 +24,6 @@ void HistoryController::setView(ViewController *newView)
 
     connect(m_view, &ViewController::urlChanged
             , this, &HistoryController::urlUpdated);
-
-    auto selectionModel = m_view->selectionModel();
-    connect(selectionModel, &QItemSelectionModel::currentChanged
-            , this, &HistoryController::currentUpdated);
 }
 
 void HistoryController::pushUrl(const QUrl &url)
@@ -71,28 +67,30 @@ void HistoryController::urlUpdated()
     auto model = m_view->model();
     const auto index = model->index(top.row, top.col);
 
-    auto selectionModel = m_view->selectionModel();
     if (!model->checkIndex(index))
     {
-        selectionModel->clear();
         emit resetFocus(0, 0);
     }
     else
     {
-        selectionModel->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect);
         emit resetFocus(index.row(), index.column());
     }
 }
 
-void HistoryController::currentUpdated()
+void HistoryController::updateCurrentIndex(int row, int column)
 {
     if (m_history.empty())
         return; // no url has been pushed yet, why currentUpated is called then?
 
-    auto current = m_view->selectionModel()->currentIndex();
+    auto current = m_view->model()->index(row, column);
     const auto validCurrent = current.isValid();
+    if (!validCurrent)
+    {
+        qDebug("invalid index in updateCurrentIndex");
+        return;
+    }
 
     auto &top = m_history.top();
-    top.row = validCurrent ? current.row() : - 1;
-    top.col  = validCurrent ? current.column() : -1;
+    top.row =  current.row();
+    top.col = current.column();
 }

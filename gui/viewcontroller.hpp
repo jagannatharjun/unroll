@@ -8,7 +8,6 @@
 #include <QObject>
 #include <QFutureWatcher>
 #include <QAbstractItemModel>
-#include <QItemSelectionModel>
 #include <QThreadPool>
 
 #include "../core/directorysystem.hpp"
@@ -51,7 +50,6 @@ class ViewController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QAbstractItemModel* model READ model CONSTANT)
-    Q_PROPERTY(QItemSelectionModel* selectionModel READ selectionModel CONSTANT)
 
     Q_PROPERTY(QString url READ url NOTIFY urlChanged)
 
@@ -60,7 +58,6 @@ public:
     ~ViewController();
 
     QAbstractItemModel *model();
-    QItemSelectionModel *selectionModel();
 
     QString url() const;
 
@@ -86,7 +83,6 @@ private:
     QUrl m_url;
 
     std::unique_ptr<DirectorySystemModel> m_model;
-    std::unique_ptr<QItemSelectionModel> m_selectionModel;
 
     std::shared_ptr<DirectorySystem> m_system;
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;

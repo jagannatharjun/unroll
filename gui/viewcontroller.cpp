@@ -3,7 +3,6 @@
 
 #include "../core/directorysystemmodel.hpp"
 #include "../core/hybriddirsystem.hpp"
-#include "../core/filetype.hpp"
 
 #include <QtConcurrent/QtConcurrent>
 #include <QMimeData>
@@ -12,7 +11,6 @@
 ViewController::ViewController(QObject *parent)
     : QObject {parent}
     , m_model {std::make_unique<DirectorySystemModel>()}
-    , m_selectionModel {std::make_unique<QItemSelectionModel>()}
     , m_system {std::make_unique<HybridDirSystem>()}
 {
     connect(&m_urlWatcher, &QFutureWatcherBase::finished, this, &ViewController::updateModel);
@@ -27,11 +25,6 @@ ViewController::~ViewController()
 QAbstractItemModel *ViewController::model()
 {
     return m_model.get();
-}
-
-QItemSelectionModel *ViewController::selectionModel()
-{
-    return m_selectionModel.get();
 }
 
 QString ViewController::url() const

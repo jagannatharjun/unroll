@@ -24,13 +24,14 @@ public slots:
     void pushRow(int row);
     void pop();
 
+    void updateCurrentIndex(int row, int column);
+
 signals:
     void viewChanged();
     void resetFocus(int row, int column);
 
 private slots:
     void urlUpdated();
-    void currentUpdated();
 
 private:
     struct Point

@@ -37,7 +37,7 @@ Window {
 
         onResetFocus: function (row, column) {
             var index = tableView.model.index(row, column)
-            tableView.selectionModel.select(index, ItemSelectionModel.SelectCurrent)
+            tableView.selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect)
 
             // FIXME: TableView.positionView* doesn't work inside this function, use a timer
             viewplacer.row = row

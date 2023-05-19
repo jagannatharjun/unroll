@@ -31,8 +31,29 @@ Window {
 
         view: controller
 
+        onResetFocus: (row, column) => {
+            // FIXME: TableView.positionView* doesn't work inside this function, use a timer
+            viewplacer.row = row
+            viewplacer.col = column
+            viewplacer.start()
+        }
+
         Component.onCompleted: {
             history.pushUrl("file:///C:/Users/prince/Pictures/")
+        }
+    }
+
+    Timer {
+        id: viewplacer
+
+        property var row
+        property var col
+
+        interval: 100
+        onTriggered: {
+            // positionViewAtRow doesn't take scrollbar into consideration so add offset to make sure row is visible
+            let offset = row == 0 ? 0 : 30
+            view.positionViewAtCell(Qt.point(col, row), TableView.Visible, Qt.point(offset, offset))
         }
     }
 

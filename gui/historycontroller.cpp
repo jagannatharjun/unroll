@@ -61,6 +61,7 @@ void HistoryController::urlUpdated()
     {
         // new history point
         m_history.push(Point {m_view->url(), -1, -1});
+        emit resetFocus(0, 0);
         return;
     }
 
@@ -69,11 +70,18 @@ void HistoryController::urlUpdated()
 
     auto model = m_view->model();
     const auto index = model->index(top.row, top.col);
-    if (!model->checkIndex(index))
-        return;
 
     auto selectionModel = m_view->selectionModel();
-    selectionModel->setCurrentIndex(index, QItemSelectionModel::SelectCurrent);
+    if (!model->checkIndex(index))
+    {
+        selectionModel->clear();
+        emit resetFocus(0, 0);
+    }
+    else
+    {
+        selectionModel->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect);
+        emit resetFocus(index.row(), index.column());
+    }
 }
 
 void HistoryController::currentUpdated()

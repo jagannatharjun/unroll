@@ -26,6 +26,7 @@ public slots:
 
 signals:
     void viewChanged();
+    void resetFocus(int row, int column);
 
 private slots:
     void urlUpdated();

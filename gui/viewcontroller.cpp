@@ -88,7 +88,13 @@ void ViewController::setPreview(int row)
         // some directory system has custom urls, so you can directly use fileUrl here
         const auto mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(dir->filePath(child))).name();
         PreviewData::FileType filetype = PreviewData::Unknown;
-        const auto types = {std::pair {PreviewData::ImageFile, "image"}, {PreviewData::AudioFile, "audio"}, {PreviewData::VideoFile, "video"}};
+        const auto types =
+        {
+            std::pair {PreviewData::ImageFile, "image"},
+            {PreviewData::AudioFile, "audio"},
+            {PreviewData::VideoFile, "video"}
+        };
+
         for (const auto type : types) {
             if (mime.startsWith(type.second)) {
                 filetype = type.first;
@@ -126,8 +132,6 @@ void ViewController::updateModel()
         m_model->setDirectory(s->result());
 
         emit urlChanged();
-
-        m_selectionModel->clear();
     }
 }
 

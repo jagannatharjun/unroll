@@ -20,6 +20,7 @@ Pane {
 
         z: 10 // otherwise outoff view cells will cover this
         x: - view.visibleArea.xPosition * view.contentWidth
+        spacing: view.rowSpacing
 
         Repeater {
             model: Math.max(view.columns, 0)

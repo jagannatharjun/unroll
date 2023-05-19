@@ -20,8 +20,6 @@ public:
     void setView(ViewController *newView);
 
 public slots:
-    void pushUrl(const QUrl &url);
-    void pushRow(int row);
     void pop();
 
     void updateCurrentIndex(int row, int column);

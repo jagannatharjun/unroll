@@ -25,6 +25,9 @@ Window {
             else if (data.fileType() === PreviewData.VideoFile || data.fileType() == PreviewData.AudioFile)
                 previewloader.setSource("qrc:/preview/Player.qml", {"previewdata": data})
         }
+
+        Component.onCompleted:
+            controller.openUrl("file:///C:/Users/prince/Pictures/")
     }
 
     HistoryController {
@@ -40,10 +43,6 @@ Window {
             viewplacer.row = row
             viewplacer.col = column
             viewplacer.start()
-        }
-
-        Component.onCompleted: {
-            history.pushUrl("file:///C:/Users/prince/Pictures/")
         }
     }
 
@@ -65,7 +64,7 @@ Window {
         id: folderDialog
 
         onAccepted: {
-            history.pushUrl(folderDialog.folder)
+            controller.openUrl(folderDialog.folder)
         }
     }
 
@@ -97,7 +96,7 @@ Window {
             }
 
             onActionAtIndex: function (row) {
-                history.pushRow(row)
+                controller.openRow(row)
             }
 
             onCurrentRowChanged: {

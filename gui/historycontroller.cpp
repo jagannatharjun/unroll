@@ -26,19 +26,6 @@ void HistoryController::setView(ViewController *newView)
             , this, &HistoryController::urlUpdated);
 }
 
-void HistoryController::pushUrl(const QUrl &url)
-{
-    // try to open url first, if it succeded
-    // controller.url will updated, and only then
-    // history will be updated
-
-    m_view->openUrl(url);
-}
-
-void HistoryController::pushRow(int row)
-{
-    m_view->openRow(row);
-}
 
 void HistoryController::pop()
 {
@@ -50,6 +37,7 @@ void HistoryController::pop()
     // TODO: handle if load fail here
     m_view->openUrl(m_history.top().url);
 }
+
 
 void HistoryController::urlUpdated()
 {

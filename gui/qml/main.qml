@@ -86,79 +86,102 @@ Window {
             }
         }
 
-        TableView {
-            id: view
+        Pane {
 
             SplitView.fillWidth: true
             SplitView.fillHeight: true
 
-            boundsBehavior: Flickable.StopAtBounds
+            padding: 0
 
-            focus: true
-            keyNavigationEnabled: true
-            pointerNavigationEnabled: true
+            // when navigating current item of view gets hidden under scrollbar
+            // wrap the view inside Pane, and set the scrollbar on Pane to fix that
+            TableView {
+                id: view
 
-            model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
-            selectionModel: controller.selectionModel
-            reuseItems: true
+                anchors {
+                    fill: parent
+                    rightMargin: vscrollbar.width
+                    bottomMargin: hscrollbar.height
+                }
 
-            selectionBehavior: TableView.SelectRows
-
-            rightMargin: vscrollbar.width
-            bottomMargin: hscrollbar.height
-
-            columnWidthProvider: function (column) {
-                if (column === 0) return 300
-                return  200
-            }
-
-            delegate: ItemDelegate {
-                required property bool selected
-                required property bool current
-
-                text: model.display
+                boundsBehavior: Flickable.StopAtBounds
 
                 focus: true
+                keyNavigationEnabled: true
+                pointerNavigationEnabled: true
 
-                highlighted: selected || current
+                model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
+                selectionModel: controller.selectionModel
+                reuseItems: true
 
-                onClicked: {
-                    forceActiveFocus(Qt.MouseFocusReason)
-                    select()
+                selectionBehavior: TableView.SelectRows
+
+
+                columnWidthProvider: function (column) {
+                    if (column === 0) return 300
+                    return  200
                 }
 
-                onDoubleClicked: {
-                    forceActiveFocus(Qt.MouseFocusReason)
-                    select()
-                    history.pushRow(row)
-                }
+                delegate: ItemDelegate {
+                    required property bool selected
+                    required property bool current
 
-                Keys.onPressed: (event) =>   {
-                    if (event.key === Qt.Key_Return)
+                    text: model.display
+
+                    focus: true
+
+                    highlighted: selected || current
+
+                    onClicked: {
+                        forceActiveFocus(Qt.MouseFocusReason)
+                        select()
+                    }
+
+                    onDoubleClicked: {
+                        forceActiveFocus(Qt.MouseFocusReason)
+                        select()
                         history.pushRow(row)
+                    }
+
+                    Keys.onPressed: (event) =>   {
+                        if (event.key === Qt.Key_Return)
+                            history.pushRow(row)
+                    }
+
+                    function select() {
+                        view.selectionModel.setCurrentIndex(view.model.index(row, column), ItemSelectionModel.SelectCurrent)
+                    }
                 }
 
-                function select() {
-                    view.selectionModel.setCurrentIndex(view.model.index(row, column), ItemSelectionModel.SelectCurrent)
+                ScrollBar.vertical: ScrollBar {
+                    id: vscrollbar
+
+                    policy: ScrollBar.AsNeeded
+
+                    parent: view.parent
+                    anchors.top: view.top
+                    anchors.left: view.right
+                    anchors.bottom: hscrollbar.bottom
                 }
-            }
 
-            ScrollBar.vertical: ScrollBar {
-                id: vscrollbar
+                ScrollBar.horizontal: ScrollBar {
+                    id: hscrollbar
 
-                policy: ScrollBar.AsNeeded
-            }
+                    policy: ScrollBar.AsNeeded
 
-            ScrollBar.horizontal: ScrollBar {
-                id: hscrollbar
+                    parent: view.parent
+                    anchors.left: view.left
+                    anchors.right: view.right
+                    anchors.top: view.bottom
+                }
 
-                policy: ScrollBar.AsNeeded
-            }
-
-            onCurrentRowChanged: {
-                controller.setPreview(currentRow)
+                onCurrentRowChanged: {
+                    controller.setPreview(currentRow)
+                }
             }
         }
+
+
 
         Pane {
             // tableview content can overflow, so wrap preview inside Pane,

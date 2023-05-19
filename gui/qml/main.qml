@@ -68,7 +68,7 @@ Window {
         id: folderDialog
 
         onAccepted: {
-            history.push(folderDialog.folder)
+            history.pushUrl(folderDialog.folder)
         }
     }
 

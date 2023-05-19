@@ -93,13 +93,48 @@ Window {
 
             padding: 0
 
+            Row {
+                id: header
+
+                z: 10 // otherwise outoff view cells will cover this
+                x: - view.visibleArea.xPosition * view.contentWidth
+
+                Repeater {
+                    model: Math.max(view.columns, 0)
+
+                    ItemDelegate {
+                        text: view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
+
+                        // don't use layout change signal, since that will set width to 0, when cell goes out of view
+                        width: view.columnWidthProvider(index)
+
+                        onVisibleChanged: {
+                            console.trace()
+                            print("onvisible changed", visible, text, '\n')
+                        }
+
+                        Connections {
+                            target: view.model
+
+                            function onHeaderDataChanged() {
+                                text = view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
+                            }
+                        }
+
+                    }
+                }
+            }
+
             // when navigating current item of view gets hidden under scrollbar
             // wrap the view inside Pane, and set the scrollbar on Pane to fix that
             TableView {
                 id: view
 
                 anchors {
-                    fill: parent
+                    left: parent.left
+                    right: parent.right
+                    top: header.bottom
+                    bottom: parent.bottom
                     rightMargin: vscrollbar.width
                     bottomMargin: hscrollbar.height
                 }
@@ -157,6 +192,8 @@ Window {
                     id: vscrollbar
 
                     policy: ScrollBar.AsNeeded
+
+                    z: 11 // place it above header
 
                     parent: view.parent
                     anchors.top: view.top

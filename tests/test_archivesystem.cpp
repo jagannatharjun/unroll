@@ -49,12 +49,20 @@ public:
                 QCOMPARE(d->filePath(i), node.path);
                 if (!node.content.isNull())
                 {
-                    auto iosource = s.iosource(d, i);
-                    QFile readsource(iosource->readPath());
-                    QVERIFY(readsource.open(QIODevice::ReadOnly));
+                    QString path;
 
-                    const QByteArray content = readsource.readAll();
-                    QCOMPARE(content, node.content);
+                    {
+                        auto iosource = s.iosource(d, i);
+                        path = iosource->readPath();
+
+                        QFile readsource(path);
+                        QVERIFY(readsource.open(QIODevice::ReadOnly));
+
+                        const QByteArray content = readsource.readAll();
+                        QCOMPARE(content, node.content);
+                    }
+
+                    QVERIFY(!QFileInfo::exists(path));
                 }
 
                 // remove the node, so duplicate can be caught

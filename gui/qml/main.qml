@@ -19,7 +19,7 @@ Window {
         id: controller
 
         onShowPreview: function (data) {
-            previewloader.active = data.fileType() != PreviewData.Unknown
+            previewloader.active = data.fileType() !== PreviewData.Unknown
             if (data.fileType() === PreviewData.ImageFile)
                 previewloader.setSource("qrc:/preview/ImagePreview.qml", {"previewdata": data})
             else if (data.fileType() === PreviewData.VideoFile || data.fileType() == PreviewData.AudioFile)

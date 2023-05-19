@@ -134,9 +134,9 @@ void ViewController::updateModel()
 void ViewController::updatePreview()
 {
     auto s = dynamic_cast<decltype (m_previewWatcher) *>(sender());
-    if (s && s->result().valid())
+    if (s)
     {
-        emit showPreview(PreviewData(s->result()));
+        emit showPreview(s->result());
     }
 }
 

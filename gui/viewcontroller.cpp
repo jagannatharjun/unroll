@@ -15,14 +15,6 @@ ViewController::ViewController(QObject *parent)
     , m_selectionModel {std::make_unique<QItemSelectionModel>()}
     , m_system {std::make_unique<HybridDirSystem>()}
 {
-    connect(m_selectionModel.get(), &QItemSelectionModel::currentRowChanged, this, [this](const QModelIndex &current)
-    {
-        if (!m_model->checkIndex(current))
-            return;
-
-        setPreview(current.row());
-    });
-
     connect(&m_urlWatcher, &QFutureWatcherBase::finished, this, &ViewController::updateModel);
     connect(&m_previewWatcher, &QFutureWatcherBase::finished, this, &ViewController::updatePreview);
 }
@@ -83,7 +75,7 @@ void ViewController::setPreview(int row)
             int child) -> PreviewData
     {
         if (dir->isDir(child))
-            return {};
+            return {nullptr, PreviewData::Unknown};
 
         // some directory system has custom urls, so you can directly use fileUrl here
         const auto mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(dir->filePath(child))).name();
@@ -108,6 +100,10 @@ void ViewController::setPreview(int row)
     if (auto parent = validParent(row))
     {
         m_previewWatcher.setFuture(QtConcurrent::run(&m_pool, getiosource, m_system, parent, row));
+    }
+    else
+    {
+        emit showPreview({nullptr, PreviewData::Unknown});
     }
 }
 

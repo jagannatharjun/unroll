@@ -19,9 +19,10 @@ Window {
         id: controller
 
         onShowPreview: function (data) {
+            previewloader.active = data.fileType() != PreviewData.Unknown
             if (data.fileType() === PreviewData.ImageFile)
                 previewloader.setSource("qrc:/preview/ImagePreview.qml", {"previewdata": data})
-            else
+            else if (data.fileType() === PreviewData.VideoFile || data.fileType() == PreviewData.AudioFile)
                 previewloader.setSource("qrc:/preview/Player.qml", {"previewdata": data})
         }
     }
@@ -152,6 +153,10 @@ Window {
                 id: hscrollbar
 
                 policy: ScrollBar.AsNeeded
+            }
+
+            onCurrentRowChanged: {
+                controller.setPreview(currentRow)
             }
         }
 

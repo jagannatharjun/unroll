@@ -70,7 +70,7 @@ void ViewController::setPreview(int row)
         if (dir->isDir(child))
             return {nullptr, PreviewData::Unknown};
 
-        // some directory system has custom urls, so you can directly use fileUrl here
+        // some directory system may have custom urls, so you can't directly use fileUrl here
         const auto mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(dir->filePath(child))).name();
         PreviewData::FileType filetype = PreviewData::Unknown;
         const auto types =
@@ -80,8 +80,10 @@ void ViewController::setPreview(int row)
             {PreviewData::VideoFile, "video"}
         };
 
-        for (const auto type : types) {
-            if (mime.startsWith(type.second)) {
+        for (const auto type : types)
+        {
+            if (mime.startsWith(type.second))
+            {
                 filetype = type.first;
                 break;
             }

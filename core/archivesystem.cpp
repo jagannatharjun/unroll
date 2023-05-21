@@ -212,7 +212,7 @@ struct BuildTreeResult
 
 BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
 {
-    ArchiveDir *root = new ArchiveDir(nullptr, pathName(filePath), ArchiveUrl::makeurl(filePath, {}), 0);
+    std::unique_ptr<ArchiveDir> root {new ArchiveDir(nullptr, pathName(filePath), ArchiveUrl::makeurl(filePath, {}), 0)};
     ArchiveNode *child {};
 
     QHash<ArchiveDir *, QHash<QString, ArchiveDir *>> dirMap;
@@ -225,7 +225,7 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
         auto dirparts = path.split('/');
         const auto name = dirparts.takeLast();
 
-        ArchiveDir *current = root;
+        ArchiveDir *current = root.get();
         current->size_ += size;
 
         QString nodepath; // current nodepath per traversal
@@ -270,7 +270,7 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
     if (!iterate_archiveentries(filePath, insertFileNode))
         return {};
 
-    return BuildTreeResult {std::unique_ptr<ArchiveDir>(root), child};
+    return BuildTreeResult {std::move(root), child};
 }
 
 

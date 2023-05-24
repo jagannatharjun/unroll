@@ -39,10 +39,26 @@ Pane {
             model: Math.max(view.columns, 0)
 
             ItemDelegate {
+                id: headerDelegate
+
                 text: view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
 
                 // don't use layout change signal, since that will set width to 0, when cell goes out of view
                 width: view.columnWidthProvider(index)
+
+                Row {
+                    anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
+
+                    Label {
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        font: headerDelegate.font
+                        visible: root.modelSortColumn === index
+                        text: root.modelSortOrder === Qt.AscendingOrder ? "↓" : "↑"
+                        scale: 1.1
+                        rightPadding: headerDelegate.rightPadding + 10
+                    }
+                }
 
                 Connections {
                     target: root

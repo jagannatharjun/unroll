@@ -15,6 +15,9 @@ Window {
     visible: true
     title: qsTr("File Browser")
 
+    Component.onCompleted: FileBrowser.window = root
+    Component.onDestruction: FileBrowser.window = null
+
     ViewController {
         id: controller
 

@@ -1,6 +1,8 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QAbstractItemModel>
+
+#include "filebrowser.hpp"
 #include "viewcontroller.hpp"
 #include "historycontroller.hpp"
 
@@ -18,6 +20,11 @@ int main(int argc, char *argv[])
     qmlRegisterType<ViewController>("filebrowser", 0, 1, "ViewController");
     qmlRegisterType<HistoryController>("filebrowser", 0, 1, "HistoryController");
     qmlRegisterType<PreviewData>("filebrowser", 0, 1, "PreviewData");
+
+    qmlRegisterSingletonType<FileBrowser>("filebrowser", 0, 1, "FileBrowser" ,[](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
+    {
+        return new FileBrowser();
+    });
 
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/main.qml"));

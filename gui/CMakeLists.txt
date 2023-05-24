@@ -2,6 +2,7 @@
 set(SOURCES
         viewcontroller.hpp viewcontroller.cpp
 	historycontroller.hpp historycontroller.cpp
+	filebrowser.hpp filebrowser.cpp
         main.cpp
 	qml/qml.qrc
 )

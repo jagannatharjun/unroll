@@ -26,20 +26,23 @@ Pane {
     function _setColumnWidth(column, width) {
         view.setColumnWidth(column, Math.max(200, width))
         root._columnWidthChanged()
+        view.forceLayout()
     }
 
-    Row {
+    Item {
         id: header
 
         z: 10 // otherwise outoff view cells will cover this
-        x: - view.visibleArea.xPosition * view.contentWidth
-        spacing: view.rowSpacing
+        parent: view.contentItem
+        height: children.length > 0 ? children[0].height : 0
 
         Repeater {
             model: Math.max(view.columns, 0)
 
             ItemDelegate {
                 id: headerDelegate
+
+                y: view.contentY
 
                 text: view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
 
@@ -97,11 +100,24 @@ Pane {
                     }
                 }
 
+                Connections {
+                    target: view
+
+                    function onLayoutChanged() {
+                        let item = view.itemAtCell(index, view.topRow)
+                        let insideViewport = item !== null
+
+                        headerDelegate.visible = insideViewport
+                        if (insideViewport) {
+                            headerDelegate.x = item.x
+                        }
+                    }
+                }
+
                 Component.onCompleted: {
                     resetText()
                     resetWidth()
                 }
-
             }
         }
     }
@@ -112,14 +128,12 @@ Pane {
         id: view
 
         anchors {
-            left: parent.left
-            right: parent.right
-            top: header.bottom
-            bottom: parent.bottom
+            fill: parent
             rightMargin: vscrollbar.width
             bottomMargin: hscrollbar.height
         }
 
+        topMargin: header.height
         boundsBehavior: Flickable.StopAtBounds
 
         focus: true
@@ -208,6 +222,18 @@ Pane {
             anchors.left: view.left
             anchors.right: view.right
             anchors.top: view.bottom
+        }
+
+        Connections {
+            target: view.selectionModel
+
+            function onCurrentChanged() {
+                // TableView doesn't take header height in account when repositioning view on current change
+                // manually call positionViewAtCell with required offset
+                var cell = Qt.point(view.currentColumn, view.currentRow)
+                var offset =  Qt.point(0,  - header.height * 2)
+                view.positionViewAtCell(cell, TableView.Contain, offset)
+            }
         }
     }
 }

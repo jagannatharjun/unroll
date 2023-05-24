@@ -7,6 +7,6 @@
     </qresource>
     <qresource prefix="/preview">
         <file alias="ImagePreview.qml">preview/ImagePreview.qml</file>
-        <file>Player.qml</file>
+        <file alias="Player.qml">preview/Player.qml</file>
     </qresource>
 </RCC>

@@ -43,8 +43,23 @@ Pane {
 
                 text: view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
 
-                // don't use layout change signal, since that will set width to 0, when cell goes out of view
-                width: view.columnWidthProvider(index)
+                function resetWidth() {
+                    // don't use layout change signal, since that will set width to 0, when cell goes out of view
+                    width = Qt.binding(function() {
+                        return view.columnWidthProvider(index)
+                    })
+                }
+
+                function resetText() {
+                    text = Qt.binding(function() {
+                        return view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
+                    })
+                }
+
+                onPressed: {
+                    var order = modelSortOrder === Qt.AscendingOrder ? Qt.DescendingOrder : Qt.AscendingOrder
+                    view.model.sort(index, order)
+                }
 
                 Row {
                     anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
@@ -54,30 +69,9 @@ Pane {
 
                         font: headerDelegate.font
                         visible: root.modelSortColumn === index
-                        text: root.modelSortOrder === Qt.AscendingOrder ? "↓" : "↑"
+                        text: root.modelSortOrder === Qt.DescendingOrder ? "↓" : "↑"
                         scale: 1.1
                         rightPadding: headerDelegate.rightPadding + 10
-                    }
-                }
-
-                Connections {
-                    target: root
-
-                    function on_ColumnWidthChanged() {
-                        width = Qt.binding(function() { return view.columnWidthProvider(index) })
-                    }
-                }
-
-                onPressed: {
-                    var order = modelSortOrder === Qt.AscendingOrder ? Qt.DescendingOrder : Qt.AscendingOrder
-                    view.model.sort(index, order)
-                }
-
-                Connections {
-                    target: view.model
-
-                    function onHeaderDataChanged() {
-                        text = view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
                     }
                 }
 
@@ -86,6 +80,28 @@ Pane {
                         root._setColumnWidth(index, width)
                     }
                 }
+
+                Connections {
+                    target: root
+
+                    function on_ColumnWidthChanged() {
+                        headerDelegate.resetWidth()
+                    }
+                }
+
+                Connections {
+                    target: view.model
+
+                    function onHeaderDataChanged() {
+                        headerDelegate.resetText()
+                    }
+                }
+
+                Component.onCompleted: {
+                    resetText()
+                    resetWidth()
+                }
+
             }
         }
     }

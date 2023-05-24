@@ -39,6 +39,8 @@ target_link_libraries(file-browser
 target_link_libraries(file-browser
   PRIVATE core)
 
+target_compile_definitions(file-browser PRIVATE QT_QML_DEBUG)
+
 set_target_properties(file-browser PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}

@@ -4,6 +4,7 @@ add_library(core directorysystem.hpp
     archivesystem.hpp archivesystem.cpp
     hybriddirsystem.hpp hybriddirsystem.cpp
     directorysystemmodel.hpp directorysystemmodel.cpp
+    directorysortmodel.hpp directorysortmodel.cpp
     filetype.hpp filetype.cpp)
 
 target_link_libraries(core PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Concurrent)

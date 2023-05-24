@@ -65,7 +65,8 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
 
     const auto displayRole = [&]() -> QString
     {
-        switch (c) {
+        switch (c)
+        {
         case NameColumn:
             return m_dir->fileName(r);
         case PathColumn:
@@ -77,10 +78,27 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
         return "";
     };
 
+    const auto sortRole = [&]() -> QVariant
+    {
+        switch (c)
+        {
+        case NameColumn:
+            return m_dir->fileName(r);
+        case PathColumn:
+            return m_dir->filePath(r);
+        case SizeColumn:
+            return m_dir->fileSize(r);
+        }
+
+        return {};
+    };
+
     switch (role)
     {
     case Qt::DisplayRole:
         return displayRole();
+    case DataRole:
+        return sortRole();
     case NameRole:
         return m_dir->fileName(r);
     case PathRole:

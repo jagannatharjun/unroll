@@ -90,6 +90,10 @@ Window {
             SplitView.fillHeight: true
 
             model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
+
+            modelSortOrder: controller.model.sortOrder
+            modelSortColumn: controller.model.sortColumn
+
             selectionModel: ItemSelectionModel {
                 onCurrentChanged: {
                     history.updateCurrentIndex(currentIndex.row, currentIndex.column)

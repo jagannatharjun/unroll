@@ -15,8 +15,13 @@ public:
         NameRole = Qt::UserRole + 1,
         PathRole,
         SizeRole,
-        IsDirRole
+        IsDirRole,
+
+        // Meta Roles
+        DataRole
     };
+
+    Q_ENUM(Roles);
 
     enum Columns
     {

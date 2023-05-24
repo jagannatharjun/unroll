@@ -14,7 +14,7 @@
 
 class QAbstractItemModel;
 class DirectorySystemModel;
-
+class DirectorySortModel;
 
 class PreviewData
 {
@@ -76,13 +76,14 @@ private slots:
     void updatePreview();
 
 private:
-    std::shared_ptr<Directory> validParent(const int index);
+    int sourceRow(const int row);
 
     // store current url of m_model, store it seperately so
     // that url() and model updates are always in sync
     QUrl m_url;
 
-    std::unique_ptr<DirectorySystemModel> m_model;
+    std::unique_ptr<DirectorySystemModel> m_dirModel;
+    std::unique_ptr<DirectorySortModel> m_sortModel;
 
     std::shared_ptr<DirectorySystem> m_system;
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;

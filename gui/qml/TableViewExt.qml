@@ -13,6 +13,11 @@ Pane {
 
     property alias view: view
 
+    // default QAbstractItemModel doesn't support these properties
+    // the user of this class must override these to support sorting
+    property int modelSortOrder
+    property int modelSortColumn
+
     signal actionAtIndex(int row, int column)
 
     Row {
@@ -30,6 +35,11 @@ Pane {
 
                 // don't use layout change signal, since that will set width to 0, when cell goes out of view
                 width: view.columnWidthProvider(index)
+
+                onPressed: {
+                    var order = modelSortOrder === Qt.AscendingOrder ? Qt.DescendingOrder : Qt.AscendingOrder
+                    view.model.sort(index, order)
+                }
 
                 Connections {
                     target: view.model

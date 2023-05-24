@@ -2,6 +2,7 @@
 #include "viewcontroller.hpp"
 
 #include "../core/directorysystemmodel.hpp"
+#include "../core/directorysortmodel.hpp"
 #include "../core/hybriddirsystem.hpp"
 
 #include <QtConcurrent/QtConcurrent>
@@ -10,9 +11,13 @@
 
 ViewController::ViewController(QObject *parent)
     : QObject {parent}
-    , m_model {std::make_unique<DirectorySystemModel>()}
+    , m_dirModel {std::make_unique<DirectorySystemModel>()}
+    , m_sortModel { std::make_unique<DirectorySortModel>() }
     , m_system {std::make_unique<HybridDirSystem>()}
 {
+    m_sortModel->setSortRole(DirectorySystemModel::DataRole);
+    m_sortModel->setSourceModel(m_dirModel.get());
+
     connect(&m_urlWatcher, &QFutureWatcherBase::finished, this, &ViewController::updateModel);
     connect(&m_previewWatcher, &QFutureWatcherBase::finished, this, &ViewController::updatePreview);
 }
@@ -24,12 +29,12 @@ ViewController::~ViewController()
 
 QAbstractItemModel *ViewController::model()
 {
-    return m_model.get();
+    return m_sortModel.get();
 }
 
 QString ViewController::url() const
 {
-    return m_model->directory() ? m_model->directory()->url().toString() : QString {};
+    return m_dirModel->directory() ? m_dirModel->directory()->url().toString() : QString {};
 }
 
 void ViewController::openUrl(const QUrl &url)
@@ -46,6 +51,13 @@ void ViewController::openUrl(const QUrl &url)
 
 void ViewController::openRow(const int row)
 {
+    const auto directoryRow = sourceRow(row);
+    if (directoryRow == -1)
+    {
+        qDebug("invalid openRow call with row - %d", row);
+        return;
+    }
+
     const auto open = [](
             std::shared_ptr<DirectorySystem> system,
             std::shared_ptr<Directory> dir,
@@ -54,9 +66,9 @@ void ViewController::openRow(const int row)
         return system->open(dir.get(), child);
     };
 
-    if (auto parent = validParent(row))
+    if (auto parent = m_dirModel->directory())
     {
-        m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, parent, row));
+        m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, parent, directoryRow));
     }
 }
 
@@ -92,9 +104,17 @@ void ViewController::setPreview(int row)
         return PreviewData(system->iosource(dir.get(), child), filetype);
     };
 
-    if (auto parent = validParent(row))
+
+    const auto directoryRow = sourceRow(row);
+    if (directoryRow == -1)
     {
-        m_previewWatcher.setFuture(QtConcurrent::run(&m_pool, getiosource, m_system, parent, row));
+        qDebug("invalid openRow call with row - %d", row);
+        return;
+    }
+
+    if (auto parent = m_dirModel->directory())
+    {
+        m_previewWatcher.setFuture(QtConcurrent::run(&m_pool, getiosource, m_system, parent, directoryRow));
     }
     else
     {
@@ -102,15 +122,15 @@ void ViewController::setPreview(int row)
     }
 }
 
-std::shared_ptr<Directory> ViewController::validParent(const int index)
+int ViewController::sourceRow(const int row)
 {
-    if (auto parent =  m_model->directory())
+    const auto index = m_sortModel->mapToSource(m_sortModel->index(row, 0));
+    if (!index.isValid())
     {
-        if (index >= 0 && index < parent->fileCount())
-            return parent;
+        return -1;
     }
 
-    return nullptr;
+    return index.row();
 }
 
 void ViewController::updateModel()
@@ -120,7 +140,7 @@ void ViewController::updateModel()
     {
         // first trigger url change on UI side, so that view can redo itself based on new URL
         m_url = s->result()->url();
-        m_model->setDirectory(s->result());
+        m_dirModel->setDirectory(s->result());
 
         emit urlChanged();
     }

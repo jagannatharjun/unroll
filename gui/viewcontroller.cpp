@@ -24,7 +24,6 @@ ViewController::ViewController(QObject *parent)
 
 ViewController::~ViewController()
 {
-
 }
 
 QAbstractItemModel *ViewController::model()
@@ -74,7 +73,7 @@ void ViewController::openRow(const int row)
 
 void ViewController::setPreview(int row)
 {
-    const auto getiosource = [](
+    const auto getPreviewData = [](
             std::shared_ptr<DirectorySystem> system,
             std::shared_ptr<Directory> dir,
             int child) -> PreviewData
@@ -114,7 +113,7 @@ void ViewController::setPreview(int row)
 
     if (auto parent = m_dirModel->directory())
     {
-        m_previewWatcher.setFuture(QtConcurrent::run(&m_pool, getiosource, m_system, parent, directoryRow));
+        m_previewWatcher.setFuture(QtConcurrent::run(&m_pool, getPreviewData, m_system, parent, directoryRow));
     }
     else
     {
@@ -138,7 +137,6 @@ void ViewController::updateModel()
     auto s = dynamic_cast<decltype (m_urlWatcher) *>(sender());
     if (s && s->result())
     {
-        // first trigger url change on UI side, so that view can redo itself based on new URL
         m_url = s->result()->url();
         m_dirModel->setDirectory(s->result());
 

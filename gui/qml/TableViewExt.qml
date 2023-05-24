@@ -48,7 +48,6 @@ Pane {
                         text = view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
                     }
                 }
-
             }
         }
     }

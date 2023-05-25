@@ -32,9 +32,12 @@ Pane {
     Item {
         id: header
 
-        z: 10 // otherwise outoff view cells will cover this
-        parent: view.contentItem
         height: children.length > 0 ? children[0].height : 0
+
+        z: 10 // otherwise outoff view cells will cover this
+
+        parent: view.contentItem
+        y: - height // place this out of view otherwise the currentItem doesn't get in view correctly on currentChanged
 
         Repeater {
             model: Math.max(view.columns, 0)
@@ -129,11 +132,12 @@ Pane {
 
         anchors {
             fill: parent
+            topMargin: header.height
             rightMargin: vscrollbar.width
             bottomMargin: hscrollbar.height
         }
 
-        topMargin: header.height
+
         boundsBehavior: Flickable.StopAtBounds
 
         focus: true
@@ -222,18 +226,6 @@ Pane {
             anchors.left: view.left
             anchors.right: view.right
             anchors.top: view.bottom
-        }
-
-        Connections {
-            target: view.selectionModel
-
-            function onCurrentChanged() {
-                // TableView doesn't take header height in account when repositioning view on current change
-                // manually call positionViewAtCell with required offset
-                var cell = Qt.point(view.currentColumn, view.currentRow)
-                var offset =  Qt.point(0,  - header.height * 2)
-                view.positionViewAtCell(cell, TableView.Contain, offset)
-            }
         }
     }
 }

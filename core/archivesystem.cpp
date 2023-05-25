@@ -17,42 +17,82 @@ class ArchiveDir;
 static const QString CHILD_KEY = "child";
 static const QString URL_SCHEME = "archivesystem";
 
-// TODO handle archive urls view URL's query parameter, not pound
-// extend tests
-struct ArchiveUrl
+// TODO extend tests for ArchiveUrl
+class ArchiveUrl
 {
-
-    static ArchiveUrl makeurl(const QString &path, const QString &child)
-    {
-        QUrl url;
-        url.setScheme(URL_SCHEME);
-        url.setPath(path);
-        url.setQuery(QUrlQuery({{CHILD_KEY, child}}));
-        return ArchiveUrl {url};
-    }
+public:
 
     static bool isarchiveurl(const QUrl &url)
     {
         return url.scheme() == URL_SCHEME;
     }
 
-    QUrl url;
+    static QString childKey(const int index)
+    {
+        return QString("%1%2").arg(CHILD_KEY, QString::number(index));
+    }
+
+    static int countChildren(const QUrl &url)
+    {
+        int count = 0;
+        QUrlQuery query(url);
+
+        while (query.hasQueryItem(childKey(count)))
+            count++;
+
+        return count;
+    }
+
+
+    ArchiveUrl(const QString &filePath)
+    {
+        m_url.setScheme(URL_SCHEME);
+        m_url.setPath(filePath);
+        m_childCount = 0;
+    }
+
+    ArchiveUrl(const QUrl &url)
+        : ArchiveUrl {url, countChildren(url)}
+    {
+    }
 
     QString filepath() const
     {
-        return url.path(QUrl::PrettyDecoded) + child();
+        return m_url.path(QUrl::PrettyDecoded) + firstChild();
     }
 
-    QString child() const
+    QString firstChild() const
     {
-        return QUrlQuery(url).queryItemValue(CHILD_KEY);
+        return QUrlQuery(m_url).queryItemValue(childKey(0));
     }
 
     QString archivepath() const
     {
-        return url.path(QUrl::PrettyDecoded);
+        return m_url.path(QUrl::PrettyDecoded);
     }
+
+    QUrl url() const { return m_url; }
+
+    ArchiveUrl withChild(const QString &child) const
+    {
+        QUrlQuery query(m_url);
+        query.addQueryItem(childKey(m_childCount), child);
+
+        QUrl n = m_url;
+        n.setQuery(query);
+        return ArchiveUrl {n, m_childCount + 1};
+    }
+
+private:
+    ArchiveUrl(QUrl url, int childCount) : m_url {url}, m_childCount {childCount}
+    {
+        assert(isarchiveurl(url));
+    }
+
+    QUrl m_url;
+    int m_childCount = 0;
 };
+
 
 class ArchiveNode : public Directory
 {
@@ -74,7 +114,7 @@ public:
 
     QString name() { return name_; }
     QString path() { return url_.filepath(); }
-    QUrl url() { return url_.url; }
+    QUrl url() { return url_.url(); }
     qint64 size() { return size_; }
 };
 
@@ -175,7 +215,7 @@ bool iterateArchiveEntries(const QString &archivepath, std::function<bool(archiv
     std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
     if (!a)
     {
-        qWarning("failed archive_read_new");
+        qWarning("failed archive_read_new, '%s'", qUtf8Printable(archivepath));
         return false;
     }
 
@@ -185,7 +225,7 @@ bool iterateArchiveEntries(const QString &archivepath, std::function<bool(archiv
     const int r = archive_read_open_filename_w(a.get(), archivepath.toStdWString().c_str(), 10240);
     if (r != ARCHIVE_OK)
     {
-        qWarning("failed to archive read open filename %d", r);
+        qWarning("failed to archive read open filename %d, '%s'", r, qUtf8Printable(archivepath));
         return false;
     }
 
@@ -210,9 +250,9 @@ struct BuildTreeResult
 };
 
 
-BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
+BuildTreeResult buildTree(const QString &filePath, const QString &childpath, const ArchiveUrl &baseUrl)
 {
-    std::unique_ptr<ArchiveDir> root {new ArchiveDir(nullptr, pathName(filePath), ArchiveUrl::makeurl(filePath, {}), 0)};
+    std::unique_ptr<ArchiveDir> root {new ArchiveDir(nullptr, pathName(filePath), baseUrl, 0)};
     ArchiveNode *child {};
 
     QHash<ArchiveDir *, QHash<QString, ArchiveDir *>> dirMap;
@@ -237,7 +277,7 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
             ArchiveDir *& next = dirMap[current][dirpart];
             if (!next)
             {
-                next = new ArchiveDir(current, dirpart, ArchiveUrl::makeurl(filePath, nodepath), 0);
+                next = new ArchiveDir(current, dirpart, baseUrl.withChild(nodepath), 0);
                 current->children.push_back(next);
             }
 
@@ -255,7 +295,7 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath)
             nodepath += QString("/") + name;
 
             const auto size = archive_entry_size(entry);
-            auto file = new ArchiveFile(current, name, ArchiveUrl::makeurl(filePath, nodepath), size);
+            auto file = new ArchiveFile(current, name, baseUrl.withChild(nodepath), size);
 
             current->children.push_back(file);
             if (!child && (nodepath == childpath))
@@ -363,13 +403,13 @@ std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
 
     if (url.isLocalFile())
     {
-        root = buildTree(url.toLocalFile(), {}).root;
+        root = buildTree(url.toLocalFile(), {}, ArchiveUrl(url.toLocalFile())).root;
         result = root.get();
     }
     else if (ArchiveUrl::isarchiveurl(url))
     {
-        const ArchiveUrl archiveurl {url};
-        auto tree = buildTree(archiveurl.archivepath(), archiveurl.child());
+        const ArchiveUrl archiveurl (url);
+        auto tree = buildTree(archiveurl.archivepath(), archiveurl.firstChild(), ArchiveUrl(archiveurl.archivepath()));
         root = std::move(tree.root);
 
         result = dynamic_cast<ArchiveDir *>(tree.child);
@@ -396,7 +436,7 @@ std::unique_ptr<IOSource> ArchiveSystem::iosource(Directory *dir, int child)
 
     const ArchiveUrl url{dir->fileUrl(child)};
     const QDir tempdir(QDir::tempPath());
-    const QString templateName = "XXXXXXXXXXXXXXXXXXXX." + QFileInfo(url.child()).completeSuffix();
+    const QString templateName = "XXXXXXXXXXXXXXXXXXXX." + QFileInfo(url.firstChild()).completeSuffix();
 
     result->file.setFileTemplate(tempdir.absoluteFilePath(templateName));
     if (!result->file.open())
@@ -406,7 +446,7 @@ std::unique_ptr<IOSource> ArchiveSystem::iosource(Directory *dir, int child)
         return nullptr;
     }
 
-    extractFile(url.archivepath(), url.child(), &result->file);
+    extractFile(url.archivepath(), url.firstChild(), &result->file);
 
     // this is necessary to flush the content, otherwise reader may get invalid content
     result->file.close();

@@ -109,7 +109,6 @@ public:
         QVERIFY(!s.open(QUrl::fromLocalFile("notexistentfile"))); // test with url that doesn't exist
         QVERIFY(!s.open(QUrl::fromLocalFile(__FILE__))); // test with not a archive file
 
-        QVERIFY(s.canopen(archiveurl));
         auto f = std::shared_ptr(s.open(archiveurl));
 
         QCOMPARE(f->name(), "archivetest.zip");

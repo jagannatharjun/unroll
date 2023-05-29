@@ -419,19 +419,6 @@ std::shared_ptr<QTemporaryFile> extractFile(const QString &archivePath, const QS
 }
 
 
-
-bool canopenarchive(const QString &filepath)
-{
-    std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
-    archive_read_support_format_all(a.get());
-
-    int r = archive_read_open_filename(a.get(), filepath.toStdString().c_str(), 10240);
-
-    return (r == ARCHIVE_OK);
-}
-
-
-
 SharedDirectory *unwrap(Directory *dir)
 {
     return dynamic_cast<SharedDirectory *> (dir);
@@ -499,32 +486,6 @@ std::unique_ptr<SharedDirectory> openFile(const QString &fileName, const QString
 
 ArchiveSystem::ArchiveSystem()
 {
-
-}
-
-bool ArchiveSystem::canopen(const QUrl &url)
-{
-    if (url.isLocalFile())
-    {
-        return canopenarchive(url.toLocalFile());
-    }
-
-    if (ArchiveUrl::isarchiveurl(url))
-    {
-        // TODO handle child path? what if archive is password protected
-        return canopenarchive(ArchiveUrl {url}.archivePath());
-    }
-
-    return false;
-}
-
-bool ArchiveSystem::canopen(Directory *dir, int child)
-{
-    auto wrapper = unwrap(dir);
-    return wrapper
-            && child >= 0
-            && child <= wrapper->fileCount()
-            && dynamic_cast<ArchiveDir *>(wrapper->d->children[child]);
 }
 
 std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)

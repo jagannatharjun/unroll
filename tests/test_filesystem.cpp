@@ -49,9 +49,8 @@ public:
             write(f.first, f.second);
 
         const auto url = QUrl::fromLocalFile("./test-dir/");
-        QVERIFY(system.canopen(url));
         auto fd = system.open(url);
-
+        QVERIFY(fd);
         QCOMPARE(fd->fileCount(), testfiles.size());
 
         std::vector<bool> v(testfiles.size(), false);

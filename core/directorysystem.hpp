@@ -49,9 +49,6 @@ class DirectorySystem
 public:
     virtual ~DirectorySystem() = default;
 
-    virtual bool canopen(const QUrl &url) = 0;
-    virtual bool canopen(Directory  *dir, int child) = 0;
-
     virtual std::unique_ptr<Directory> open(const QUrl &url) = 0;
     virtual std::unique_ptr<Directory> open(Directory *dir, int child) = 0;
     //    virtual std::unique_ptr<Directory> parent(Directory *dir) = 0;

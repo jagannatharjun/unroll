@@ -17,9 +17,24 @@ class ArchiveDir;
 static const QString CHILD_KEY = "child";
 static const QString URL_SCHEME = "archivesystem";
 
-// TODO extend tests for ArchiveUrl
+
+/**
+ * @brief The ArchiveUrl class
+ *
+ * the schema for urls for ArchiveSystem is as follows
+ * archivesystem://{archivepath}&child0=path&child1=path...
+ *
+ * individual nth child key represents path inside that nth archive level
+ * if that path points to file inside the archive, the ArchiveSystem may try
+ * to open that with and return a corresponding Directory
+ *
+ *
+ * TODO extend tests for ArchiveUrl
+ */
 class ArchiveUrl
 {
+
+    // TODO extend tests for ArchiveUrl
 public:
 
     static bool isarchiveurl(const QUrl &url)
@@ -193,7 +208,8 @@ public:
 };
 
 /*
- * Used to keep a reference true reference to root when returing child as parse result
+ * Used to keep a reference true reference to root when returing child directory
+ * the root owns all children (including nth-grand children)
 */
 class SharedDirectory : public Directory
 {
@@ -554,6 +570,8 @@ std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
     return {};
 }
 
+
+// true returned value is SharedDirectory, it is useful to keep a reference to child directory
 std::unique_ptr<Directory> ArchiveSystem::open(Directory *dir, int child)
 {
     if (!dir || child < 0 || child >= dir->fileCount())

@@ -3,6 +3,7 @@
 
 #include "directorysystem.hpp"
 
+
 class ArchiveSystem : public DirectorySystem
 {
 public:
@@ -17,6 +18,9 @@ public:
     std::unique_ptr<Directory> open(Directory *dir, int child) override;
 
     std::unique_ptr<IOSource> iosource(Directory *dir, int child) override;
+
+private:
+
 };
 
 

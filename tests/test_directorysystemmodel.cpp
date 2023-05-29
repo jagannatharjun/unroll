@@ -26,7 +26,7 @@ private slots:
 
 
         m.setDirectory(system.open(QUrl::fromLocalFile(archivepath)));
-        QCOMPARE(m.rowCount(), 3);
+        QCOMPARE(m.rowCount(), 4);
 
         // name : {path, size}
     }

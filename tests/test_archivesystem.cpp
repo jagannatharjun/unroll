@@ -17,26 +17,18 @@ class TestArchiveFileSystem : public QObject
 public:
     using QObject::QObject;
 
-    void test(DirectorySystem &s)
+    void matchArchiveTestTree(std::shared_ptr<Directory> &root, const QDir d, DirectorySystem &system)
     {
-        auto d = QDir(QFileInfo(__FILE__).dir().absoluteFilePath("archivedir"));
-        const auto archivepath = d.absoluteFilePath("archivetest.zip");
-        const auto archiveurl = QUrl::fromLocalFile(archivepath);
+        QCOMPARE(root->name(), "archivetest.zip");
 
-        QVERIFY(!s.open(QUrl::fromLocalFile("notexistentfile"))); // test with url that doesn't exist
-        QVERIFY(!s.open(QUrl::fromLocalFile(__FILE__))); // test with not a archive file
-
-        QVERIFY(s.canopen(archiveurl));
-        auto f = s.open(archiveurl);
-
-        QCOMPARE(f->name(), "archivetest.zip");
+        std::shared_ptr<Directory> current = root;
 
         struct Node { QString path; qint64 size; QByteArray content {}; };
 
         const auto test = [&](QHash<QString, Node> files, Directory *d = nullptr)
         {
             if (!d)
-                d = f.get();
+                d = current.get();
 
             QVERIFY(d);
             QCOMPARE(d->fileCount(), files.size());
@@ -52,7 +44,9 @@ public:
                     QString path;
 
                     {
-                        auto iosource = s.iosource(d, i);
+                        auto iosource = system.iosource(d, i);
+                        QVERIFY(iosource);
+
                         path = iosource->readPath();
 
                         QFile readsource(path);
@@ -71,34 +65,85 @@ public:
         };
 
 
-        d = QDir(archivepath);
-        QHash<QString, Node> root
-            {
-                {"test.txt", {d.absoluteFilePath("test.txt"), 13}},
-                {"lol", {d.absoluteFilePath("lol"), 16}}
-            };
-        test(root);
+        QHash<QString, Node> level0
+        {
+            {"test.txt", {d.absoluteFilePath("test.txt"), 13}},
+            {"lol", {d.absoluteFilePath("lol"), 16}}
+        };
 
-        QCOMPARE(f->fileName(1), "test.txt");
-        QVERIFY(!s.open(f.get(), 1)); // try to open file
+        test(level0);
 
-        QCOMPARE(f->fileName(0), "lol");
-        f = s.open(f.get(), 0);
+        QCOMPARE(current->fileName(1), "test.txt");
+        QVERIFY(!system.open(current.get(), 1)); // try to open file
+
+        QCOMPARE(current->fileName(0), "lol");
+        current = system.open(current.get(), 0);
+
         QHash<QString, Node> level2 {{"tar", {d.absoluteFilePath("lol/tar"), 16}}};
         test(level2);
 
-        auto second = s.open(f->url());
+        auto second = system.open(current->url());
+        QVERIFY(second);
+        QCOMPARE(second->url(), current->url());
+        QCOMPARE(second->name(), current->name());
+
         test(level2, second.get());
 
-        QCOMPARE(f->fileName(0), "tar");
+        QCOMPARE(current->fileName(0), "tar");
         QHash<QString, Node> level3 {{"new.txt", {d.absoluteFilePath("lol/tar/new.txt"),16, "lolpoisonutrypop"}}};
 
-        auto old = std::move(f);
-        f = s.open(old->fileUrl(0));
+        auto old = std::move(current);
+        current = system.open(old->fileUrl(0));
         test(level3);
 
-        f = s.open(old.get(), 0);
+        current = system.open(old.get(), 0);
         test(level3);
+    }
+
+    void test(DirectorySystem &s)
+    {
+        auto d = QDir(QFileInfo(__FILE__).dir().absoluteFilePath("archivedir"));
+        const auto archivepath = d.absoluteFilePath("archivetest.zip");
+        const auto archiveurl = QUrl::fromLocalFile(archivepath);
+
+        QVERIFY(!s.open(QUrl::fromLocalFile("notexistentfile"))); // test with url that doesn't exist
+        QVERIFY(!s.open(QUrl::fromLocalFile(__FILE__))); // test with not a archive file
+
+        QVERIFY(s.canopen(archiveurl));
+        auto f = std::shared_ptr(s.open(archiveurl));
+
+        QCOMPARE(f->name(), "archivetest.zip");
+
+        d = QDir(archivepath);
+        matchArchiveTestTree(f, d, s);
+
+        // test reproducibility
+        f = s.open(f->url());
+        QVERIFY(f);
+
+        matchArchiveTestTree(f, d, s);
+    }
+
+    void testRecursiveArchive(DirectorySystem &s)
+    {
+        auto d = QDir(QFileInfo(__FILE__).dir().absoluteFilePath("archivedir"));
+        const auto archivepath = d.absoluteFilePath("archivedir.zip");
+        const auto archiveurl = QUrl::fromLocalFile(archivepath);
+
+        auto f = s.open(archiveurl);
+        QVERIFY(f);
+
+        QCOMPARE(f->fileName(0), "archivetest.zip");
+
+        auto recurRoot = std::shared_ptr(s.open(f->fileUrl(0)));
+        QVERIFY(recurRoot);
+
+        d = QDir(QDir(archivepath).absoluteFilePath("archivetest.zip"));
+        matchArchiveTestTree(recurRoot, d, s);
+
+        auto second = std::shared_ptr(s.open(recurRoot->url()));
+        QVERIFY(second);
+        matchArchiveTestTree(second, d, s);
     }
 
 private slots:
@@ -106,6 +151,12 @@ private slots:
     {
         ArchiveSystem s;
         test(s);
+    }
+
+    void testRecursiveArchive()
+    {
+        ArchiveSystem s;
+        testRecursiveArchive(s);
     }
 
     void testHybridFileSystem()

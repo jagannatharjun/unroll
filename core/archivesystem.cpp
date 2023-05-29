@@ -56,9 +56,29 @@ public:
     {
     }
 
+    int childrenCount() const
+    {
+        assert(children().size() == m_childCount);
+        return m_childCount;
+    }
+
     QString filepath() const
     {
-        return m_url.path(QUrl::PrettyDecoded) + firstChild();
+        QString childPath;
+        QUrlQuery query(m_url);
+
+        for (int i = 0; i < m_childCount; ++i)
+        {
+            auto p = query.queryItemValue(childKey(i));
+            if (childPath.endsWith("/"))
+                childPath = childPath.sliced(0, childPath.size() - 1);
+            if (!p.startsWith("/"))
+                p = "/" + p;
+
+            childPath += p;
+        }
+
+        return m_url.path(QUrl::PrettyDecoded) + childPath;
     }
 
     QString firstChild() const
@@ -66,7 +86,12 @@ public:
         return QUrlQuery(m_url).queryItemValue(childKey(0));
     }
 
-    QString archivepath() const
+    QString lastChild() const
+    {
+        return QUrlQuery(m_url).queryItemValue(childKey(m_childCount - 1));
+    }
+
+    QString archivePath() const
     {
         return m_url.path(QUrl::PrettyDecoded);
     }
@@ -81,6 +106,17 @@ public:
         QUrl n = m_url;
         n.setQuery(query);
         return ArchiveUrl {n, m_childCount + 1};
+    }
+
+    QVector<QString> children() const
+    {
+        QVector<QString>  r;
+
+        QUrlQuery q(m_url);
+        for (int i = 0; i < m_childCount; ++i)
+            r.push_back(q.queryItemValue(childKey(i)));
+
+        return r;
     }
 
 private:
@@ -138,6 +174,7 @@ class ArchiveDir : public ArchiveNode
 {
 public:
     QVector<ArchiveNode *> children;
+    std::shared_ptr<QTemporaryFile> source;
 
     using ArchiveNode::ArchiveNode;
 
@@ -193,11 +230,11 @@ public:
 class ArchiveTempIOSource : public IOSource
 {
 public:
-    QTemporaryFile file;
+    std::shared_ptr<QTemporaryFile> file;
 
     QString readPath() override
     {
-        return file.fileName();
+        return file->fileName();
     }
 
 };
@@ -252,7 +289,11 @@ struct BuildTreeResult
 
 BuildTreeResult buildTree(const QString &filePath, const QString &childpath, const ArchiveUrl &baseUrl)
 {
-    std::unique_ptr<ArchiveDir> root {new ArchiveDir(nullptr, pathName(filePath), baseUrl, 0)};
+    const auto rootName = baseUrl.childrenCount() > 0
+            ? pathName(baseUrl.children().back())
+            : pathName(baseUrl.archivePath());
+
+    std::unique_ptr<ArchiveDir> root {new ArchiveDir(nullptr, rootName, baseUrl, 0)};
     ArchiveNode *child {};
 
     QHash<ArchiveDir *, QHash<QString, ArchiveDir *>> dirMap;
@@ -279,15 +320,15 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath, con
             {
                 next = new ArchiveDir(current, dirpart, baseUrl.withChild(nodepath), 0);
                 current->children.push_back(next);
+
+                if (!child && (nodepath == childpath))
+                {
+                    child = next;
+                }
             }
 
             next->size_ += size; // update directory sizes
             current = next;
-        }
-
-        if (!child && (nodepath == childpath))
-        {
-            child = current;
         }
 
         if (!name.isEmpty())
@@ -338,6 +379,31 @@ void extractFile(const QString &filePath, const QString &childpath, QIODevice *o
 }
 
 
+
+std::shared_ptr<QTemporaryFile> extractFile(const QString &archivePath, const QString &file)
+{
+    const QDir tempdir(QDir::tempPath());
+    const QString templateName = "XXXXXXXXXXXXXXXXXXXX." + QFileInfo(file).completeSuffix();
+
+    auto r = std::make_shared<QTemporaryFile>();
+    r->setFileTemplate(tempdir.absoluteFilePath(templateName));
+    if (!r->open())
+    {
+        // TODO: error handling
+        qWarning("failed to open temporary file");
+        return nullptr;
+    }
+
+    extractFile(archivePath, file, r.get());
+
+    // this is necessary to flush the content, otherwise reader may get invalid content
+    r->close();
+
+    return r;
+}
+
+
+
 bool canopenarchive(const QString &filepath)
 {
     std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
@@ -348,23 +414,68 @@ bool canopenarchive(const QString &filepath)
     return (r == ARCHIVE_OK);
 }
 
-struct GetChildDirResult
+
+
+SharedDirectory *unwrap(Directory *dir)
 {
-    SharedDirectory *dirwrapper {};
-    ArchiveDir *child {};
-};
-
-GetChildDirResult getdirchild(Directory *dir, int child)
-{
-    auto dirwrapper = dynamic_cast<SharedDirectory *> (dir);
-    if (!dirwrapper) return {};
-
-    auto thisroot = dirwrapper->d;
-    assert(thisroot);
-
-    auto next = dynamic_cast<ArchiveDir *>( thisroot->children.at(child) );
-    return {dirwrapper, next};
+    return dynamic_cast<SharedDirectory *> (dir);
 }
+
+
+std::unique_ptr<SharedDirectory> wrap(std::shared_ptr<ArchiveDir> root, ArchiveDir *child)
+{
+    return std::make_unique<SharedDirectory>(std::move(root), child);
+}
+
+
+QString sourcePath(ArchiveDir *d, const ArchiveUrl &url)
+{
+    if (!d->source && url.childrenCount() > 1)
+    {
+        qWarning("recursive node doesn't have source");
+        return {};
+    }
+
+    if (d->source)
+        return d->source->fileName();
+
+    return url.archivePath();
+}
+
+
+std::unique_ptr<SharedDirectory> openFile(const QString &fileName, const QString &childName, const ArchiveUrl &baseUrl)
+{
+    auto tree = buildTree(fileName, childName, baseUrl);
+    if (!tree.root || (!tree.child != childName.isEmpty()))
+        return nullptr;
+
+    if (!tree.child)
+    {
+        auto d = tree.root.get();
+        return wrap(std::move(tree.root), d);
+    }
+
+    auto childDir = dynamic_cast<ArchiveDir *>(tree.child);
+    if (childDir)
+    {
+        return wrap(std::move(tree.root), childDir);
+    }
+
+    auto tmp = extractFile(fileName, childName);
+    if (!tmp)
+        return {};
+
+    const auto newUrl = baseUrl.withChild(childName);
+    auto newroot = buildTree(tmp->fileName(), {}, newUrl);
+    if (!newroot.root) return nullptr;
+    assert(!newroot.child);
+
+    newroot.root->source = tmp;
+    auto d = newroot.root.get();
+
+    return wrap(std::move(newroot.root), d);
+}
+
 
 } // namespace
 
@@ -385,7 +496,7 @@ bool ArchiveSystem::canopen(const QUrl &url)
     if (ArchiveUrl::isarchiveurl(url))
     {
         // TODO handle child path? what if archive is password protected
-        return canopenarchive(ArchiveUrl {url}.archivepath());
+        return canopenarchive(ArchiveUrl {url}.archivePath());
     }
 
     return false;
@@ -393,63 +504,94 @@ bool ArchiveSystem::canopen(const QUrl &url)
 
 bool ArchiveSystem::canopen(Directory *dir, int child)
 {
-    return getdirchild(dir, child).child != nullptr;
+    auto wrapper = unwrap(dir);
+    return wrapper
+            && child >= 0
+            && child <= wrapper->fileCount()
+            && dynamic_cast<ArchiveDir *>(wrapper->d->children[child]);
 }
 
 std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
 {
-    std::unique_ptr<ArchiveDir> root;
-    ArchiveDir *result {};
-
     if (url.isLocalFile())
     {
-        root = buildTree(url.toLocalFile(), {}, ArchiveUrl(url.toLocalFile())).root;
-        result = root.get();
+        return openFile(url.toLocalFile(), {}, ArchiveUrl(url.toLocalFile()));
     }
     else if (ArchiveUrl::isarchiveurl(url))
     {
-        const ArchiveUrl archiveurl (url);
-        auto tree = buildTree(archiveurl.archivepath(), archiveurl.firstChild(), ArchiveUrl(archiveurl.archivepath()));
-        root = std::move(tree.root);
+        const ArchiveUrl fullUrl(url);
+        if (fullUrl.childrenCount() == 0)
+            return openFile(fullUrl.archivePath(), {}, ArchiveUrl(fullUrl.archivePath()));
 
-        result = dynamic_cast<ArchiveDir *>(tree.child);
+
+        auto currentPath = fullUrl.archivePath();
+        ArchiveUrl currentUrl(fullUrl.archivePath());
+        std::shared_ptr<QTemporaryFile> temp;
+
+        std::unique_ptr<SharedDirectory> current;
+        for (const auto &child : fullUrl.children())
+        {
+            assert(!currentPath.isEmpty());
+
+            current = openFile(currentPath, child, currentUrl);
+            if (!current)
+                return nullptr;
+
+            // if the openFile() openned a recursive archive then returrned value
+            // will already have a source otherwise if a new directory is openned
+            // we need to transfer the source, so that it can be retained
+            if (!current->r->source)
+                current->r->source = temp;
+
+            temp = current->r->source;
+            currentPath = temp ? temp->fileName() : QString {};
+            currentUrl = currentUrl.withChild(child);
+        }
+
+        return std::move(current);
     }
 
-    if (!result) return nullptr;
-
-    assert(root);
-    // returned a ref-counted instance so that we can reuse this in open(Directory *) call
-    return std::make_unique<SharedDirectory>(std::move(root), result);
+    return {};
 }
 
 std::unique_ptr<Directory> ArchiveSystem::open(Directory *dir, int child)
 {
-    auto r = getdirchild(dir, child);
-    if (!r.child) return nullptr;
+    if (!dir || child < 0 || child >= dir->fileCount())
+        return nullptr;
 
-    return std::make_unique<SharedDirectory>(r.dirwrapper->r, r.child);
+    auto wrapper = unwrap(dir);
+    if (!wrapper)
+        return nullptr;
+
+    auto dirnode = dynamic_cast<ArchiveDir * >(wrapper->d->children[child]);
+    if (dirnode)
+        return wrap(wrapper->r, dirnode);
+
+    // child is a file, check for recursive archive
+    const ArchiveUrl url {dir->fileUrl(child)};
+    const auto p = sourcePath(wrapper->r.get(), url);
+    if (p.isEmpty())
+        return {};
+
+    return openFile(p, url.lastChild(), url);
 }
 
 std::unique_ptr<IOSource> ArchiveSystem::iosource(Directory *dir, int child)
 {
     auto result = std::make_unique<ArchiveTempIOSource>();
 
+    auto wrapper = unwrap(dir);
+    if (!wrapper)
+        return {}; // invalid input
+
     const ArchiveUrl url{dir->fileUrl(child)};
-    const QDir tempdir(QDir::tempPath());
-    const QString templateName = "XXXXXXXXXXXXXXXXXXXX." + QFileInfo(url.firstChild()).completeSuffix();
+    const auto p = sourcePath(wrapper->r.get(), url);
+    if (p.isEmpty())
+        return {};
 
-    result->file.setFileTemplate(tempdir.absoluteFilePath(templateName));
-    if (!result->file.open())
-    {
-        // TODO: error handling
-        qWarning("failed to open temporary file");
-        return nullptr;
-    }
-
-    extractFile(url.archivepath(), url.firstChild(), &result->file);
-
-    // this is necessary to flush the content, otherwise reader may get invalid content
-    result->file.close();
+    result->file = extractFile(p, url.lastChild());
+    if (!result->file)
+        return {};
 
     return result;
 }

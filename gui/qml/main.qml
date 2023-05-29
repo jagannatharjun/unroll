@@ -15,6 +15,8 @@ Window {
     visible: true
     title: qsTr("File Browser")
 
+    property int previousPreviewRow: -1
+
     Component.onCompleted: FileBrowser.window = root
     Component.onDestruction: FileBrowser.window = null
 
@@ -40,6 +42,8 @@ Window {
         view: controller
 
         onResetFocus: function (row, column) {
+            previousPreviewRow = -1 // reset it show that we can change preview to new
+
             var index = tableView.model.index(row, column)
             tableView.selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect)
 
@@ -99,16 +103,17 @@ Window {
 
             selectionModel: ItemSelectionModel {
                 onCurrentChanged: {
+                    if (root.previousPreviewRow === -1 || root.previousPreviewRow !== currentIndex.row) {
+                        controller.setPreview(currentIndex.row)
+                        root.previousPreviewRow = currentIndex.row
+                    }
+
                     history.updateCurrentIndex(currentIndex.row, currentIndex.column)
                 }
             }
 
             onActionAtIndex: function (row) {
                 controller.openRow(row)
-            }
-
-            onCurrentRowChanged: {
-                controller.setPreview(currentRow)
             }
         }
 

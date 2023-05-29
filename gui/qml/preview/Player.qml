@@ -88,6 +88,7 @@ Item {
 
                 from: 0
                 to: player.duration
+                stepSize: 1000
 
                 Binding {
                     target: slider

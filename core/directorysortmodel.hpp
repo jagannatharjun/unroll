@@ -16,6 +16,10 @@ public:
 
 signals:
     void sortParametersChanged();
+
+    // QSortFilterProxyModel interface
+protected:
+    bool lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const;
 };
 
 #endif // DIRECTORYSORTMODEL_HPP

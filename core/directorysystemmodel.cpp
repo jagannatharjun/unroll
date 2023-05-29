@@ -72,6 +72,9 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
         case PathColumn:
             return m_dir->filePath(r);
         case SizeColumn:
+            if (m_dir->isDir(r) && m_dir->fileSize(r) == 0)
+                return QString {};
+
             return formatSize(m_dir->fileSize(r));
         }
 

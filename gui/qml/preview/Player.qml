@@ -20,23 +20,23 @@ Item {
     }
 
     function millisecondsToReadable(ms) {
-      // Calculate the number of hours, minutes, and seconds
-      const seconds = Math.floor(ms / 1000) % 60;
-      const minutes = Math.floor(ms / (1000 * 60)) % 60;
-      const hours = Math.floor(ms / (1000 * 60 * 60));
+        // Calculate the number of hours, minutes, and seconds
+        const seconds = Math.floor(ms / 1000) % 60
+        const minutes = Math.floor(ms / (1000 * 60)) % 60
+        const hours = Math.floor(ms / (1000 * 60 * 60))
 
-      // Convert the values into two-digit format
-      const formattedSeconds = String(seconds).padStart(2, "0");
-      const formattedMinutes = String(minutes).padStart(2, "0");
-      let formattedTime = `${formattedMinutes}:${formattedSeconds}`;
+        // Convert the values into two-digit format
+        const formattedSeconds = String(seconds).padStart(2, "0")
+        const formattedMinutes = String(minutes).padStart(2, "0")
+        let formattedTime = `${formattedMinutes}:${formattedSeconds}`
 
-      // Add hours if it's greater than zero
-      if (hours > 0) {
-        const formattedHours = String(hours).padStart(2, "0");
-        formattedTime = `${formattedHours}:${formattedTime}`;
-      }
+        // Add hours if it's greater than zero
+        if (hours > 0) {
+            const formattedHours = String(hours).padStart(2, "0")
+            formattedTime = `${formattedHours}:${formattedTime}`
+        }
 
-      return formattedTime;
+        return formattedTime
     }
 
     MediaPlayer {

@@ -162,6 +162,8 @@ Pane {
 
             text: model.display
 
+            icon.source: model.iconId
+
             focus: true
 
             highlighted: selected || current

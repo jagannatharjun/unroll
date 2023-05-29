@@ -100,6 +100,10 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
     {
     case Qt::DisplayRole:
         return displayRole();
+    case IconIDRole:
+        if (c == NameColumn && m_iconProvider)
+            return m_iconProvider(m_dir.get(), r);
+        return {};
     case DataRole:
         return sortRole();
     case NameRole:
@@ -141,5 +145,11 @@ QHash<int, QByteArray> DirectorySystemModel::roleNames() const
         {PathRole, "path"},
         {SizeRole, "size"},
         {IsDirRole, "isdir"},
+        {IconIDRole, "iconId"}
     };
+}
+
+void DirectorySystemModel::setIconProvider(const IconProviderFunctor &newIconProvider)
+{
+    m_iconProvider = newIconProvider;
 }

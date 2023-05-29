@@ -3,6 +3,7 @@ set(SOURCES
         viewcontroller.hpp viewcontroller.cpp
 	historycontroller.hpp historycontroller.cpp
 	filebrowser.hpp filebrowser.cpp
+	iconprovider.hpp iconprovider.cpp
         main.cpp
 	qml/qml.qrc
 )
@@ -34,7 +35,10 @@ endif()
 
 
 target_link_libraries(file-browser
-  PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Quick Qt${QT_VERSION_MAJOR}::QuickControls2)
+  PRIVATE Qt${QT_VERSION_MAJOR}::Core
+  Qt${QT_VERSION_MAJOR}::Quick
+  Qt${QT_VERSION_MAJOR}::QuickControls2
+)
 
 target_link_libraries(file-browser
   PRIVATE core)

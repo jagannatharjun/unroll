@@ -16,6 +16,7 @@ public:
         PathRole,
         SizeRole,
         IsDirRole,
+        IconIDRole,
 
         // Meta Roles
         DataRole
@@ -35,8 +36,12 @@ public:
     explicit DirectorySystemModel(QObject *parent = nullptr);
     ~DirectorySystemModel();
 
+    using IconProviderFunctor = std::function<QString (Directory *, int)>;
+
     void setDirectory(std::shared_ptr<Directory> dir);
     std::shared_ptr<Directory> directory();
+
+    void setIconProvider(const IconProviderFunctor &newIconProvider);
 
     // QAbstractItemModel interface
 public:
@@ -49,6 +54,7 @@ public:
 
 private:
     std::shared_ptr<Directory> m_dir;
+    IconProviderFunctor m_iconProvider;
 
 };
 

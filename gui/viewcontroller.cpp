@@ -8,6 +8,7 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QMimeData>
 
+static const QString ICON_PROVIDER_ID = "fileicon";
 
 ViewController::ViewController(QObject *parent)
     : QObject {parent}
@@ -15,6 +16,27 @@ ViewController::ViewController(QObject *parent)
     , m_sortModel { std::make_unique<DirectorySortModel>() }
     , m_system {std::make_unique<HybridDirSystem>()}
 {
+    m_dirModel->setIconProvider([this](Directory *dir, int child) -> QString
+    {
+        if (!m_iconProvider)
+        {
+            auto engine = qmlEngine(this);
+            if (!engine)
+                return {};
+
+            for (int i = 0; i < 10 && !m_iconProvider; ++i) {
+                const auto id = ICON_PROVIDER_ID + QString::number(i);
+                if (engine->imageProvider(id))
+                    continue;
+
+                m_iconProvider = new IconProvider(id);
+                engine->addImageProvider(id, m_iconProvider);
+            }
+        }
+
+        return m_iconProvider ? m_iconProvider->url(dir, child) : QString {};
+    });
+
     m_sortModel->setSortRole(DirectorySystemModel::DataRole);
     m_sortModel->setSourceModel(m_dirModel.get());
 

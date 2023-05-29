@@ -11,6 +11,7 @@
 #include <QThreadPool>
 
 #include "../core/directorysystem.hpp"
+#include "iconprovider.hpp"
 
 class QAbstractItemModel;
 class DirectorySystemModel;
@@ -77,6 +78,8 @@ private slots:
 
 private:
     int sourceRow(const int row);
+
+    IconProvider *m_iconProvider {};
 
     // store current url of m_model, store it seperately so
     // that url() and model updates are always in sync

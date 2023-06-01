@@ -12,12 +12,23 @@ QImage fileImage(const QString &fileName, const bool isdir)
 {
     SHFILEINFOW fileInfo {};
 
-    const auto attribute = FILE_ATTRIBUTE_NORMAL | (isdir ? 0 : FILE_ATTRIBUTE_DIRECTORY);
-    if (SHGetFileInfoW(QString(fileName).replace("/", "\\").toStdWString().c_str(), attribute, &fileInfo
-                 , sizeof fileInfo, SHGFI_ICON | SHGFI_SYSICONINDEX ) == 0)
+    const auto attribute = FILE_ATTRIBUTE_NORMAL | (isdir ? FILE_ATTRIBUTE_DIRECTORY : 0);
+    const auto filename = QString(fileName).replace("/", "\\").toStdWString();
+
+    if (SHGetFileInfoW(filename.c_str(), attribute, &fileInfo
+                 , sizeof fileInfo, SHGFI_ICON) == 0)
     {
         qWarning("SHGetFileInfoW failed %d", GetLastError());
-        return {};
+
+        memset(&fileInfo, 0, sizeof fileInfo);
+
+        if (SHGetFileInfoW(filename.c_str(), attribute, &fileInfo
+                            , sizeof fileInfo, SHGFI_ICON | SHGFI_USEFILEATTRIBUTES) == 0)
+        {
+            qWarning("SHGetFileInfoW failed %d", GetLastError());
+            return {};
+        }
+
     }
 
     const QImage image = QImage::fromHICON(fileInfo.hIcon);

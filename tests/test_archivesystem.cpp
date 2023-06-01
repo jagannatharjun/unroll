@@ -44,6 +44,8 @@ public:
                     QString path;
 
                     {
+                        QCOMPARE(d->isDir(i), false);
+
                         auto iosource = system.iosource(d, i);
                         QVERIFY(iosource);
 
@@ -77,6 +79,7 @@ public:
         QVERIFY(!system.open(current.get(), 1)); // try to open file
 
         QCOMPARE(current->fileName(0), "lol");
+        QCOMPARE(current->isDir(0), true);
         current = system.open(current.get(), 0);
 
         QHash<QString, Node> level2 {{"tar", {d.absoluteFilePath("lol/tar"), 16}}};

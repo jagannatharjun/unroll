@@ -20,6 +20,15 @@ QString formatSize(qint64 size) {
     return QString("%1 %2").arg(bytes, 0, 'f', 2).arg(units[idx]);
 }
 
+
+QString formatDateTime(const QDateTime &t)
+{
+    if (!t.isValid() || t.toMSecsSinceEpoch() == 0) return {};
+
+    const auto l = QLocale::system();
+    return l.toString(t);
+}
+
 }
 
 DirectorySystemModel::DirectorySystemModel(QObject *parent)
@@ -76,6 +85,13 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
                 return QString {};
 
             return formatSize(m_dir->fileSize(r));
+
+        case LastAccessTimeColumn:
+            return formatDateTime(m_dir->fileLastAccessTime(r));
+        case ModifedTimeColumn:
+            return formatDateTime(m_dir->fileModifiedTime(r));
+        case CreationTimeColumn:
+            return formatDateTime(m_dir->fileCreationTime(r));
         }
 
         return "";
@@ -91,6 +107,12 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
             return m_dir->filePath(r);
         case SizeColumn:
             return m_dir->fileSize(r);
+        case LastAccessTimeColumn:
+            return m_dir->fileLastAccessTime(r);
+        case ModifedTimeColumn:
+            return m_dir->fileModifiedTime(r);
+        case CreationTimeColumn:
+            return m_dir->fileCreationTime(r);
         }
 
         return {};
@@ -132,6 +154,12 @@ QVariant DirectorySystemModel::headerData(int section, Qt::Orientation orientati
         return "Path";
     case SizeColumn:
         return "Size";
+    case LastAccessTimeColumn:
+        return "Last Access Time";
+    case CreationTimeColumn:
+        return "Creation Time";
+    case ModifedTimeColumn:
+        return "Modified Time";
     }
 
     return {};

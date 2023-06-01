@@ -175,6 +175,10 @@ class ArchiveFile : public ArchiveNode
 public:
     using ArchiveNode::ArchiveNode;
 
+    QDateTime lastAccessTime;
+    QDateTime creationTime;
+    QDateTime modifiedTime;
+
     bool isDir(int i) override { return false; }
 
     int fileCount() override { return 0; }
@@ -182,6 +186,10 @@ public:
     QString filePath(int i) override { return {}; }
     qint64 fileSize(int i) override { return 0; }
     QUrl fileUrl(int i) override { return {}; }
+
+    QDateTime fileLastAccessTime(int i) override { return {}; }
+    QDateTime fileCreationTime(int i) override { return {}; }
+    QDateTime fileModifiedTime(int i) override { return {}; }
 };
 
 
@@ -205,6 +213,29 @@ public:
     QString filePath(int i) override { return children[i]->path(); }
     QUrl fileUrl(int i) override { return children[i]->url(); }
     qint64 fileSize(int i) override { return children[i]->size(); }
+
+    QDateTime fileLastAccessTime(int i) override
+    {
+        if (auto f = dynamic_cast<ArchiveFile *>(children[i]))
+            return f->lastAccessTime;
+
+        return {};
+    }
+
+    QDateTime fileCreationTime(int i) override {
+        if (auto f = dynamic_cast<ArchiveFile *>(children[i]))
+            return f->creationTime;
+
+        return {};
+    }
+
+    QDateTime fileModifiedTime(int i) override
+    {
+        if (auto f = dynamic_cast<ArchiveFile *>(children[i]))
+            return f->modifiedTime;
+
+        return {};
+    }
 };
 
 /*
@@ -238,6 +269,10 @@ public:
     SHAREDDIRECTORY_WRAP(QUrl, fileUrl)
     SHAREDDIRECTORY_WRAP(qint64, fileSize)
     SHAREDDIRECTORY_WRAP(bool, isDir)
+
+    SHAREDDIRECTORY_WRAP(QDateTime, fileLastAccessTime)
+    SHAREDDIRECTORY_WRAP(QDateTime, fileCreationTime)
+    SHAREDDIRECTORY_WRAP(QDateTime, fileModifiedTime)
 
 #undef SHAREDDIRECTORY_WRAP
 };
@@ -353,6 +388,15 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath, con
 
             const auto size = archive_entry_size(entry);
             auto file = new ArchiveFile(current, name, baseUrl.withChild(nodepath), size);
+
+            if (archive_entry_birthtime_is_set(entry))
+                file->creationTime = QDateTime::fromMSecsSinceEpoch(archive_entry_birthtime(entry));
+
+            if (archive_entry_ctime_is_set(entry))
+                file->modifiedTime = QDateTime::fromMSecsSinceEpoch(archive_entry_ctime(entry));
+
+            if (archive_entry_atime_is_set(entry))
+                file->lastAccessTime = QDateTime::fromMSecsSinceEpoch(archive_entry_atime(entry));
 
             current->children.push_back(file);
             if (!child && (nodepath == childpath))

@@ -29,6 +29,9 @@ public:
         NameColumn,
         PathColumn,
         SizeColumn,
+        LastAccessTimeColumn,
+        CreationTimeColumn,
+        ModifedTimeColumn,
 
         ColumnCount
     };

@@ -31,6 +31,23 @@ public:
     QUrl fileUrl(int i) override { return QUrl::fromLocalFile(files[i].path); }
     qint64 fileSize(int i) override { return files[i].size; }
     bool isDir(int i) override { return files[i].isdir; }
+
+
+    QDateTime fileLastAccessTime(int i) override
+    {
+        return QFileInfo(files[i].path).lastRead();
+    }
+
+    QDateTime fileCreationTime(int i) override
+    {
+        return QFileInfo(files[i].path).birthTime();
+
+    }
+
+    QDateTime fileModifiedTime(int i) override
+    {
+        return QFileInfo(files[i].path).lastModified();
+    }
 };
 
 class RegularIOSource : public IOSource

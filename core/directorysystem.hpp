@@ -2,6 +2,7 @@
 #define DIRECTORYSYSTEM_HPP
 
 #include <QString>
+#include <QDateTime>
 #include <memory>
 #include <QUrl>
 
@@ -29,6 +30,10 @@ public:
     virtual QUrl fileUrl(int i) = 0;
     virtual qint64 fileSize(int i) = 0;
     virtual bool isDir(int i) = 0;
+
+    virtual QDateTime fileLastAccessTime(int i) = 0;
+    virtual QDateTime fileCreationTime(int i) = 0;
+    virtual QDateTime fileModifiedTime(int i) = 0;
 };
 
 

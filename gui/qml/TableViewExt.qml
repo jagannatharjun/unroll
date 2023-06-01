@@ -156,6 +156,10 @@ Pane {
             return  200
         }
 
+        rowHeightProvider: function (row) {
+            return 40
+        }
+
         delegate: ItemDelegate {
             required property bool selected
             required property bool current

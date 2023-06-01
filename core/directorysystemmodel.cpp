@@ -8,16 +8,8 @@ namespace
 {
 
 QString formatSize(qint64 size) {
-    static const char * units[] = {"Bytes", "KB", "MB", "GB", "TB", "PB", "EB"};
-    int idx = 0;
-
-    double bytes = size;
-    while(bytes >= 1024 && idx < sizeof (units) - 1) {
-        bytes /= 1024;
-        idx++;
-    }
-
-    return QString("%1 %2").arg(bytes, 0, 'f', 2).arg(units[idx]);
+    const auto l = QLocale::system();
+    return l.formattedDataSize(size);
 }
 
 

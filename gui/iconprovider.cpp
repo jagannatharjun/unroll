@@ -36,7 +36,8 @@ QImage fileImage(const QString &path, const bool isdir)
 
 
 IconProvider::IconProvider(const QString &id)
-    : QQuickImageProvider(QQuickImageProvider::Image, QQuickImageProvider::ForceAsynchronousImageLoading)
+    // don't force asynchoronous image loading this breaks images for some nested archive
+    : QQuickImageProvider(QQuickImageProvider::Image/*, QQuickImageProvider::ForceAsynchronousImageLoading*/)
     , m_id {id}
 {
 }

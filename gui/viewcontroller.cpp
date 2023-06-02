@@ -18,23 +18,7 @@ ViewController::ViewController(QObject *parent)
 {
     m_dirModel->setIconProvider([this](Directory *dir, int child) -> QString
     {
-        if (!m_iconProvider)
-        {
-            auto engine = qmlEngine(this);
-            if (!engine)
-                return {};
-
-            for (int i = 0; i < 10 && !m_iconProvider; ++i) {
-                const auto id = ICON_PROVIDER_ID + QString::number(i);
-                if (engine->imageProvider(id))
-                    continue;
-
-                m_iconProvider = new IconProvider(id);
-                engine->addImageProvider(id, m_iconProvider);
-            }
-        }
-
-        return m_iconProvider ? m_iconProvider->url(dir, child) : QString {};
+        return iconID(dir, child);
     });
 
     m_sortModel->setSortRole(DirectorySystemModel::DataRole);
@@ -153,6 +137,27 @@ int ViewController::sourceRow(const int row)
     }
 
     return index.row();
+}
+
+QString ViewController::iconID(Directory *dir, int child)
+{
+    if (!m_iconProvider)
+    {
+        auto engine = qmlEngine(this);
+        if (!engine)
+            return {};
+
+        for (int i = 0; i < 10 && !m_iconProvider; ++i) {
+            const auto id = ICON_PROVIDER_ID + QString::number(i);
+            if (engine->imageProvider(id))
+                continue;
+
+            m_iconProvider = new IconProvider(id);
+            engine->addImageProvider(id, m_iconProvider);
+        }
+    }
+
+    return m_iconProvider ? m_iconProvider->url(dir, child) : QString {};
 }
 
 void ViewController::updateModel()

@@ -8,27 +8,24 @@
 
 #include <qt_windows.h>
 
-QImage fileImage(const QString &fileName, const bool isdir)
+QImage fileImage(const QString &path, const bool isdir)
 {
     SHFILEINFOW fileInfo {};
 
     const auto attribute = FILE_ATTRIBUTE_NORMAL | (isdir ? FILE_ATTRIBUTE_DIRECTORY : 0);
-    const auto filename = QString(fileName).replace("/", "\\").toStdWString();
+    const auto nativeName = QString(path).replace("/", "\\").toStdWString();
 
-    if (SHGetFileInfoW(filename.c_str(), attribute, &fileInfo
+    if (SHGetFileInfoW(nativeName.c_str(), attribute, &fileInfo
                  , sizeof fileInfo, SHGFI_ICON) == 0)
     {
-        qWarning("SHGetFileInfoW failed %d", GetLastError());
-
         memset(&fileInfo, 0, sizeof fileInfo);
 
-        if (SHGetFileInfoW(filename.c_str(), attribute, &fileInfo
+        if (SHGetFileInfoW(nativeName.c_str(), attribute, &fileInfo
                             , sizeof fileInfo, SHGFI_ICON | SHGFI_USEFILEATTRIBUTES) == 0)
         {
-            qWarning("SHGetFileInfoW failed %d", GetLastError());
+            qWarning("SHGetFileInfoW failed %d, '%s'", GetLastError(), qUtf8Printable(path));
             return {};
         }
-
     }
 
     const QImage image = QImage::fromHICON(fileInfo.hIcon);
@@ -39,7 +36,7 @@ QImage fileImage(const QString &fileName, const bool isdir)
 
 
 IconProvider::IconProvider(const QString &id)
-    : QQuickImageProvider(QQuickImageProvider::Image)
+    : QQuickImageProvider(QQuickImageProvider::Image, QQuickImageProvider::ForceAsynchronousImageLoading)
     , m_id {id}
 {
 }

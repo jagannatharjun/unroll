@@ -79,6 +79,8 @@ private slots:
 private:
     int sourceRow(const int row);
 
+    QString iconID(Directory *dir, int child);
+
     IconProvider *m_iconProvider {};
 
     // store current url of m_model, store it seperately so

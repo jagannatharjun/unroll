@@ -38,6 +38,7 @@ ViewController::ViewController(QObject *parent)
     });
 
     m_sortModel->setSortRole(DirectorySystemModel::DataRole);
+    m_sortModel->sort(DirectorySystemModel::NameColumn, Qt::AscendingOrder);
     m_sortModel->setSourceModel(m_dirModel.get());
 
     connect(&m_urlWatcher, &QFutureWatcherBase::finished, this, &ViewController::updateModel);

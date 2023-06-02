@@ -1,6 +1,6 @@
 import QtQuick
 
-Image {
+AnimatedImage {
     required property var previewdata
 
     source: previewdata.readUrl()

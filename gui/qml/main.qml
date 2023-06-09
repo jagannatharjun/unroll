@@ -76,19 +76,20 @@ Window {
         }
     }
 
+    Shortcut {
+        sequence: StandardKey.Open
+        onActivated: folderDialog.open()
+    }
+
+    Shortcut {
+        sequences: [StandardKey.Back, StandardKey.Backspace]
+        onActivated: history.pop()
+    }
+
     SplitView {
         anchors.fill: parent
 
         focus: true
-
-        Keys.priority: Keys.AfterItem
-        Keys.onPressed: function (event) {
-            if (event.key === Qt.Key_O && (event.modifiers & Qt.ControlModifier)) {
-                folderDialog.open()
-            } else if (event.key === Qt.Key_Back || event.key === Qt.Key_Backspace) {
-                history.pop()
-            }
-        }
 
         TableViewExt {
             id: tableView

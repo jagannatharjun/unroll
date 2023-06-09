@@ -29,6 +29,8 @@ Pane {
         view.forceLayout()
     }
 
+    focus: true
+
     Item {
         id: header
 
@@ -140,7 +142,7 @@ Pane {
 
         boundsBehavior: Flickable.StopAtBounds
 
-        focus: true
+        focus: rows > 0
         keyNavigationEnabled: true
         pointerNavigationEnabled: true
 

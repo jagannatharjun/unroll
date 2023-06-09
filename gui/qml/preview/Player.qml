@@ -8,6 +8,8 @@ Item {
 
     required property var previewdata
 
+    focus: true
+
     function toogleState() {
         var playbackState = player.playbackState
 
@@ -108,6 +110,10 @@ Item {
                 text: millisecondsToReadable(player.duration)
             }
         }
+    }
+
+    Keys.onSpacePressed: {
+        root.toogleState()
     }
 
     Component.onCompleted: player.play()

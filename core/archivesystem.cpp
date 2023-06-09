@@ -382,6 +382,8 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath, con
             current = next;
         }
 
+        assert(!name.isEmpty()); // empty filename ?
+
         if (!name.isEmpty())
         {
             nodepath += QString("/") + name;
@@ -440,10 +442,10 @@ void extractFile(const QString &filePath, const QString &childpath, QIODevice *o
 
 
 
-std::shared_ptr<QTemporaryFile> extractFile(const QString &archivePath, const QString &file)
+std::shared_ptr<QTemporaryFile> extractFile(const QString &filePath, const QString &childPath)
 {
     const QDir tempdir(QDir::tempPath());
-    const QString templateName = "XXXXXXXXXXXXXXXXXXXX." + QFileInfo(file).completeSuffix();
+    const QString templateName = "XXXXXXXXXX." + QFileInfo(childPath).completeSuffix();
 
     auto r = std::make_shared<QTemporaryFile>();
     r->setFileTemplate(tempdir.absoluteFilePath(templateName));
@@ -454,7 +456,7 @@ std::shared_ptr<QTemporaryFile> extractFile(const QString &archivePath, const QS
         return nullptr;
     }
 
-    extractFile(archivePath, file, r.get());
+    extractFile(filePath, childPath, r.get());
 
     // this is necessary to flush the content, otherwise reader may get invalid content
     r->close();

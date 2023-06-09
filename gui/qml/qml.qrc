@@ -9,4 +9,8 @@
         <file alias="ImagePreview.qml">preview/ImagePreview.qml</file>
         <file alias="Player.qml">preview/Player.qml</file>
     </qresource>
+    <qresource prefix="/resources">
+        <file alias="play.qml">resources/play.svg</file>
+        <file alias="pause.qml">resources/pause.svg</file>
+    </qresource>
 </RCC>

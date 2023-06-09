@@ -72,7 +72,8 @@ Item {
             anchors.fill: parent
 
             Button {
-                text: player.playbackState === MediaPlayer.PlayingState ? "⏸" : "⏵"
+                icon.source: player.playbackState === MediaPlayer.PlayingState ? "qrc:/resources/pause.qml" : "qrc:/resources/play.qml"
+                icon.color: "white" // TODO: manage theme
                 onClicked: root.toogleState()
             }
 

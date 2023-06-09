@@ -382,9 +382,7 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath, con
             current = next;
         }
 
-        assert(!name.isEmpty()); // empty filename ?
-
-        if (!name.isEmpty())
+        if (!name.isEmpty()) // this is a file
         {
             nodepath += QString("/") + name;
 

@@ -65,6 +65,11 @@ public:
 
 }
 
+std::unique_ptr<Directory> FileSystem::open(const QString &path)
+{
+    return open(QUrl::fromLocalFile(path));
+}
+
 std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
 {
     // check before otherwise toLocalFile returns empty path

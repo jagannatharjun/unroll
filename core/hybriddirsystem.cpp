@@ -15,38 +15,28 @@ HybridDirSystem::~HybridDirSystem()
 
 }
 
+std::unique_ptr<Directory> HybridDirSystem::open(const QString &path)
+{
+    return call([path](DirectorySystem *system)
+    {
+        return system->open(path);
+    });
+}
+
 std::unique_ptr<Directory> HybridDirSystem::open(const QUrl &url)
 {
-    const auto trysystem = [this, url](DirectorySystem *system)
+    return call([url](DirectorySystem *system)
     {
-        auto r = system->open(url);
-        if (r) updatesource(r.get(), system);
-        return r;
-    };
-
-    if (auto r = trysystem(m_filesystem.get()))
-        return r;
-
-    return trysystem(m_archivesystem.get());
+        return system->open(url);
+    });
 }
 
 std::unique_ptr<Directory> HybridDirSystem::open(Directory *dir, int child)
 {
-    std::unique_ptr<Directory> result;
-
-    if (auto system = source(dir))
+    return call([dir, child](DirectorySystem *system)
     {
-        result = system->open(dir, child);
-        if (result)
-            updatesource(result.get(), system);
-    }
-
-    if (!result) // retry with child url
-    {
-        result = open(dir->fileUrl(child));
-    }
-
-    return result;
+        return system->open(dir, child);
+    });
 }
 
 std::unique_ptr<IOSource> HybridDirSystem::iosource(Directory *dir, int child)

@@ -89,8 +89,15 @@ public:
         QVERIFY(second);
         QCOMPARE(second->url(), current->url());
         QCOMPARE(second->name(), current->name());
-
         test(level2, second.get());
+
+        auto secondpath = system.open(current->path());
+        QVERIFY(secondpath);
+        QCOMPARE(secondpath->url(), second->url());
+        QCOMPARE(secondpath->path(), second->path());
+        QCOMPARE(secondpath->name(), second->name());
+        test(level2, secondpath.get());
+
 
         QCOMPARE(current->fileName(0), "tar");
         QHash<QString, Node> level3 {{"new.txt", {d.absoluteFilePath("lol/tar/new.txt"),16, "lolpoisonutrypop"}}};
@@ -146,6 +153,10 @@ public:
         auto second = std::shared_ptr(s.open(recurRoot->url()));
         QVERIFY(second);
         matchArchiveTestTree(second, d, s);
+
+        auto p = std::shared_ptr(s.open(second->path()));
+        QVERIFY(p);
+        matchArchiveTestTree(p, d, s);
     }
 
 private slots:

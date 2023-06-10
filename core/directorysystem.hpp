@@ -55,7 +55,9 @@ public:
     virtual ~DirectorySystem() = default;
 
     virtual std::unique_ptr<Directory> open(const QUrl &url) = 0;
+    virtual std::unique_ptr<Directory> open(const QString &path) = 0;
     virtual std::unique_ptr<Directory> open(Directory *dir, int child) = 0;
+
     //    virtual std::unique_ptr<Directory> parent(Directory *dir) = 0;
 
     virtual std::unique_ptr<IOSource> iosource(Directory *dir, int child) = 0;

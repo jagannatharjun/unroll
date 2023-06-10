@@ -103,6 +103,9 @@ public:
 
     QString lastChild() const
     {
+        if (m_childCount == 0)
+            return {};
+
         return QUrlQuery(m_url).queryItemValue(childKey(m_childCount - 1));
     }
 
@@ -112,6 +115,16 @@ public:
     }
 
     QUrl url() const { return m_url; }
+
+    ArchiveUrl withoutLastChild() const
+    {
+        QUrlQuery query(m_url);
+        query.removeQueryItem(childKey(m_childCount - 1));
+
+        QUrl n = m_url;
+        n.setQuery(query);
+        return n;
+    }
 
     ArchiveUrl withChild(const QString &child) const
     {
@@ -575,6 +588,53 @@ std::unique_ptr<Directory> ArchiveSystem::open(const QUrl &url)
     return {};
 }
 
+std::unique_ptr<Directory> ArchiveSystem::open(const QString &path)
+{
+    const QChar sep = '/';
+
+    const auto parts = path.split(sep);
+    if (parts.empty())
+        return nullptr;
+
+    auto piter = parts.begin();
+    QString filePath;
+
+    // find the source archive, traverse through all parts until we find the archive
+    QFileInfo info;
+    while (true)
+    {
+        filePath += (!filePath.isEmpty() ? sep : QString {}) + *piter++;
+        info.setFile(filePath);
+        if (info.exists() && info.isFile())
+            break;
+
+        if (piter == parts.end())
+            return nullptr;
+    }
+
+    // next 'parts' should be children in archive, visit each level to find the child
+    auto current = open(QUrl::fromLocalFile(filePath));
+    for (;current && piter != parts.end(); ++piter)
+    {
+        std::unique_ptr<Directory> next;
+
+        // TODO: may be we can optimize this linear search
+        for (auto i = 0; i < current->fileCount(); ++i)
+        {
+            if (current->fileName(i) == *piter)
+            {
+                next = open(current.get(), i);
+                break;
+            }
+        }
+
+        if (!next) return nullptr;
+        current = std::move(next);
+    }
+
+    return current;
+}
+
 
 // true returned value is SharedDirectory, it is useful to keep a reference to child directory
 std::unique_ptr<Directory> ArchiveSystem::open(Directory *dir, int child)
@@ -596,7 +656,8 @@ std::unique_ptr<Directory> ArchiveSystem::open(Directory *dir, int child)
     if (p.isEmpty())
         return {};
 
-    return openFile(p, url.lastChild(), url);
+    const auto parentUrl = url.withoutLastChild();
+    return openFile(p, url.lastChild(), parentUrl);
 }
 
 std::unique_ptr<IOSource> ArchiveSystem::iosource(Directory *dir, int child)

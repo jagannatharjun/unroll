@@ -4,6 +4,7 @@
         <file>DirectoryView.qml</file>
         <file>TableViewExt.qml</file>
         <file>HResizeHandle.qml</file>
+        <file>PathEdit.qml</file>
     </qresource>
     <qresource prefix="/preview">
         <file alias="ImagePreview.qml">preview/ImagePreview.qml</file>

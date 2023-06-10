@@ -43,6 +43,11 @@ QString ViewController::url() const
     return m_dirModel->directory() ? m_dirModel->directory()->url().toString() : QString {};
 }
 
+QString ViewController::path() const
+{
+    return m_dirModel->directory() ? m_dirModel->directory()->path() : QString {};
+}
+
 void ViewController::openUrl(const QUrl &url)
 {
     const auto open = [](
@@ -53,6 +58,19 @@ void ViewController::openUrl(const QUrl &url)
     };
 
     m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, url));
+}
+
+void ViewController::openPath(const QString &path)
+{
+    const auto open = [](
+            std::shared_ptr<DirectorySystem> system,
+            const QString &path) -> std::shared_ptr<Directory>
+    {
+        return system->open(path);
+    };
+
+    m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, path));
+
 }
 
 void ViewController::openRow(const int row)

@@ -3,6 +3,7 @@ import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Dialogs
 import Qt.labs.platform
+import QtQuick.Layouts
 
 import filebrowser 0.1
 import "preview" as Preview
@@ -90,54 +91,99 @@ Window {
         onActivated: history.pop()
     }
 
-    SplitView {
+    ColumnLayout {
+
         anchors.fill: parent
+        spacing: 0
 
-        focus: true
+        Pane {
+            Layout.fillWidth: true
 
-        TableViewExt {
-            id: tableView
+            contentItem: RowLayout {
 
-            SplitView.fillWidth: true
-            SplitView.fillHeight: true
+                PathEdit {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
 
-            model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
+                    path: controller.path
 
-            modelSortOrder: controller.model.sortOrder
-            modelSortColumn: controller.model.sortColumn
-
-            selectionModel: ItemSelectionModel {
-                onCurrentChanged: {
-                    if (root.previewRow === -1 || root.previewRow !== currentIndex.row) {
-                        controller.setPreview(currentIndex.row)
-                        root.previewRow = currentIndex.row
+                    onRequestPath: function (path) {
+                        controller.openPath(path)
                     }
-
-                    history.updateCurrentIndex(currentIndex.row, currentIndex.column)
                 }
-            }
 
-            onActionAtIndex: function (row) {
-                controller.openRow(row)
+                Rectangle {
+                    Layout.preferredWidth: 200
+                    Layout.fillHeight: true
+
+                    border.width: 1
+                    color: palette.dark
+                    border.color: palette.light
+
+                    TextInput {
+                        anchors {
+                            left: parent.left
+                            right: parent.right
+                            verticalCenter: parent.verticalCenter
+                            margins: 3
+                        }
+
+                        color: palette.text
+                    }
+                }
             }
         }
 
+        SplitView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
 
-        Pane {
-            // tableview content can overflow, so wrap preview inside Pane,
-            // so the extra content is not visible
+            focus: true
 
-            SplitView.preferredWidth: root.width / 2
-            SplitView.fillWidth: true
-            SplitView.fillHeight: true
+            TableViewExt {
+                id: tableView
 
-            Loader {
-                id: previewloader
+                SplitView.fillWidth: true
+                SplitView.fillHeight: true
 
-                anchors.fill: parent
-                asynchronous: true
+                model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
+
+                modelSortOrder: controller.model.sortOrder
+                modelSortColumn: controller.model.sortColumn
+
+                selectionModel: ItemSelectionModel {
+                    onCurrentChanged: {
+                        if (root.previewRow === -1 || root.previewRow !== currentIndex.row) {
+                            controller.setPreview(currentIndex.row)
+                            root.previewRow = currentIndex.row
+                        }
+
+                        history.updateCurrentIndex(currentIndex.row, currentIndex.column)
+                    }
+                }
+
+                onActionAtIndex: function (row) {
+                    controller.openRow(row)
+                }
+
             }
 
+            Pane {
+                // tableview content can overflow, so wrap preview inside Pane,
+                // so the extra content is not visible
+
+                SplitView.preferredWidth: root.width / 2
+                SplitView.fillWidth: true
+                SplitView.fillHeight: true
+
+                Loader {
+                    id: previewloader
+
+                    anchors.fill: parent
+                    asynchronous: true
+                }
+
+            }
         }
     }
 

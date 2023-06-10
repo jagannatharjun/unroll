@@ -53,6 +53,7 @@ class ViewController : public QObject
     Q_PROPERTY(QAbstractItemModel* model READ model CONSTANT)
 
     Q_PROPERTY(QString url READ url NOTIFY urlChanged)
+    Q_PROPERTY(QString path READ path NOTIFY urlChanged)
 
 public:
     ViewController(QObject *parent = nullptr);
@@ -61,10 +62,12 @@ public:
     QAbstractItemModel *model();
 
     QString url() const;
+    QString path() const;
 
 
 public slots:
     void openUrl(const QUrl &url);
+    void openPath(const QString &path);
     void openRow(const int row);
     void setPreview(int row);
 

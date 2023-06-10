@@ -125,7 +125,14 @@ void ViewController::setPreview(int row)
             }
         }
 
-        return PreviewData(system->iosource(dir.get(), child), filetype);
+        auto io = system->iosource(dir.get(), child);
+        if (!io)
+        {
+            qDebug("failed to get iosource '%s'", qUtf8Printable(dir->fileUrl(child).toString()));
+            return {nullptr, PreviewData::Unknown};
+        }
+
+        return PreviewData(std::move(io), filetype);
     };
 
 

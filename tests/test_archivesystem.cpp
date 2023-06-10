@@ -176,6 +176,7 @@ private slots:
     {
         HybridDirSystem s;
         test(s);
+        testRecursiveArchive(s);
     }
 };
 

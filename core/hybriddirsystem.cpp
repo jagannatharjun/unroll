@@ -33,10 +33,18 @@ std::unique_ptr<Directory> HybridDirSystem::open(const QUrl &url)
 
 std::unique_ptr<Directory> HybridDirSystem::open(Directory *dir, int child)
 {
-    return call([dir, child](DirectorySystem *system)
+    if (auto system = source(dir))
     {
-        return system->open(dir, child);
-    });
+        auto r = system->open(dir, child);
+
+        if (r)
+        {
+            updatesource(r.get(), system);
+            return r;
+        }
+    }
+
+    return open(dir->fileUrl(child));
 }
 
 std::unique_ptr<IOSource> HybridDirSystem::iosource(Directory *dir, int child)

@@ -189,19 +189,6 @@ Pane {
                 actionAtIndex(row, column)
             }
 
-            // TableView.KeyNavigationEnabled doesn't transfer focus, manually transfer focus so we can handle keypresse
-            onCurrentChanged: forceActiveFocus()
-
-            Keys.onPressed: function (event) {
-                if (event.accepted)
-                    return
-
-                if (event.key === Qt.Key_Return) {
-                    event.accepted = true
-                    actionAtIndex(row, column)
-                }
-            }
-
             function select() {
                 view.selectionModel.setCurrentIndex(view.model.index(row, column), ItemSelectionModel.SelectCurrent)
             }
@@ -212,6 +199,16 @@ Pane {
                 setResizeWidth: function (width) {
                     root._setColumnWidth(column, width)
                 }
+            }
+        }
+
+        Keys.onPressed: function (event) {
+            if (event.accepted)
+                return
+
+            if (event.key === Qt.Key_Return) {
+                event.accepted = true
+                actionAtIndex(currentRow, currentColumn)
             }
         }
 

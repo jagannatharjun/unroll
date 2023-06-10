@@ -129,6 +129,8 @@ Window {
                         }
 
                         color: palette.text
+
+                        onTextChanged: controller.model.setFilterWildcard(text)
                     }
                 }
             }

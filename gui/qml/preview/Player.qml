@@ -75,7 +75,7 @@ Item {
 
             ToolButton {
                 icon.source: player.playbackState === MediaPlayer.PlayingState ? "qrc:/resources/pause.qml" : "qrc:/resources/play.qml"
-                icon.color: "white" // TODO: manage theme
+                icon.color: palette.buttonText
                 onClicked: root.toogleState()
             }
 

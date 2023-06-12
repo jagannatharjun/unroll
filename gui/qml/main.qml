@@ -117,10 +117,12 @@ Window {
                     Layout.fillHeight: true
 
                     border.width: 1
+                    border.color: searchEdit.visualFocus || searchEdit.activeFocus ? palette.highlight : palette.light
                     color: palette.dark
-                    border.color: palette.light
 
                     TextInput {
+                        id: searchEdit
+
                         anchors {
                             left: parent.left
                             right: parent.right

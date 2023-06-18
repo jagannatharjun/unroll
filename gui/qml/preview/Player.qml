@@ -47,6 +47,11 @@ Item {
         source: previewdata.readUrl()
 
         videoOutput: videooutput
+
+        audioOutput: AudioOutput {
+
+        }
+
         loops: MediaPlayer.Infinite
     }
 

@@ -99,6 +99,13 @@ Window {
         Pane {
             Layout.fillWidth: true
 
+            // this is to cover outoff view items from TableView
+            z: 2
+
+            background: Rectangle {
+                color: palette.window
+            }
+
             contentItem: RowLayout {
 
                 PathEdit {
@@ -143,6 +150,8 @@ Window {
             Layout.fillHeight: true
 
             focus: true
+
+            z : 1
 
             TableViewExt {
                 id: tableView

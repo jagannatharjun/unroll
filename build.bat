@@ -22,6 +22,6 @@ cp ..\build\gui\file-browser.exe file-browser.exe
 
 %QTDIR%\bin\windeployqt.exe  --qmldir %SRC%\gui\qml file-browser.exe
 
-cp C:\local\libarchive\bin\archive.dll archive.dll
+cp %LIBARCHIVE%\bin\archive.dll archive.dll
 
 cd ..

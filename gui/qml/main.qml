@@ -2,13 +2,12 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Dialogs
-import Qt.labs.platform
 import QtQuick.Layouts
 
 import filebrowser 0.1
 import "preview" as Preview
 
-Window {
+ApplicationWindow {
     id: root
 
     width: 780
@@ -89,6 +88,14 @@ Window {
     Shortcut {
         sequences: [StandardKey.Back, StandardKey.Backspace]
         onActivated: history.pop()
+    }
+
+    menuBar: AppMenuBar {
+        enableBack: history.depth > 1
+
+        onOpenFolder: folderDialog.open()
+        onBack: history.pop()
+        onAppExit: root.close()
     }
 
     ColumnLayout {

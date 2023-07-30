@@ -26,13 +26,18 @@ void HistoryController::setView(ViewController *newView)
             , this, &HistoryController::urlUpdated);
 }
 
+int HistoryController::depth() const
+{
+    return static_cast<int>(m_history.size());
+}
 
 void HistoryController::pop()
 {
-    if (m_history.size() <= 1)
+    if (depth() <= 1)
         return;
 
     m_history.pop();
+    emit depthChanged();
 
     // TODO: handle if load fail here
     m_view->openUrl(m_history.top().url);
@@ -45,6 +50,7 @@ void HistoryController::urlUpdated()
     {
         // new history point
         m_history.push(Point {m_view->url(), -1, -1});
+        emit depthChanged();
         emit resetFocus(0, 0);
         return;
     }

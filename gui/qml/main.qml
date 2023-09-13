@@ -76,7 +76,7 @@ ApplicationWindow {
         id: folderDialog
 
         onAccepted: {
-            controller.openUrl(folderDialog.folder)
+            controller.openUrl(folderDialog.selectedFolder)
         }
     }
 

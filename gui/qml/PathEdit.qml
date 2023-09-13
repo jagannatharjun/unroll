@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Templates as T
 
 Container {
     id: root
@@ -13,13 +14,13 @@ Container {
         return path.split("/").filter((p) => { return p && p !== "" })
     }
 
+    property var _displayedPathComponents: []
+
     property bool _editMode: false
 
-    padding: 2
+    padding: 4
 
     hoverEnabled: false
-
-    implicitHeight: 30
 
     background: Rectangle {
         color: palette.dark
@@ -36,30 +37,71 @@ Container {
         }
     }
 
+    component PathButton : Button {
+        padding: 5
+        background: Rectangle {
+            color: visualFocus ? palette.active.button : palette.inactive.button
+        }
+    }
+
     Component {
-        id: visualComponent
+        id: pathButtonComponent
 
-        RowLayout {
+        // use wrapper Item, so RowLayout don't spread children in availableWidth
+        Item {
+            implicitWidth: row.implicitWidth
+            implicitHeight: row.implicitHeight
 
-            spacing: 1
+            RowLayout {
+                id: row
 
-            Repeater {
-                model: pathcomponents
+                spacing: 3
 
-                Button {
-                    text: modelData
+                PathButton {
+                    text: "<<"
+                    visible: root._displayedPathComponents.length !== root.pathcomponents.length
+
                     onPressed: {
-                        var p = pathcomponents.slice(0, index + 1).join("/")
-                        root.requestPath(p)
+                        var o = root.pathcomponents, c = root._displayedPathComponents
+                        menuRepeater.model = o.slice(0, o.length - c.length)
+                                                .map((path, index) => ({"pathText": path, "pathIndex": index}))
+
+                        rootMenu.open()
+                    }
+
+                    Menu {
+                        id: rootMenu
+
+                        y: parent.height
+
+                        Repeater {
+                            id: menuRepeater
+
+                            delegate: MenuItem {
+                                text: modelData.pathText
+                                onPressed: root._requestPath(modelData.pathIndex)
+                            }
+                        }
+                    }
+                }
+
+                Repeater {
+                    model: root._displayedPathComponents
+
+                    delegate: PathButton {
+                        text: modelData.pathText
+                        onPressed: root._requestPath(modelData.pathIndex)
+                    }
+                }
+
+
+                onImplicitWidthChanged: {
+                    if (implicitWidth > root.availableWidth) {
+                        // saves binding loop warning
+                        Qt.callLater(root._shiftDisplayedPath)
                     }
                 }
             }
-
-            Item {
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-            }
-
         }
     }
 
@@ -72,7 +114,7 @@ Container {
             color: palette.text
             focus: true
             verticalAlignment: TextInput.AlignVCenter
-            padding: 1
+            padding: 5
 
             Keys.onEscapePressed: {
                 root._editMode = !root._editMode
@@ -84,13 +126,33 @@ Container {
         if (contentItem)
             delete contentItem
 
-        if (!_editMode)
-            contentItem = visualComponent.createObject()
-        else
+        if (_editMode) {
             contentItem = editComponent.createObject(null, {"text": path})
+            return
+        }
+
+        _displayedPathComponents = pathcomponents.map((path, index) => ({"pathText": path, "pathIndex": index }))
+        contentItem = pathButtonComponent.createObject(null)
     }
 
-    on_EditModeChanged: _setContentItem()
+    function _requestPath(pathIndex) {
+        var p = pathcomponents.slice(0, pathIndex + 1).join("/")
+        root.requestPath(p)
+    }
+
+    function _shiftDisplayedPath() {
+        if (_displayedPathComponents.length <= 1)
+            return
+
+        var p = root._displayedPathComponents
+        p.shift()
+        root._displayedPathComponents = p
+    }
+
+
+    on_EditModeChanged: Qt.callLater(_setContentItem)
+    onWidthChanged: Qt.callLater(_setContentItem)
+    onPathcomponentsChanged: Qt.callLater(_setContentItem)
 
     Component.onCompleted: _setContentItem()
 }

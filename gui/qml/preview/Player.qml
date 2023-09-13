@@ -49,7 +49,7 @@ Item {
         videoOutput: videooutput
 
         audioOutput: AudioOutput {
-
+            id: audioOutput
         }
 
         loops: MediaPlayer.Infinite
@@ -79,7 +79,7 @@ Item {
             anchors.fill: parent
 
             ToolButton {
-                icon.source: player.playbackState === MediaPlayer.PlayingState ? "qrc:/resources/pause.qml" : "qrc:/resources/play.qml"
+                icon.source: player.playbackState === MediaPlayer.PlayingState ? "qrc:/resources/pause.svg" : "qrc:/resources/play.svg"
                 icon.color: palette.buttonText
                 onClicked: root.toogleState()
             }
@@ -114,6 +114,44 @@ Item {
             Label {
                 text: millisecondsToReadable(player.duration)
             }
+
+            ToolButton {
+                onPressed: audioOutput.muted = !audioOutput.muted
+                icon.color: palette.buttonText
+                icon.source: {
+                    if (audioOutput.muted)
+                        return "qrc:/resources/speaker_off.svg"
+                    if (audioOutput.volume == 0)
+                        return "qrc:/resources/speaker_0.svg"
+                    if (audioOutput.volume < .5)
+                        return "qrc:/resources/speaker_1.svg"
+                    return "qrc:/resources/speaker_2.svg"
+                }
+            }
+
+            Slider {
+                id: volSlider
+                from: 0
+                to: 100
+                stepSize: 1
+
+                Layout.preferredWidth: 50
+
+                onValueChanged: {
+                    const v = value / to
+                    audioOutput.volume = v
+                }
+
+                Connections {
+                    target: audioOutput
+                    function onVolumeChanged() {
+                        const v = Math.trunc(audioOutput.volume * volSlider.to)
+                        if (v != volSlider.value) {
+                            volSlider.value = v
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -122,4 +160,5 @@ Item {
     }
 
     Component.onCompleted: player.play()
+
 }

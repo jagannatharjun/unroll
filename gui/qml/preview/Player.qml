@@ -134,6 +134,7 @@ Item {
                 from: 0
                 to: 100
                 stepSize: 1
+                value: audioOutput.volume * to
 
                 Layout.preferredWidth: 50
 

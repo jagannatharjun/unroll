@@ -68,6 +68,8 @@ Container {
             spacing: root._pathButtonSpacing
 
             PathButton {
+                id: menuButton
+
                 text: "<<"
                 visible: root._displayedPathComponents.length !== root.pathcomponents.length
 
@@ -97,7 +99,7 @@ Container {
                 model: root._displayedPathComponents
 
                 delegate: PathButton {
-                    Layout.minimumWidth:  100
+                    Layout.minimumWidth: Math.min(implicitWidth, row.width - menuButton.width - row.spacing * 2)
                     Layout.maximumWidth: implicitWidth
                     Layout.fillWidth: true // required for auto resize
 

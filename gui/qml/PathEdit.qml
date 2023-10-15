@@ -18,6 +18,14 @@ Container {
 
     property bool _editMode: false
 
+    property int _pathButtonPadding: 5
+
+    property int _pathButtonSpacing: 3
+
+    function _pathButtonObject(arr) {
+        return arr.map((path, index) => ({"pathText": path, "pathIndex": index}))
+    }
+
     padding: 4
 
     hoverEnabled: false
@@ -38,69 +46,64 @@ Container {
     }
 
     component PathButton : Button {
-        padding: 5
+        font: pathButtonFont.font
+        padding: root._pathButtonPadding
         background: Rectangle {
             color: visualFocus ? palette.active.button : palette.inactive.button
         }
     }
 
+    FontMetrics {
+        id: pathButtonFont
+
+    }
+
     Component {
         id: pathButtonComponent
 
-        // use wrapper Item, so RowLayout don't spread children in availableWidth
-        Item {
-            implicitWidth: row.implicitWidth
-            implicitHeight: row.implicitHeight
 
-            RowLayout {
-                id: row
+        RowLayout {
+            id: row
 
-                spacing: 3
+            spacing: root._pathButtonSpacing
 
-                PathButton {
-                    text: "<<"
-                    visible: root._displayedPathComponents.length !== root.pathcomponents.length
+            PathButton {
+                text: "<<"
+                visible: root._displayedPathComponents.length !== root.pathcomponents.length
 
-                    onPressed: {
-                        var o = root.pathcomponents, c = root._displayedPathComponents
-                        menuRepeater.model = o.slice(0, o.length - c.length)
-                                                .map((path, index) => ({"pathText": path, "pathIndex": index}))
+                onPressed: {
+                    var o = root.pathcomponents, c = root._displayedPathComponents
+                    menuRepeater.model = root._pathButtonObject(o.slice(0, o.length - c.length)).reverse()
+                    rootMenu.open()
+                }
 
-                        rootMenu.open()
-                    }
+                Menu {
+                    id: rootMenu
 
-                    Menu {
-                        id: rootMenu
+                    y: parent.height
 
-                        y: parent.height
+                    Repeater {
+                        id: menuRepeater
 
-                        Repeater {
-                            id: menuRepeater
-
-                            delegate: MenuItem {
-                                text: modelData.pathText
-                                onPressed: root._requestPath(modelData.pathIndex)
-                            }
+                        delegate: MenuItem {
+                            text: modelData.pathText
+                            onPressed: root._requestPath(modelData.pathIndex)
                         }
                     }
                 }
+            }
 
-                Repeater {
-                    model: root._displayedPathComponents
+            Repeater {
+                model: root._displayedPathComponents
 
-                    delegate: PathButton {
-                        text: modelData.pathText
-                        onPressed: root._requestPath(modelData.pathIndex)
-                    }
+                delegate: PathButton {
+                    text: modelData.pathText
+                    onPressed: root._requestPath(modelData.pathIndex)
                 }
+            }
 
-
-                onImplicitWidthChanged: {
-                    if (implicitWidth > root.availableWidth) {
-                        // saves binding loop warning
-                        Qt.callLater(root._shiftDisplayedPath)
-                    }
-                }
+            Item {
+                Layout.fillWidth: true
             }
         }
     }
@@ -131,7 +134,7 @@ Container {
             return
         }
 
-        _displayedPathComponents = pathcomponents.map((path, index) => ({"pathText": path, "pathIndex": index }))
+        _displayedPathComponents = _calcDisplayedPathButtons()
         contentItem = pathButtonComponent.createObject(null)
     }
 
@@ -140,18 +143,40 @@ Container {
         root.requestPath(p)
     }
 
-    function _shiftDisplayedPath() {
-        if (_displayedPathComponents.length <= 1)
-            return
+    function _calcDisplayedPathButtons() {
+        let aw = root.availableWidth - pathButtonFont.advanceWidth("<<") - _pathButtonPadding * 2
 
-        var p = root._displayedPathComponents
-        p.shift()
-        root._displayedPathComponents = p
+        // reset default state
+        var r = []
+        var i
+        for (i = pathcomponents.length - 1; i >= 0; --i) {
+            const s = pathButtonFont.advanceWidth(pathcomponents[i])
+                    + _pathButtonPadding * 2
+                    + root._pathButtonSpacing
+
+            if (aw < s) {
+                r = _pathButtonObject(pathcomponents.slice(i + 1))
+                break
+            } else {
+                aw -= s
+            }
+        }
+
+        if (r.length == 0)
+            r = _pathButtonObject(pathcomponents)
+        return r
     }
 
+    onAvailableWidthChanged: {
+        if (_editMode)
+            return
+
+        var p = _calcDisplayedPathButtons()
+        if (p !== _displayedPathComponents)
+            _displayedPathComponents = p
+    }
 
     on_EditModeChanged: Qt.callLater(_setContentItem)
-    onWidthChanged: Qt.callLater(_setContentItem)
     onPathcomponentsChanged: Qt.callLater(_setContentItem)
 
     Component.onCompleted: _setContentItem()

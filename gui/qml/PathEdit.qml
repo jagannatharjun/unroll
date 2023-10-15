@@ -97,6 +97,10 @@ Container {
                 model: root._displayedPathComponents
 
                 delegate: PathButton {
+                    Layout.minimumWidth:  100
+                    Layout.maximumWidth: implicitWidth
+                    Layout.fillWidth: true // required for auto resize
+
                     text: modelData.pathText
                     onPressed: root._requestPath(modelData.pathIndex)
                 }
@@ -162,8 +166,11 @@ Container {
             }
         }
 
-        if (r.length == 0)
-            r = _pathButtonObject(pathcomponents)
+        if (i === -1)
+            r = _pathButtonObject(pathcomponents) // all fits
+        else // nothing fits
+            r = _pathButtonObject(pathcomponents.slice(pathcomponents.length - 1))
+
         return r
     }
 

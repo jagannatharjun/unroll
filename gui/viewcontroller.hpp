@@ -98,7 +98,7 @@ private:
 
     QFutureWatcher<PreviewData> m_previewWatcher;
 
-    // place this at end so it get destroyed first, this
+    // place this at end so it get destroyed last, this
     // make sure any pending operation don't use invalid resource
     QThreadPool m_pool;
 };

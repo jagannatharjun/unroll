@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Templates as T
+import filebrowser
 
 Container {
     id: root
@@ -103,7 +104,16 @@ Container {
                     Layout.maximumWidth: implicitWidth
                     Layout.fillWidth: true // required for auto resize
 
-                    text: modelData.pathText
+                    text: {
+                        // format volume name
+                        if (modelData.pathIndex === 0) {
+                            const volume = FileBrowser.volumeName(modelData.pathText)
+                            return "%1 (%2)".arg(volume).arg(modelData.pathText)
+                        }
+
+                        return modelData.pathText
+                    }
+
                     onPressed: root._requestPath(modelData.pathIndex)
                 }
             }

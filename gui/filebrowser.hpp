@@ -16,6 +16,8 @@ public:
 
     Q_INVOKABLE void setCursor(Qt::CursorShape cursorShape);
 
+    Q_INVOKABLE QString volumeName(const QString &path) const;
+
 signals:
     void windowChanged();
 private:

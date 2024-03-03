@@ -1,6 +1,7 @@
 #include "filebrowser.hpp"
 
 #include <QWindow>
+#include <QStorageInfo>
 
 FileBrowser::FileBrowser(QObject *parent)
     : QObject{parent}
@@ -31,3 +32,8 @@ void FileBrowser::setCursor(Qt::CursorShape cursorShape)
     }
 
     m_window->setCursor(cursorShape); }
+
+QString FileBrowser::volumeName(const QString &path) const
+{
+    return QStorageInfo(path).name();
+}

@@ -159,6 +159,19 @@ public:
         matchArchiveTestTree(p, d, s);
     }
 
+    void testConcurrency(DirectorySystem &s)
+    {
+        const int thread_count = 100;
+        std::vector<std::thread> t;
+        for (int i = 0; i < thread_count; ++i) {
+            t.emplace_back([this, &s]() { test(s);  });
+            t.emplace_back([this, &s]() { testRecursiveArchive(s);  });
+        }
+
+        for (auto &task : t)
+            task.join();
+    }
+
 private slots:
     void testArchiveFileSystem()
     {
@@ -170,6 +183,16 @@ private slots:
     {
         ArchiveSystem s;
         testRecursiveArchive(s);
+    }
+
+    void testConcurreny()
+    {
+        ArchiveSystem s;
+        HybridDirSystem s2;
+        std::thread t1([this, &s] { testConcurrency(s); });
+        std::thread t2([this, &s2] { testConcurrency(s2); });
+        t1.join();
+        t2.join();
     }
 
     void testHybridFileSystem()

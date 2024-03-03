@@ -316,7 +316,7 @@ bool iterateArchiveEntries(const QString &archivepath, std::function<bool(archiv
     std::unique_ptr<archive, decltype(&archive_read_free)> a (archive_read_new(), &archive_read_free);
     if (!a)
     {
-        qWarning("failed archive_read_new, '%s'", qUtf8Printable(archivepath));
+        // qWarning("failed archive_read_new, '%s'", qUtf8Printable(archivepath));
         return false;
     }
 
@@ -326,7 +326,7 @@ bool iterateArchiveEntries(const QString &archivepath, std::function<bool(archiv
     const int r = archive_read_open_filename_w(a.get(), archivepath.toStdWString().c_str(), 10240);
     if (r != ARCHIVE_OK)
     {
-        qWarning("failed to archive read open filename %d, '%s'", r, qUtf8Printable(archivepath));
+        // qWarning("failed to archive read open filename %d, '%s'", r, qUtf8Printable(archivepath));
         return false;
     }
 

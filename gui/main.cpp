@@ -5,6 +5,7 @@
 #include "filebrowser.hpp"
 #include "viewcontroller.hpp"
 #include "historycontroller.hpp"
+#include "preferences.hpp"
 
 #include <QQuickStyle>
 
@@ -24,6 +25,11 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonType<FileBrowser>("filebrowser", 0, 1, "FileBrowser" ,[](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
     {
         return new FileBrowser();
+    });
+
+    qmlRegisterSingletonType<Preferences>("filebrowser", 0, 1, "Preferences" ,[](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
+    {
+        return new Preferences();
     });
 
     QQmlApplicationEngine engine;

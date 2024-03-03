@@ -11,6 +11,10 @@ Loader {
     onPreviewdataChanged:  {
         const fileType = previewdata.fileType()
         active = (fileType !== PreviewData.Unknown)
+
+        // reset state otherwise Player will crash with invalid inputs
+        sourceComponent = undefined
+
         if (!active)
             return
 

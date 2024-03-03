@@ -3,6 +3,7 @@
 #include "directorysystem.hpp"
 
 #include <QTextStream>
+#include <QDir>
 
 namespace
 {
@@ -71,6 +72,9 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
         case NameColumn:
             return m_dir->fileName(r);
         case PathColumn:
+            if (role == Qt::DisplayRole)
+                return QDir::toNativeSeparators(m_dir->filePath(r));
+
             return m_dir->filePath(r);
         case SizeColumn:
             if (m_dir->isDir(r) && m_dir->fileSize(r) == 0)

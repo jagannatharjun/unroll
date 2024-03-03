@@ -107,7 +107,9 @@ void ViewController::setPreview(int row)
             return {nullptr, PreviewData::Unknown};
 
         // some directory system may have custom urls, so you can't directly use fileUrl here
-        const auto mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(dir->filePath(child))).name();
+        const QString path = dir->filePath(child);
+        const auto mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(path)).name();
+
         PreviewData::FileType filetype = PreviewData::Unknown;
         const auto types =
         {
@@ -123,6 +125,12 @@ void ViewController::setPreview(int row)
                 filetype = type.first;
                 break;
             }
+        }
+
+        if (filetype == PreviewData::Unknown)
+        {
+            if (path.endsWith(".ts"))
+                filetype = PreviewData::VideoFile;
         }
 
         auto io = system->iosource(dir.get(), child);

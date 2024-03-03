@@ -49,8 +49,10 @@ Container {
     component PathButton : Button {
         font: pathButtonFont.font
         padding: root._pathButtonPadding
+        hoverEnabled: true
         background: Rectangle {
-            color: visualFocus ? palette.active.button : palette.inactive.button
+            color: palette.active.button
+            visible: (visualFocus || hovered)
         }
     }
 

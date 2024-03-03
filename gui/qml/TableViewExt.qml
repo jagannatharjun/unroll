@@ -49,6 +49,8 @@ Pane {
 
                 y: view.contentY
 
+                height: 36
+
                 text: view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
 
                 function resetWidth() {
@@ -87,6 +89,14 @@ Pane {
                     setResizeWidth: function (width) {
                         root._setColumnWidth(index, width)
                     }
+
+                    VerticalBorder {
+                        palette: headerDelegate.palette
+                    }
+                }
+
+                HorizontalBorder {
+                    palette: headerDelegate.palette
                 }
 
                 Connections {
@@ -163,6 +173,8 @@ Pane {
         }
 
         delegate: ItemDelegate {
+            id: delegate
+
             required property bool selected
             required property bool current
 
@@ -171,6 +183,8 @@ Pane {
             icon.source: model.iconId
             icon.height: 32
             icon.width: 32
+
+            height: 36
 
             focus: true
 
@@ -199,6 +213,14 @@ Pane {
                 setResizeWidth: function (width) {
                     root._setColumnWidth(column, width)
                 }
+
+                VerticalBorder {
+                    palette: delegate.palette
+                }
+            }
+
+            HorizontalBorder {
+                palette: delegate.palette
             }
         }
 
@@ -235,5 +257,27 @@ Pane {
             anchors.right: view.right
             anchors.top: view.bottom
         }
+    }
+
+    component VerticalBorder: Rectangle {
+        anchors {
+            right: parent.right
+            top: parent.top
+            bottom: parent.bottom
+        }
+
+        width: 2
+        color: palette.mid
+    }
+
+    component HorizontalBorder: Rectangle {
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+
+        height: 2
+        color: palette.mid
     }
 }

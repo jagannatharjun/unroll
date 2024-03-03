@@ -8,6 +8,7 @@ class FileBrowser : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QWindow* window READ window WRITE setWindow NOTIFY windowChanged)
+
 public:
     explicit FileBrowser(QObject *parent = nullptr);
 

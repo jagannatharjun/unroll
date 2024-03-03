@@ -7,6 +7,24 @@ MouseArea {
     // function (width) -> called to set width on resizing
     required property var setResizeWidth
 
+    property bool _capturedMouse: false
+
+    function captureMouse() {
+        if (_capturedMouse)
+            return
+
+        _capturedMouse = true
+        FileBrowser.setCursor(Qt.SplitHCursor)
+    }
+
+    function checkAndReleaseMouse() {
+        if (!_capturedMouse) return
+        if (pressed || containsMouse) return
+
+        _capturedMouse = false
+        FileBrowser.setCursor(Qt.ArrowCursor)
+    }
+
     z: 2
     anchors.right: parent.right
     width: 6
@@ -20,8 +38,8 @@ MouseArea {
     hoverEnabled: true
 
     // FIXME: cursorShape doesn't work (tested in TableViewExt delegates)
-    onEntered: FileBrowser.setCursor(Qt.SplitHCursor)
-    onExited: if (!pressed) FileBrowser.setCursor(Qt.ArrowCursor)
+    onEntered: root.captureMouse()
+    onExited: checkAndReleaseMouse()
 
     onPressedChanged: {
         if (pressed) {
@@ -33,7 +51,7 @@ MouseArea {
 
             // containsMouse and pressed can be outof sync
             if (!containsMouse)
-                FileBrowser.setCursor(Qt.ArrowCursor)
+                root.captureMouse()
         }
     }
 

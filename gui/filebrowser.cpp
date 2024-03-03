@@ -31,7 +31,8 @@ void FileBrowser::setCursor(Qt::CursorShape cursorShape)
         return;
     }
 
-    m_window->setCursor(cursorShape); }
+    m_window->setCursor(cursorShape);
+}
 
 QString FileBrowser::volumeName(const QString &path) const
 {

@@ -160,6 +160,14 @@ ApplicationWindow {
 
             z : 1
 
+            handle: Rectangle {
+                implicitWidth: 4
+                implicitHeight: 4
+
+                color: SplitHandle.pressed ? palette.highlight
+                       : (SplitHandle.hovered ? palette.button : palette.base)
+            }
+
             TableViewExt {
                 id: tableView
 
@@ -202,7 +210,6 @@ ApplicationWindow {
                     anchors.fill: parent
                     asynchronous: true
                 }
-
             }
         }
     }

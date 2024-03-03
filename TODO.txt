@@ -6,9 +6,11 @@ CORE:
 
 
 GUI:
-1. File Icons
-2. File Preview
+1. File Icons - DONE
+2. File Preview - DONE
 3. Error Handling
-4. Sorting
-5. No sound in video preview
-6. Add table header
+4. Sorting - DONE
+5. No sound in video preview - DONE
+6. Add table header - DONE
+7. Remember video player settings
+

@@ -105,13 +105,14 @@ Container {
                     Layout.fillWidth: true // required for auto resize
 
                     text: {
+                        const suffix = "   >"
                         // format volume name
                         if (modelData.pathIndex === 0) {
                             const volume = FileBrowser.volumeName(modelData.pathText)
-                            return "%1 (%2)".arg(volume).arg(modelData.pathText)
+                            return "%1 (%2)".arg(volume).arg(modelData.pathText) + suffix
                         }
 
-                        return modelData.pathText
+                        return modelData.pathText + suffix
                     }
 
                     onPressed: root._requestPath(modelData.pathIndex)

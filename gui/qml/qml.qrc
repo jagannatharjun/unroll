@@ -6,6 +6,7 @@
         <file>HResizeHandle.qml</file>
         <file>PathEdit.qml</file>
         <file>AppMenuBar.qml</file>
+        <file>PreviewView.qml</file>
     </qresource>
     <qresource prefix="/preview">
         <file alias="ImagePreview.qml">preview/ImagePreview.qml</file>

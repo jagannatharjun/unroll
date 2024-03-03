@@ -8,6 +8,9 @@ Item {
 
     required property var previewdata
 
+    property alias muted: audioOutput.muted
+    property alias volume: audioOutput.volume
+
     focus: true
 
     function toogleState() {

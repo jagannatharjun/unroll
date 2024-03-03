@@ -25,14 +25,7 @@ ApplicationWindow {
     ViewController {
         id: controller
 
-        onShowPreview: function (data) {
-            previewloader.active = data.fileType() !== PreviewData.Unknown
-            if (data.fileType() === PreviewData.ImageFile)
-                previewloader.setSource("qrc:/preview/ImagePreview.qml", {"previewdata": data})
-            else if (data.fileType() === PreviewData.VideoFile
-                     || data.fileType() === PreviewData.AudioFile)
-                previewloader.setSource("qrc:/preview/Player.qml", {"previewdata": data})
-        }
+        onShowPreview: (data) => previewView.previewdata = data
 
         Component.onCompleted:
             controller.openUrl("file:///C:/Users/prince/Pictures/")
@@ -46,7 +39,7 @@ ApplicationWindow {
         onResetFocus: function (row, column) {
             // reset current preview
             previewRow = -1
-            previewloader.active = false
+            previewView.active = false
 
             var index = tableView.model.index(row, column)
             tableView.selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect)
@@ -204,11 +197,10 @@ ApplicationWindow {
                 SplitView.fillWidth: true
                 SplitView.fillHeight: true
 
-                Loader {
-                    id: previewloader
+                PreviewView {
+                    id: previewView
 
                     anchors.fill: parent
-                    asynchronous: true
                 }
             }
         }

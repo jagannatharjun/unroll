@@ -10,7 +10,7 @@
 // ALL functions must be thread-safe
 // ALL functions of interface can be called from any number of threads
 
-// Directory is only observer, no opercation can be applied
+// Directory is only observer, no operation can be applied
 class Directory
 {
 public:

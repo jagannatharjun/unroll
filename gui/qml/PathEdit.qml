@@ -36,6 +36,12 @@ Container {
         border.color: root.visualFocus || contentItem.activeFocus ? palette.highlight : palette.light
         border.width: 1
 
+        Behavior on border.color {
+            ColorAnimation {
+                duration: 80
+            }
+        }
+
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton

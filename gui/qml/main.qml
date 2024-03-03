@@ -127,6 +127,12 @@ ApplicationWindow {
                     border.color: searchEdit.visualFocus || searchEdit.activeFocus ? palette.highlight : palette.light
                     color: palette.dark
 
+                    Behavior on border.color {
+                        ColorAnimation {
+                            duration: 80
+                        }
+                    }
+
                     TextInput {
                         id: searchEdit
 

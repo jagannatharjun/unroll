@@ -10,8 +10,8 @@ import "preview" as Preview
 ApplicationWindow {
     id: root
 
-    width: 780
-    height: 480
+    width: 1200
+    height: 800
     visible: true
     title: qsTr("File Browser")
 

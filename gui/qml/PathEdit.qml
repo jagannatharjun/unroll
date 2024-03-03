@@ -11,8 +11,8 @@ Container {
 
     signal requestPath(string path)
 
-    readonly property var pathcomponents: {
-        return path.split("/").filter((p) => { return p && p !== "" })
+    readonly property var _pathcomponents: {
+        return _pathButtonObject(path.split("/").filter((p) => { return p && p !== "" }))
     }
 
     property var _displayedPathComponents: []
@@ -23,8 +23,21 @@ Container {
 
     property int _pathButtonSpacing: 3
 
+    property string _pathButtonSuffix:  "   >"
+
+    function _pathText(path, index) {
+        if (index === 0 && path.endsWith(":")) {
+            const volume = FileBrowser.volumeName(path)
+            return "%1 (%2)".arg(volume).arg(path)
+        }
+
+        return path
+    }
+
     function _pathButtonObject(arr) {
-        return arr.map((path, index) => ({"pathText": path, "pathIndex": index}))
+        return arr.map((path, index) => ({"pathText": _pathText(path, index)
+                                             , "pathIndex": index
+                                             , "node": path}))
     }
 
     padding: 4
@@ -80,11 +93,13 @@ Container {
                 id: menuButton
 
                 text: "<<"
-                visible: root._displayedPathComponents.length !== root.pathcomponents.length
+                visible: root._displayedPathComponents.length !== root._pathcomponents.length
 
                 onPressed: {
-                    var o = root.pathcomponents, c = root._displayedPathComponents
-                    menuRepeater.model = root._pathButtonObject(o.slice(0, o.length - c.length)).reverse()
+                    const o = root._pathcomponents
+                    const c = root._displayedPathComponents
+
+                    menuRepeater.model = o.slice(0, o.length - c.length).reverse()
                     rootMenu.open()
                 }
 
@@ -112,16 +127,7 @@ Container {
                     Layout.maximumWidth: implicitWidth
                     Layout.fillWidth: true // required for auto resize
 
-                    text: {
-                        const suffix = "   >"
-                        // format volume name
-                        if (modelData.pathIndex === 0) {
-                            const volume = FileBrowser.volumeName(modelData.pathText)
-                            return "%1 (%2)".arg(volume).arg(modelData.pathText) + suffix
-                        }
-
-                        return modelData.pathText + suffix
-                    }
+                    text: modelData.pathText + root._pathButtonSuffix
 
                     onPressed: root._requestPath(modelData.pathIndex)
                 }
@@ -164,7 +170,7 @@ Container {
     }
 
     function _requestPath(pathIndex) {
-        var p = pathcomponents.slice(0, pathIndex + 1).join("/")
+        var p = _pathcomponents.slice(0, pathIndex + 1).map(obj => obj.node).join("/")
         root.requestPath(p)
     }
 
@@ -174,13 +180,13 @@ Container {
         // reset default state
         var r = []
         var i
-        for (i = pathcomponents.length - 1; i >= 0; --i) {
-            const s = pathButtonFont.advanceWidth(pathcomponents[i])
+        for (i = _pathcomponents.length - 1; i >= 0; --i) {
+            const s = pathButtonFont.advanceWidth(_pathcomponents[i].pathText + root._pathButtonSuffix)
                     + _pathButtonPadding * 2
                     + root._pathButtonSpacing
 
             if (aw < s) {
-                r = _pathButtonObject(pathcomponents.slice(i + 1))
+                r = _pathcomponents.slice(i + 1)
                 break
             } else {
                 aw -= s
@@ -188,9 +194,9 @@ Container {
         }
 
         if (i === -1)
-            r = _pathButtonObject(pathcomponents) // all fits
+            r = _pathcomponents // all fits
         else // nothing fits
-            r = _pathButtonObject(pathcomponents.slice(pathcomponents.length - 1))
+            r = _pathcomponents.slice(_pathcomponents.length - 1)
 
         return r
     }
@@ -204,8 +210,8 @@ Container {
             _displayedPathComponents = p
     }
 
-    on_EditModeChanged: Qt.callLater(_setContentItem)
-    onPathcomponentsChanged: Qt.callLater(_setContentItem)
+    on_EditModeChanged: _setContentItem()
+    on_PathcomponentsChanged: _setContentItem()
 
     Component.onCompleted: _setContentItem()
 }

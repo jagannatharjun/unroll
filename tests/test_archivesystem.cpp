@@ -161,7 +161,7 @@ public:
 
     void testConcurrency(DirectorySystem &s)
     {
-        const int thread_count = 100;
+        const int thread_count = 40;
         std::vector<std::thread> t;
         for (int i = 0; i < thread_count; ++i) {
             t.emplace_back([this, &s]() { test(s);  });

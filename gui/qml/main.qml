@@ -84,7 +84,7 @@ ApplicationWindow {
     }
 
     menuBar: AppMenuBar {
-        enableBack: history.depth > 1
+        enableBack: history.canMoveBack
 
         onOpenFolder: folderDialog.open()
         onBack: history.pop()
@@ -215,9 +215,12 @@ ApplicationWindow {
     // place it over everything so no one can steal it
     MouseArea {
         anchors.fill: parent
-        acceptedButtons: Qt.BackButton
-        onClicked: {
-            history.pop()
+        acceptedButtons: Qt.BackButton | Qt.ForwardButton
+        onClicked: function (mouse) {
+            if (mouse.button & Qt.BackButton)
+                history.pop()
+            else if (mouse.button & Qt.ForwardButton)
+                history.forward()
         }
     }
 }

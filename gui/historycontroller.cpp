@@ -28,35 +28,48 @@ void HistoryController::setView(ViewController *newView)
 
 int HistoryController::depth() const
 {
-    return static_cast<int>(m_history.size());
+    return m_index + 1;
+}
+
+bool HistoryController::canMoveForward() const
+{
+    return m_index + 1 < m_history.size();
 }
 
 void HistoryController::pop()
 {
-    if (depth() <= 1)
+    if (!canMoveBack())
         return;
 
-    m_history.pop();
-    emit depthChanged();
+    setIndex(m_index - 1);
+}
 
-    // TODO: handle if load fail here
-    m_view->openUrl(m_history.top().url);
+void HistoryController::forward()
+{
+    if (!canMoveForward())
+        return;
+
+    setIndex(m_index + 1);
 }
 
 
 void HistoryController::urlUpdated()
 {
-    if (m_history.empty() || m_history.top().url != m_view->url())
+    if (m_history.empty() || current().url != m_view->url())
     {
         // new history point
-        m_history.push(Point {m_view->url(), -1, -1});
+        if (m_index + 1 != m_history.size())
+            m_history.erase(m_history.begin() + m_index + 1, m_history.end());
+
+        ++m_index;
+        m_history.push_back(Point {m_view->url(), -1, -1});
         emit depthChanged();
         emit resetFocus(0, 0);
         return;
     }
 
     // a previous url is updated, restore indexes
-    const auto top = m_history.top();
+    const auto top = current();
 
     auto model = m_view->model();
     const auto index = model->index(top.row, top.col);
@@ -71,20 +84,43 @@ void HistoryController::urlUpdated()
     }
 }
 
+HistoryController::Point &HistoryController::current()
+{
+    return m_history[m_index];
+}
+
+const HistoryController::Point &HistoryController::current() const
+{
+    return m_history[m_index];
+}
+
+void HistoryController::setIndex(int index)
+{
+    m_index = index;
+    emit depthChanged();
+
+    // TODO: handle if load fail here
+    m_view->openUrl(current().url);
+}
+
 void HistoryController::updateCurrentIndex(int row, int column)
 {
     if (m_history.empty())
         return; // no url has been pushed yet, why currentUpated is called then?
 
-    auto current = m_view->model()->index(row, column);
-    const auto validCurrent = current.isValid();
-    if (!validCurrent)
+    auto index = m_view->model()->index(row, column);
+    if (!index.isValid())
     {
         qDebug("invalid index in updateCurrentIndex");
         return;
     }
 
-    auto &top = m_history.top();
-    top.row =  current.row();
-    top.col = current.column();
+    auto &top = current();
+    top.row =  index.row();
+    top.col = index.column();
+}
+
+bool HistoryController::canMoveBack() const
+{
+    return m_index > 0;
 }

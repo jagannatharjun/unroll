@@ -22,6 +22,11 @@ Item {
         scale: root.imageScale
 
         DragHandler {}
+
+        WheelHandler {
+            property: "scale"
+            acceptedModifiers: Qt.ControlModifier
+        }
     }
 
     MouseArea {

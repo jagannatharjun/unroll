@@ -42,6 +42,8 @@ Pane {
         y: - height // place this out of view otherwise the currentItem doesn't get in view correctly on currentChanged
 
         Repeater {
+            id: repeater
+
             model: Math.max(view.columns, 0)
 
             ItemDelegate {
@@ -119,12 +121,19 @@ Pane {
                     target: view
 
                     function onLayoutChanged() {
-                        let item = view.itemAtCell(index, view.topRow)
-                        let insideViewport = item !== null
+                        // position header delegates
 
-                        headerDelegate.visible = insideViewport
-                        if (insideViewport) {
+                        const item = view.itemAtCell(index, view.topRow)
+
+                        if (item !== null) {
+                            headerDelegate.visible = true
                             headerDelegate.x = item.x
+                        } else {
+                            headerDelegate.visible = true
+                            headerDelegate.x = Qt.binding(() => {
+                                  const prev = index > 0 ? repeater.itemAt(index - 1) : null
+                                  return !!prev ? prev.x + prev.width : 0
+                              })
                         }
                     }
                 }

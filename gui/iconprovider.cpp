@@ -10,34 +10,44 @@
 
 QImage fileImage(const QString &path, const bool isdir)
 {
-    SHFILEINFOW fileInfo {};
-
-    const auto attribute = FILE_ATTRIBUTE_NORMAL | (isdir ? FILE_ATTRIBUTE_DIRECTORY : 0);
-    const auto nativeName = QString(path).replace("/", "\\").toStdWString();
-
-    if (SHGetFileInfoW(nativeName.c_str(), attribute, &fileInfo
-                 , sizeof fileInfo, SHGFI_ICON) == 0)
+    const auto getImage = [&]() -> QImage
     {
-        memset(&fileInfo, 0, sizeof fileInfo);
+        SHFILEINFOW fileInfo {};
+
+        const auto attribute = FILE_ATTRIBUTE_NORMAL | (isdir ? FILE_ATTRIBUTE_DIRECTORY : 0);
+        const auto nativeName = QString(path).replace("/", "\\").toStdWString();
 
         if (SHGetFileInfoW(nativeName.c_str(), attribute, &fileInfo
-                            , sizeof fileInfo, SHGFI_ICON | SHGFI_USEFILEATTRIBUTES) == 0)
+                     , sizeof fileInfo, SHGFI_ICON) == 0)
         {
-            qWarning("SHGetFileInfoW failed %d, '%s'", GetLastError(), qUtf8Printable(path));
-            return {};
-        }
-    }
+            memset(&fileInfo, 0, sizeof fileInfo);
 
-    const QImage image = QImage::fromHICON(fileInfo.hIcon);
-    DestroyIcon(fileInfo.hIcon);
+            if (SHGetFileInfoW(nativeName.c_str(), attribute, &fileInfo
+                                , sizeof fileInfo, SHGFI_ICON | SHGFI_USEFILEATTRIBUTES) == 0)
+            {
+                qWarning("SHGetFileInfoW failed %d, '%s'", GetLastError(), qUtf8Printable(path));
+                return {};
+            }
+        }
+
+        const QImage image = QImage::fromHICON(fileInfo.hIcon);
+        DestroyIcon(fileInfo.hIcon);
+
+        return image;
+    };
+
+    const auto result = CoInitialize(NULL);
+    assert(result != RPC_E_CHANGED_MODE);
+
+    const auto image = getImage();
+    CoUninitialize();
 
     return image;
 }
 
 
 IconProvider::IconProvider(const QString &id)
-    // don't force asynchoronous image loading this breaks images for some nested archive
-    : QQuickImageProvider(QQuickImageProvider::Image/*, QQuickImageProvider::ForceAsynchronousImageLoading*/)
+    : QQuickImageProvider(QQuickImageProvider::Image, QQuickImageProvider::ForceAsynchronousImageLoading)
     , m_id {id}
 {
 }

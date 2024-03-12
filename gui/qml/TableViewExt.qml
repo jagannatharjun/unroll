@@ -36,6 +36,10 @@ Pane {
 
         height: implicitHeight // children.length > 0 ? children[0].height : 0
 
+        width: implicitWidth
+        // syncDirection: Qt.Horizontal
+        syncView: view
+
         z: 10 // otherwise outoff view cells will cover this
 
         // parent: view.contentItem
@@ -165,8 +169,6 @@ Pane {
         reuseItems: true
 
         selectionBehavior: TableView.SelectRows
-        syncDirection: Qt.Horizontal
-        syncView: header
         // resizableColumns: true // this doesn't work correctly if delegate is ItemDelegate
 
         columnWidthProvider: function (column) {

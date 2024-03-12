@@ -4,7 +4,6 @@ Item {
     id: root
 
     required property var previewdata
-    property real imageScale: 1.
     clip: true
 
     AnimatedImage {
@@ -19,22 +18,11 @@ Item {
         fillMode: Image.PreserveAspectFit
         asynchronous: true
 
-        scale: root.imageScale
-
         DragHandler {}
 
         WheelHandler {
             property: "scale"
             acceptedModifiers: Qt.ControlModifier
-        }
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        onClicked: function (mouse) {
-            // scale.origin.x = mouse.x
-            // scale.origin.y = mouse.y
-            root.imageScale += .1
         }
     }
 }

@@ -31,107 +31,113 @@ Pane {
 
     focus: true
 
-    Item {
+    TableView {
         id: header
 
-        height: children.length > 0 ? children[0].height : 0
+        height: implicitHeight // children.length > 0 ? children[0].height : 0
 
         z: 10 // otherwise outoff view cells will cover this
 
-        parent: view.contentItem
-        y: - height // place this out of view otherwise the currentItem doesn't get in view correctly on currentChanged
+        // parent: view.contentItem
+        // y: - height // place this out of view otherwise the currentItem doesn't get in view correctly on currentChanged
 
-        Repeater {
-            model: Math.max(view.columns, 0)
+        model: ObjectModel {
+            Repeater {
+                model: Math.max(view.columns, 0)
 
-            ItemDelegate {
-                id: headerDelegate
+                ItemDelegate {
+                    id: headerDelegate
 
-                y: view.contentY
+                    // y: view.contentY
 
-                height: 36
+                    height: implicitHeight
 
-                text: view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
+                    width: implicitWidth
 
-                function resetWidth() {
-                    // don't use layout change signal, since that will set width to 0, when cell goes out of view
-                    width = Qt.binding(function() {
-                        return view.columnWidthProvider(index)
-                    })
-                }
+                    implicitHeight: 36
 
-                function resetText() {
-                    text = Qt.binding(function() {
-                        return view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
-                    })
-                }
+                    text: view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
 
-                onPressed: {
-                    var order = modelSortOrder === Qt.AscendingOrder ? Qt.DescendingOrder : Qt.AscendingOrder
-                    view.model.sort(index, order)
-                }
-
-                Row {
-                    anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
-
-                    Label {
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        font: headerDelegate.font
-                        visible: root.modelSortColumn === index
-                        text: root.modelSortOrder === Qt.DescendingOrder ? "↓" : "↑"
-                        scale: 1.1
-                        rightPadding: headerDelegate.rightPadding + 10
-                    }
-                }
-
-                HResizeHandle {
-                    setResizeWidth: function (width) {
-                        root._setColumnWidth(index, width)
+                    function resetWidth() {
+                        // don't use layout change signal, since that will set width to 0, when cell goes out of view
+                        width = Qt.binding(function() {
+                            return view.columnWidthProvider(index)
+                        })
                     }
 
-                    VerticalBorder {
-                        palette: headerDelegate.palette
+                    function resetText() {
+                        text = Qt.binding(function() {
+                            return view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
+                        })
                     }
-                }
 
-                HorizontalBorder {
-                    palette: headerDelegate.palette
-                }
-
-                Connections {
-                    target: root
-
-                    function on_ColumnWidthChanged() {
-                        headerDelegate.resetWidth()
+                    onPressed: {
+                        var order = modelSortOrder === Qt.AscendingOrder ? Qt.DescendingOrder : Qt.AscendingOrder
+                        view.model.sort(index, order)
                     }
-                }
 
-                Connections {
-                    target: view.model
+                    Row {
+                        anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
 
-                    function onHeaderDataChanged() {
-                        headerDelegate.resetText()
-                    }
-                }
+                        Label {
+                            anchors.verticalCenter: parent.verticalCenter
 
-                Connections {
-                    target: view
-
-                    function onLayoutChanged() {
-                        let item = view.itemAtCell(index, view.topRow)
-                        let insideViewport = item !== null
-
-                        headerDelegate.visible = insideViewport
-                        if (insideViewport) {
-                            headerDelegate.x = item.x
+                            font: headerDelegate.font
+                            visible: root.modelSortColumn === index
+                            text: root.modelSortOrder === Qt.DescendingOrder ? "↓" : "↑"
+                            scale: 1.1
+                            rightPadding: headerDelegate.rightPadding + 10
                         }
                     }
-                }
 
-                Component.onCompleted: {
-                    resetText()
-                    resetWidth()
+                    HResizeHandle {
+                        setResizeWidth: function (width) {
+                            root._setColumnWidth(index, width)
+                        }
+
+                        VerticalBorder {
+                            palette: headerDelegate.palette
+                        }
+                    }
+
+                    HorizontalBorder {
+                        palette: headerDelegate.palette
+                    }
+
+                    Connections {
+                        target: root
+
+                        function on_ColumnWidthChanged() {
+                            headerDelegate.resetWidth()
+                        }
+                    }
+
+                    Connections {
+                        target: view.model
+
+                        function onHeaderDataChanged() {
+                            headerDelegate.resetText()
+                        }
+                    }
+
+                    Connections {
+                        target: view
+
+                        function onLayoutChanged() {
+                            let item = view.itemAtCell(index, view.topRow)
+                            let insideViewport = item !== null
+
+                            headerDelegate.visible = insideViewport
+                            if (insideViewport) {
+                                headerDelegate.x = item.x
+                            }
+                        }
+                    }
+
+                    Component.onCompleted: {
+                        resetText()
+                        resetWidth()
+                    }
                 }
             }
         }
@@ -159,6 +165,8 @@ Pane {
         reuseItems: true
 
         selectionBehavior: TableView.SelectRows
+        syncDirection: Qt.Horizontal
+        syncView: header
         // resizableColumns: true // this doesn't work correctly if delegate is ItemDelegate
 
         columnWidthProvider: function (column) {

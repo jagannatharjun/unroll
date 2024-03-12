@@ -180,6 +180,7 @@ Pane {
 
             text: model.display
 
+            icon.cache: true
             icon.source: model.iconId
             icon.height: 32
             icon.width: 32
@@ -189,7 +190,6 @@ Pane {
             focus: true
 
             highlighted: selected || current
-
 
             onClicked: {
                 forceActiveFocus(Qt.MouseFocusReason)

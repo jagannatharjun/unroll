@@ -21,7 +21,7 @@ Pane {
 
     signal actionAtIndex(int row, int column)
 
-    signal _columnWidthChanged()
+    signal _columnWidthChanged
 
     function _setColumnWidth(column, width) {
         view.setColumnWidth(column, Math.max(200, width))
@@ -39,7 +39,7 @@ Pane {
         z: 10 // otherwise outoff view cells will cover this
 
         parent: view.contentItem
-        y: - height // place this out of view otherwise the currentItem doesn't get in view correctly on currentChanged
+        y: -height // place this out of view otherwise the currentItem doesn't get in view correctly on currentChanged
 
         Repeater {
             id: repeater
@@ -53,28 +53,37 @@ Pane {
 
                 height: 36
 
-                text: view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
+                text: view.model.headerData(index, Qt.Horizontal,
+                                            Qt.DisplayRole)
 
                 function resetWidth() {
                     // don't use layout change signal, since that will set width to 0, when cell goes out of view
-                    width = Qt.binding(function() {
+                    width = Qt.binding(function () {
                         return view.columnWidthProvider(index)
                     })
                 }
 
                 function resetText() {
-                    text = Qt.binding(function() {
-                        return view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
+                    text = Qt.binding(function () {
+                        return view.model.headerData(index, Qt.Horizontal,
+                                                     Qt.DisplayRole)
                     })
                 }
 
                 onPressed: {
-                    var order = modelSortOrder === Qt.AscendingOrder ? Qt.DescendingOrder : Qt.AscendingOrder
+                    const order = (modelSortOrder === Qt.AscendingOrder)
+                                ? Qt.DescendingOrder
+                                : Qt.AscendingOrder
+
                     view.model.sort(index, order)
                 }
 
                 Row {
-                    anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
+                    anchors {
+                        top: parent.top
+                        bottom: parent.bottom
+                        right: parent.right
+                    }
 
                     Label {
                         anchors.verticalCenter: parent.verticalCenter
@@ -121,8 +130,8 @@ Pane {
                     target: view
 
                     function onLayoutChanged() {
-                        // position header delegates
 
+                        // position header delegates
                         const item = view.itemAtCell(index, view.topRow)
 
                         if (item !== null) {
@@ -130,10 +139,13 @@ Pane {
                             headerDelegate.x = item.x
                         } else {
                             headerDelegate.visible = true
-                            headerDelegate.x = Qt.binding(() => {
-                                  const prev = index > 0 ? repeater.itemAt(index - 1) : null
-                                  return !!prev ? prev.x + prev.width : 0
-                              })
+                            headerDelegate.x = Qt.binding(function () {
+                                const prev = index > 0
+                                           ? repeater.itemAt(index - 1)
+                                           : null
+
+                                return !!prev ? prev.x + prev.width : 0
+                            })
                         }
                     }
                 }
@@ -158,7 +170,6 @@ Pane {
             bottomMargin: hscrollbar.height
         }
 
-
         boundsBehavior: Flickable.StopAtBounds
 
         focus: rows > 0
@@ -168,13 +179,15 @@ Pane {
         reuseItems: true
 
         selectionBehavior: TableView.SelectRows
-        // resizableColumns: true // this doesn't work correctly if delegate is ItemDelegate
 
+        // resizableColumns: true // this doesn't work correctly if delegate is ItemDelegate
         columnWidthProvider: function (column) {
             let w = explicitColumnWidth(column)
-            if (w >= 0) return w
-            if (column === 0) return 300
-            return  200
+            if (w >= 0)
+                return w
+            if (column === 0)
+                return 300
+            return 200
         }
 
         rowHeightProvider: function (row) {
@@ -213,7 +226,9 @@ Pane {
             }
 
             function select() {
-                view.selectionModel.setCurrentIndex(view.model.index(row, column), ItemSelectionModel.SelectCurrent)
+                view.selectionModel.setCurrentIndex(
+                            view.model.index(row, column),
+                            ItemSelectionModel.SelectCurrent)
             }
 
             HResizeHandle {

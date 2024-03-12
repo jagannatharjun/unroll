@@ -24,5 +24,11 @@ Item {
             property: "scale"
             acceptedModifiers: Qt.ControlModifier
         }
+
+        Behavior on scale {
+            SmoothedAnimation {
+                velocity: 4
+            }
+        }
     }
 }

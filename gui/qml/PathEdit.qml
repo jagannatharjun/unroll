@@ -123,7 +123,7 @@ Container {
                 model: root._displayedPathComponents
 
                 delegate: PathButton {
-                    Layout.minimumWidth: Math.min(implicitWidth, row.width - menuButton.width - row.spacing * 2)
+                    Layout.minimumWidth: Math.min(implicitWidth, 32)
                     Layout.maximumWidth: implicitWidth
                     Layout.fillWidth: true // required for auto resize
 

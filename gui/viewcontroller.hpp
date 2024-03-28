@@ -84,6 +84,10 @@ private:
 
     QString iconID(Directory *dir, int child);
 
+    // place this at start so it get destroyed last, this
+    // make sure any pending operation don't use invalid resource
+    QThreadPool m_pool;
+
     IconProvider *m_iconProvider {};
 
     // store current url of m_model, store it seperately so
@@ -97,10 +101,6 @@ private:
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;
 
     QFutureWatcher<PreviewData> m_previewWatcher;
-
-    // place this at end so it get destroyed last, this
-    // make sure any pending operation don't use invalid resource
-    QThreadPool m_pool;
 };
 
 

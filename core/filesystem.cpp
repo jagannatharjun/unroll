@@ -67,17 +67,7 @@ public:
 
 std::unique_ptr<Directory> FileSystem::open(const QString &path)
 {
-    return open(QUrl::fromLocalFile(path));
-}
-
-std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
-{
-    // check before otherwise toLocalFile returns empty path
-    // and we search current directory
-    if (!url.isLocalFile())
-        return {};
-
-    QDir d(url.toLocalFile());
+    QDir d(path);
     if (!d.exists())
         return {};
 
@@ -98,9 +88,28 @@ std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
     return std::move(r);
 }
 
+std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
+{
+    // check before otherwise toLocalFile returns empty path
+    // and we search current directory
+    if (!url.isLocalFile())
+        return {};
+
+    return open(url.toLocalFile());
+}
+
 std::unique_ptr<Directory> FileSystem::open(Directory *dir, int child)
 {
     return open(dir->filePath(child));
+}
+
+std::unique_ptr<Directory> FileSystem::dirParent(Directory *dir)
+{
+    QDir d(dir->path());
+    if (d.cdUp())
+        return open(d.path());
+
+    return nullptr;
 }
 
 std::unique_ptr<IOSource> FileSystem::iosource(Directory *dir, int child)

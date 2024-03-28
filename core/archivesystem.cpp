@@ -664,6 +664,15 @@ std::unique_ptr<Directory> ArchiveSystem::open(Directory *dir, int child)
     return openFile(p, url.lastChild(), parentUrl);
 }
 
+std::unique_ptr<Directory> ArchiveSystem::dirParent(Directory *dir)
+{
+    auto wrapper = unwrap(dir);
+    if (!wrapper || !wrapper->d->parent_)
+        return nullptr;
+
+    return wrap(wrapper->r, wrapper->d->parent_);
+}
+
 std::unique_ptr<IOSource> ArchiveSystem::iosource(Directory *dir, int child)
 {
     auto result = std::make_unique<ArchiveTempIOSource>();

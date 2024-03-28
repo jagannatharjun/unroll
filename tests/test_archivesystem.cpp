@@ -67,13 +67,13 @@ public:
         };
 
 
-        QHash<QString, Node> level0
+        QHash<QString, Node> level1
         {
             {"test.txt", {d.absoluteFilePath("test.txt"), 13}},
             {"lol", {d.absoluteFilePath("lol"), 16}}
         };
 
-        test(level0);
+        test(level1);
 
         QCOMPARE(current->fileName(1), "test.txt");
         QVERIFY(!system.open(current.get(), 1)); // try to open file
@@ -108,6 +108,9 @@ public:
 
         current = system.open(old.get(), 0);
         test(level3);
+
+        current = system.dirParent(current.get());
+        test(level2);
     }
 
     void test(DirectorySystem &s)

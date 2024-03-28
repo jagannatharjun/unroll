@@ -13,6 +13,8 @@ public:
     std::unique_ptr<Directory> open(const QUrl &url) override;
     std::unique_ptr<Directory> open(Directory *dir, int child) override;
 
+    std::unique_ptr<Directory> dirParent(Directory *dir) override;
+
     std::unique_ptr<IOSource> iosource(Directory *dir, int child) override;
 };
 

@@ -180,6 +180,12 @@ public:
     QString path() { return url_.filepath(); }
     QUrl url() { return url_.url(); }
     qint64 size() { return size_; }
+
+    virtual QDateTime lastAccessTime() { return {}; }
+    virtual QDateTime creationTime() { return {}; }
+    virtual QDateTime modifiedTime() { return {}; }
+    virtual bool dir() = 0;
+
 };
 
 
@@ -188,11 +194,16 @@ class ArchiveFile : public ArchiveNode
 public:
     using ArchiveNode::ArchiveNode;
 
-    QDateTime lastAccessTime;
-    QDateTime creationTime;
-    QDateTime modifiedTime;
+    QDateTime lastAccessTime_;
+    QDateTime creationTime_;
+    QDateTime modifiedTime_;
+
+    QDateTime lastAccessTime() override { return lastAccessTime_; }
+    QDateTime creationTime() override { return creationTime_; }
+    QDateTime modifiedTime() override { return modifiedTime_; }
 
     bool isDir(int i) override { return false; }
+    bool dir() override { return false; }
 
     int fileCount() override { return 0; }
     QString fileName(int i) override { return {}; }
@@ -219,7 +230,8 @@ public:
         qDeleteAll(children);
     }
 
-    bool isDir(int i) override { return dynamic_cast<ArchiveDir *>(children[i]) != nullptr; }
+    bool dir() override { return true; }
+    bool isDir(int i) override { return children[i]->dir(); }
 
     int fileCount() override { return children.size(); }
     QString fileName(int i) override { return children[i]->name(); }
@@ -229,25 +241,17 @@ public:
 
     QDateTime fileLastAccessTime(int i) override
     {
-        if (auto f = dynamic_cast<ArchiveFile *>(children[i]))
-            return f->lastAccessTime;
-
-        return {};
+        return children[i]->lastAccessTime();
     }
 
-    QDateTime fileCreationTime(int i) override {
-        if (auto f = dynamic_cast<ArchiveFile *>(children[i]))
-            return f->creationTime;
-
-        return {};
+    QDateTime fileCreationTime(int i) override
+    {
+        return children[i]->creationTime();
     }
 
     QDateTime fileModifiedTime(int i) override
     {
-        if (auto f = dynamic_cast<ArchiveFile *>(children[i]))
-            return f->modifiedTime;
-
-        return {};
+        return children[i]->modifiedTime();
     }
 };
 
@@ -403,13 +407,13 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath, con
             auto file = new ArchiveFile(current, name, baseUrl.withChild(nodepath), size);
 
             if (archive_entry_birthtime_is_set(entry))
-                file->creationTime = QDateTime::fromMSecsSinceEpoch(archive_entry_birthtime(entry));
+                file->creationTime_ = QDateTime::fromMSecsSinceEpoch(archive_entry_birthtime(entry));
 
             if (archive_entry_ctime_is_set(entry))
-                file->modifiedTime = QDateTime::fromMSecsSinceEpoch(archive_entry_ctime(entry));
+                file->modifiedTime_ = QDateTime::fromMSecsSinceEpoch(archive_entry_ctime(entry));
 
             if (archive_entry_atime_is_set(entry))
-                file->lastAccessTime = QDateTime::fromMSecsSinceEpoch(archive_entry_atime(entry));
+                file->lastAccessTime_ = QDateTime::fromMSecsSinceEpoch(archive_entry_atime(entry));
 
             current->children.push_back(file);
             if (!child && (nodepath == childpath))

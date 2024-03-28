@@ -42,6 +42,20 @@ private:
         return nullptr;
     }
 
+    std::unique_ptr<Directory> call(Directory *dir, std::function<std::unique_ptr<Directory>(DirectorySystem *)> functor)
+    {
+        if (auto system = source(dir))
+        {
+            auto r = functor(system);
+            if (!r) return nullptr;
+
+            updatesource(r.get(), system);
+            return r;
+        }
+
+        return nullptr;
+    }
+
     void updatesource(Directory * dir, DirectorySystem *source);
     DirectorySystem *source(Directory *dir);
 

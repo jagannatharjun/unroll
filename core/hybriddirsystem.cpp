@@ -34,38 +34,27 @@ std::unique_ptr<Directory> HybridDirSystem::open(const QUrl &url)
 
 std::unique_ptr<Directory> HybridDirSystem::open(Directory *dir, int child)
 {
-    if (auto system = source(dir))
+    auto try1 = call(dir, [dir, child](DirectorySystem *system)
     {
-        auto r = system->open(dir, child);
+        return system->open(dir, child);
+    });
 
-        if (r)
-        {
-            updatesource(r.get(), system);
-            return r;
-        }
-    }
-
-    return open(dir->fileUrl(child));
+    return try1 ? std::move(try1) : open(dir->fileUrl(child));
 }
 
 std::unique_ptr<Directory> HybridDirSystem::dirParent(Directory *dir)
 {
-    if (auto system = source(dir))
+    auto try1 = call(dir, [dir](DirectorySystem *system)
     {
-        auto r = system->dirParent(dir);
+        return system->dirParent(dir);
+    });
 
-        if (r)
-        {
-            updatesource(r.get(), system);
-            return r;
-        }
-        else
-        {
-            QDir d(dir->path());
-            if (d.cdUp())
-                return open(d.path());
-        }
-    }
+    if (try1)
+        return std::move(try1);
+
+    QDir d(dir->path());
+    if (d.cdUp())
+        return open(d.path());
 
     return nullptr;
 }

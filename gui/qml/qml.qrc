@@ -13,6 +13,7 @@
         <file alias="Player.qml">preview/Player.qml</file>
     </qresource>
     <qresource prefix="/resources">
+        <file alias="archive.svg">resources/archive.svg</file>
         <file alias="play.svg">resources/play.svg</file>
         <file alias="pause.svg">resources/pause.svg</file>
         <file alias="speaker_0.svg">resources/speaker_0.svg</file>

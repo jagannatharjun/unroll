@@ -6,6 +6,7 @@ set(SOURCES
 	iconprovider.hpp iconprovider.cpp
         main.cpp
 	qml/qml.qrc
+	file-browser.rc
 )
 
 

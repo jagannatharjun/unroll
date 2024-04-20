@@ -15,7 +15,7 @@ Container {
         return _pathButtonObject(path.split("/").filter((p) => { return p && p !== "" }))
     }
 
-    property var _displayedPathComponents: []
+    property var _displayedPathComponents: _calcDisplayedPathButtons()
 
     property bool _editMode: false
 
@@ -63,6 +63,12 @@ Container {
                 contentItem.forceActiveFocus(Qt.MouseFocusReason)
             }
         }
+    }
+
+    contentItem: Loader {
+        id: contentLoader
+
+        sourceComponent: root._editMode ? editComponent : pathButtonComponent
     }
 
     component PathButton : Button {
@@ -145,6 +151,7 @@ Container {
         TextInput {
             id: textInput
 
+            text: path
             color: palette.text
             focus: true
             verticalAlignment: TextInput.AlignVCenter
@@ -154,19 +161,6 @@ Container {
                 root._editMode = !root._editMode
             }
         }
-    }
-
-    function _setContentItem() {
-        if (contentItem)
-            delete contentItem
-
-        if (_editMode) {
-            contentItem = editComponent.createObject(null, {"text": path})
-            return
-        }
-
-        _displayedPathComponents = _calcDisplayedPathButtons()
-        contentItem = pathButtonComponent.createObject(null)
     }
 
     function _requestPath(pathIndex) {
@@ -200,18 +194,4 @@ Container {
 
         return r
     }
-
-    onAvailableWidthChanged: {
-        if (_editMode)
-            return
-
-        var p = _calcDisplayedPathButtons()
-        if (p !== _displayedPathComponents)
-            _displayedPathComponents = p
-    }
-
-    on_EditModeChanged: _setContentItem()
-    on_PathcomponentsChanged: _setContentItem()
-
-    Component.onCompleted: _setContentItem()
 }

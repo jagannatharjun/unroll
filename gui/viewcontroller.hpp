@@ -34,7 +34,7 @@ public:
     PreviewData() = default; // construct invalid PreviewData
     PreviewData(std::shared_ptr<IOSource> source, FileType type) : source {source}, m_type {type} {}
 
-    Q_INVOKABLE QString readPath() const { return source->readPath(); }
+    Q_INVOKABLE QString readPath() const { return source ? source->readPath() : QString {}; }
     Q_INVOKABLE QUrl readUrl() const { return QUrl::fromLocalFile(readPath()); }
 
     Q_INVOKABLE FileType fileType() const { return m_type; }

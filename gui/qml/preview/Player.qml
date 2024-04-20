@@ -100,7 +100,7 @@ FocusScope {
 
                 from: 0
                 to: player.duration
-                stepSize: 1000
+                stepSize: 3000 // 3 sec
 
                 focus: true
 

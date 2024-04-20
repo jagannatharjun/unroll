@@ -47,7 +47,7 @@ QImage fileImage(const QString &path, const bool isdir)
 
 
 IconProvider::IconProvider(const QString &id)
-    : QQuickImageProvider(QQuickImageProvider::Image, QQuickImageProvider::ForceAsynchronousImageLoading)
+    : QQuickImageProvider(QQuickImageProvider::Image)
     , m_id {id}
 {
 }

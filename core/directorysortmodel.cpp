@@ -5,7 +5,7 @@
 DirectorySortModel::DirectorySortModel(QObject *parent)
     : QSortFilterProxyModel{parent}
 {
-
+    setFilterCaseSensitivity(Qt::CaseInsensitive);
 }
 
 void DirectorySortModel::sort(int column, Qt::SortOrder order)

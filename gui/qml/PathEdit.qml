@@ -160,6 +160,8 @@ Container {
             Keys.onEscapePressed: {
                 root._editMode = !root._editMode
             }
+
+            onAccepted: root.requestPath(text)
         }
     }
 

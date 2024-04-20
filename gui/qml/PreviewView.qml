@@ -32,6 +32,8 @@ Loader {
         }
     }
 
+    asynchronous: true
+
     Component {
         id: playerComponent
 

@@ -130,7 +130,7 @@ Container {
 
                 delegate: PathButton {
                     Layout.minimumWidth: Math.min(implicitWidth, 32)
-                    Layout.maximumWidth: implicitWidth
+                    Layout.maximumWidth: implicitWidth + 2 // in some cases, Layout seems to elide
                     Layout.fillWidth: true // required for auto resize
 
                     text: modelData.pathText + root._pathButtonSuffix

@@ -172,6 +172,7 @@ ApplicationWindow {
 
                 SplitView.fillWidth: true
                 SplitView.fillHeight: true
+                focus: true
 
                 model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
 
@@ -192,7 +193,6 @@ ApplicationWindow {
                 onActionAtIndex: function (row) {
                     controller.openRow(row)
                 }
-
             }
 
             Pane {
@@ -210,7 +210,15 @@ ApplicationWindow {
                 }
             }
         }
+
+        Keys.onPressed: function (event) {
+            if (event.key === Qt.Key_Z)
+                tableView.forceActiveFocus(Qt.TabFocusReason)
+            else if (event.key === Qt.Key_X)
+                previewView.forceActiveFocus(Qt.TabFocusReason)
+        }
     }
+
 
     // place it over everything so no one can steal it
     MouseArea {

@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtMultimedia
 
-Item {
+FocusScope {
     id: root
 
     required property var previewdata
@@ -77,6 +77,7 @@ Item {
         }
 
         height: 40
+        focus: true
 
         RowLayout {
             anchors.fill: parent
@@ -100,6 +101,8 @@ Item {
                 from: 0
                 to: player.duration
                 stepSize: 1000
+
+                focus: true
 
                 Binding {
                     target: slider
@@ -137,6 +140,7 @@ Item {
                 from: 0
                 to: 100
                 stepSize: 1
+                focus: true
                 value: audioOutput.volume * to
 
                 Layout.preferredWidth: 50

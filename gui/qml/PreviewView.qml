@@ -38,6 +38,8 @@ Loader {
         id: playerComponent
 
         Preview.Player {
+            focus: true
+
             previewdata: root.previewdata
 
             // TODO: track preferences value

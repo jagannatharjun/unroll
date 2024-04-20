@@ -37,10 +37,14 @@ QImage fileImage(const QString &path, const bool isdir)
     };
 
     const auto result = CoInitialize(NULL);
-    assert(result != RPC_E_CHANGED_MODE);
+    if (result == RPC_E_CHANGED_MODE) {
+        qWarning("CoInitialize RPC_E_CHANGED_MODE");
+        return {};
+    }
 
     const auto image = getImage();
-    CoUninitialize();
+    if (result == S_OK)
+        CoUninitialize();
 
     return image;
 }

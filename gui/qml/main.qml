@@ -216,6 +216,8 @@ ApplicationWindow {
                 tableView.forceActiveFocus(Qt.TabFocusReason)
             else if (event.key === Qt.Key_X)
                 previewView.forceActiveFocus(Qt.TabFocusReason)
+            else if (event.key === Qt.Key_Refresh || event.key === Qt.Key_F5)
+                controller.refresh()
         }
     }
 

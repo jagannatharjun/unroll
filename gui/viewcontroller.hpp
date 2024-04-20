@@ -64,6 +64,7 @@ public:
     QString url() const;
     QString path() const;
 
+    Q_INVOKABLE void refresh();
 
 public slots:
     void openUrl(const QUrl &url);

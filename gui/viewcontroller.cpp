@@ -48,6 +48,12 @@ QString ViewController::path() const
     return m_dirModel->directory() ? m_dirModel->directory()->path() : QString {};
 }
 
+void ViewController::refresh()
+{
+    if (m_dirModel->directory())
+        openUrl(m_dirModel->directory()->url());
+}
+
 void ViewController::openUrl(const QUrl &url)
 {
     const auto open = [](

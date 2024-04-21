@@ -212,9 +212,9 @@ ApplicationWindow {
         }
 
         Keys.onPressed: function (event) {
-            if (event.key === Qt.Key_Z)
+            if (event.key === Qt.Key_Z || event.key === Qt.Key_N)
                 tableView.forceActiveFocus(Qt.TabFocusReason)
-            else if (event.key === Qt.Key_X)
+            else if (event.key === Qt.Key_X || event.key === Qt.Key_M)
                 previewView.forceActiveFocus(Qt.TabFocusReason)
             else if (event.key === Qt.Key_Refresh || event.key === Qt.Key_F5)
                 controller.refresh()

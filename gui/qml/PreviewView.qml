@@ -12,11 +12,6 @@ Loader {
 
     asynchronous: true
 
-    onItemChanged: {
-        if (!!item)
-            item.previewCompleted.connect(root.previewCompleted)
-    }
-
     onPreviewdataChanged:  {
         const fileType = previewdata.fileType()
         root.active = (fileType !== PreviewData.Unknown)
@@ -56,6 +51,8 @@ Loader {
             onVolumeChanged: {
                 Preferences.volume = volume
             }
+
+            onPreviewCompleted: root.previewCompleted()
         }
     }
 
@@ -64,6 +61,8 @@ Loader {
 
         Preview.ImagePreview {
             previewdata: root.previewdata
+
+            onPreviewCompleted: root.previewCompleted()
         }
     }
 }

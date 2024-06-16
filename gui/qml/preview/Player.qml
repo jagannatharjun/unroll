@@ -56,6 +56,10 @@ FocusScope {
         }
 
         loops: MediaPlayer.Infinite
+
+        onPlayingChanged: print("resolution", metaData.keys().map(
+                                    (index) => [metaData.metaDataKeyToString(index), metaData.stringValue(index)]))
+
     }
 
     VideoOutput {

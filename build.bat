@@ -8,6 +8,7 @@ echo ON
 
 mkdir build
 cd build
+del CMakeCache.txt
 
 cmake -G Ninja "-DCMAKE_PREFIX_PATH=%QTDIR%;%LIBARCHIVE%" %SRC%
 

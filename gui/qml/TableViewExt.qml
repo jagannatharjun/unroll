@@ -215,7 +215,7 @@ Pane {
 
             highlighted: selected || current
 
-            opacity: model.seen ? .6 : 1
+            opacity: model.seen && !highlighted ? .6 : 1
 
             onClicked: {
                 forceActiveFocus(Qt.MouseFocusReason)

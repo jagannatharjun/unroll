@@ -12,7 +12,7 @@ Item {
     Timer {
         id: previewTimer
 
-        interval: 5000
+        interval: 500
 
         onTriggered: {
             if (image.currentFrame === image.frameCount || image.frameCount === 1)

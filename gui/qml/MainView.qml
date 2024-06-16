@@ -16,6 +16,8 @@ SplitView {
 
     signal actionAtIndex(int row, int column)
 
+    signal previewCompleted
+
     Component.onCompleted: {
         splitView.restoreState(Preferences.mainSplitviewState())
     }
@@ -53,6 +55,8 @@ SplitView {
             id: previewView
 
             anchors.fill: parent
+
+            onPreviewCompleted: splitView.previewCompleted()
         }
     }
 

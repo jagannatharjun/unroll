@@ -21,6 +21,8 @@ ApplicationWindow {
 
     property var previewdata: controller.invalidPreviewData()
 
+    property bool _previewCompleted: false
+
     Component.onCompleted: FileBrowser.window = root
     Component.onDestruction: FileBrowser.window = null
 
@@ -44,10 +46,10 @@ ApplicationWindow {
             // reset current preview
             previewRow = -1
             root.previewdata = controller.invalidPreviewData()
+            _previewCompleted = false
 
             var index = controller.model.index(row, column)
             selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect)
-
         }
     }
 
@@ -60,7 +62,11 @@ ApplicationWindow {
             }
 
             history.updateCurrentIndex(current.row, current.column)
-            controller.model.setData(previous, true, 262)
+
+            if (root._previewCompleted)
+                controller.model.setData(previous, true, 262)
+
+            root._previewCompleted = false
         }
     }
 
@@ -167,6 +173,8 @@ ApplicationWindow {
             selectionModel: selectionModel
 
             onActionAtIndex: (row) => controller.openRow(row)
+
+            onPreviewCompleted: root._previewCompleted = true
 
             Keys.onPressed: function (event) {
                 if (event.key === Qt.Key_Refresh || event.key === Qt.Key_F5) {

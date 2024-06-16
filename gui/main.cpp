@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QAbstractItemModel>
 
+#include "../core/directorysystemmodel.hpp"
 #include "filebrowser.hpp"
 #include "viewcontroller.hpp"
 #include "historycontroller.hpp"
@@ -18,6 +19,7 @@ int main(int argc, char *argv[])
     QQuickStyle::setStyle("Fusion");
 
     qRegisterMetaType<QAbstractItemModel *>();
+    qmlRegisterType<DirectorySystemModel>("filebrowser", 0, 1, "DirectorySystemModel");
     qmlRegisterType<ViewController>("filebrowser", 0, 1, "ViewController");
     qmlRegisterType<HistoryController>("filebrowser", 0, 1, "HistoryController");
     qmlRegisterType<PreviewData>("filebrowser", 0, 1, "PreviewData");

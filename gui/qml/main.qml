@@ -64,7 +64,7 @@ ApplicationWindow {
             history.updateCurrentIndex(current.row, current.column)
 
             if (root._previewCompleted)
-                controller.model.setData(previous, true, 262)
+                controller.model.setData(previous, true, DirectorySystemModel.SeenRole)
 
             root._previewCompleted = false
         }

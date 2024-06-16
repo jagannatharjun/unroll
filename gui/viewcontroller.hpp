@@ -66,6 +66,8 @@ public:
 
     Q_INVOKABLE void refresh();
 
+    Q_INVOKABLE PreviewData invalidPreviewData();
+
 public slots:
     void openUrl(const QUrl &url);
     void openPath(const QString &path);

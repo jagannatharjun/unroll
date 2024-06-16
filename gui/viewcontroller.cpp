@@ -54,6 +54,11 @@ void ViewController::refresh()
         openUrl(m_dirModel->directory()->url());
 }
 
+PreviewData ViewController::invalidPreviewData()
+{
+    return PreviewData();
+}
+
 void ViewController::openUrl(const QUrl &url)
 {
     const auto open = [](

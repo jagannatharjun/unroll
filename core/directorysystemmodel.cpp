@@ -1,6 +1,7 @@
 #include "directorysystemmodel.hpp"
 
 #include "directorysystem.hpp"
+#include "filehistorydb.hpp"
 
 #include <QTextStream>
 #include <QDir>
@@ -132,9 +133,45 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
         return m_dir->fileSize(r);
     case IsDirRole:
         return m_dir->isDir(r);
+    case SeenRole:
+        return getSeen(QPersistentModelIndex(index), m_dir->filePath(r));
+    case ProgressRole:
+        return getProgress(QPersistentModelIndex(index), m_dir->filePath(r));
     }
 
     return {};
+}
+
+bool DirectorySystemModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (!m_historyDB || !checkIndex(index, QAbstractItemModel::CheckIndexOption::IndexIsValid))
+        return false;
+
+    const int r = index.row();
+    if (m_dir->isDir(r))
+        return false;
+
+    if (role == SeenRole)
+    {
+        if (value.metaType() != QMetaType(QMetaType::Bool))
+            return false;
+
+        m_historyDB->setIsSeen(m_dir->filePath(r), value.toBool());
+        m_data[m_dir->filePath(r)].seen = value.toBool();
+        emit dataChanged(index, this->index(index.row(), ColumnCount - 1), {SeenRole});
+
+    } else if (role == ProgressRole) {
+        bool ok = false;
+        const double progress = value.toDouble(&ok);
+        if (!ok)
+            return false;
+
+        m_historyDB->setProgress(m_dir->filePath(r), progress);
+        m_data[m_dir->filePath(r)].progress = progress;
+        emit dataChanged(index, this->index(index.row(), ColumnCount - 1), {ProgressRole});
+    }
+
+    return false;
 }
 
 QVariant DirectorySystemModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -169,8 +206,64 @@ QHash<int, QByteArray> DirectorySystemModel::roleNames() const
         {PathRole, "path"},
         {SizeRole, "size"},
         {IsDirRole, "isdir"},
-        {IconIDRole, "iconId"}
+        {IconIDRole, "iconId"},
+        {SeenRole, "seen"},
+        {ProgressRole, "progress"}
     };
+}
+
+std::shared_ptr<FileHistoryDB> DirectorySystemModel::fileHistoryDB() const
+{
+    return m_historyDB;
+}
+
+void DirectorySystemModel::setFileHistoryDB(const std::shared_ptr<FileHistoryDB> &newHistoryDB)
+{
+    m_historyDB = newHistoryDB;
+}
+
+bool DirectorySystemModel::getSeen(const QPersistentModelIndex &idx, const QString &mrl) const
+{
+    if (!m_historyDB)
+        return false;
+
+    auto itr = m_data.find(mrl);
+    if (itr == m_data.end() || !itr->seen)
+    {
+        m_historyDB->isSeen(mrl).then(const_cast<DirectorySystemModel *>(this)
+                                      , [this, idx, mrl](bool seen) mutable
+        {
+            if (!idx.isValid())
+                return;
+
+            m_data[mrl].seen = seen;
+            emit const_cast<DirectorySystemModel *>(this)->dataChanged(idx, index(idx.row(), ColumnCount - 1), {SeenRole});
+        });
+    }
+
+    return itr != m_data.end() ? itr->seen.value() : false;
+}
+
+double DirectorySystemModel::getProgress(const QPersistentModelIndex &idx, const QString &mrl) const
+{
+    if (!m_historyDB)
+        return -1;
+
+    auto itr = m_data.find(mrl);
+    if (itr == m_data.end() || !itr->seen)
+    {
+        m_historyDB->progress(mrl).then(const_cast<DirectorySystemModel *>(this)
+                                        , [this, idx, mrl](double progress) mutable
+        {
+            if (!idx.isValid())
+                return;
+
+            m_data[mrl].progress = progress;
+            emit const_cast<DirectorySystemModel *>(this)->dataChanged(idx, index(idx.row(), ColumnCount - 1), {ProgressRole});
+        });
+    }
+
+    return itr != m_data.end() ? itr->progress.value() : -1;
 }
 
 void DirectorySystemModel::setIconProvider(const IconProviderFunctor &newIconProvider)

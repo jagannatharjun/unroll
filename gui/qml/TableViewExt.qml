@@ -200,6 +200,8 @@ Pane {
             required property bool selected
             required property bool current
 
+
+
             text: model.display
 
             icon.cache: true
@@ -212,6 +214,8 @@ Pane {
             focus: true
 
             highlighted: selected || current
+
+            opacity: model.seen ? .6 : 1
 
             onClicked: {
                 forceActiveFocus(Qt.MouseFocusReason)

@@ -1,6 +1,7 @@
 #ifndef FILEBROWSER_HPP
 #define FILEBROWSER_HPP
 
+#include <QDir>
 #include <QObject>
 #include <QWindow>
 
@@ -18,6 +19,9 @@ public:
     Q_INVOKABLE void setCursor(Qt::CursorShape cursorShape);
 
     Q_INVOKABLE QString volumeName(const QString &path) const;
+
+    QDir cacheDir() const;
+    QString fileHistoryDBPath() const;
 
 signals:
     void windowChanged();

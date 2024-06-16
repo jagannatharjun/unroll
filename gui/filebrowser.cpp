@@ -2,6 +2,7 @@
 
 #include <QWindow>
 #include <QStorageInfo>
+#include <QStandardPaths>
 
 FileBrowser::FileBrowser(QObject *parent)
     : QObject{parent}
@@ -38,3 +39,17 @@ QString FileBrowser::volumeName(const QString &path) const
 {
     return QStorageInfo(path).name();
 }
+
+QDir FileBrowser::cacheDir() const
+{
+    QDir d(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    if (!d.exists())
+        d.mkdir(".");
+    return d;
+}
+
+QString FileBrowser::fileHistoryDBPath() const
+{
+    return cacheDir().absoluteFilePath("filehistory.db");
+}
+

@@ -5,6 +5,7 @@
 #include <memory>
 
 class Directory;
+class FileHistoryDB;
 
 class DirectorySystemModel : public QAbstractTableModel
 {
@@ -17,6 +18,8 @@ public:
         SizeRole,
         IsDirRole,
         IconIDRole,
+        SeenRole,
+        ProgressRole,
 
         // Meta Roles
         DataRole
@@ -52,13 +55,29 @@ public:
     int columnCount(const QModelIndex &parent) const;
 
     QVariant data(const QModelIndex &index, int role) const;
+    bool setData(const QModelIndex &index, const QVariant &value, int role);
+
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
     QHash<int, QByteArray> roleNames() const;
 
+    std::shared_ptr<FileHistoryDB> fileHistoryDB() const;
+    void setFileHistoryDB(const std::shared_ptr<FileHistoryDB> &newHistoryDB);
+
 private:
+    struct DataDB
+    {
+        std::optional<bool> seen;
+        std::optional<double> progress;
+    };
+
+    bool getSeen(const QPersistentModelIndex &idx, const QString &mrl) const;
+    double getProgress(const QPersistentModelIndex &idx, const QString &mrl) const;
+
     std::shared_ptr<Directory> m_dir;
     IconProviderFunctor m_iconProvider;
 
+    mutable std::shared_ptr<FileHistoryDB> m_historyDB;
+    mutable QHash<QString, DataDB> m_data;
 };
 
 #endif // DIRECTORYSYSTEMMODEL_HPP

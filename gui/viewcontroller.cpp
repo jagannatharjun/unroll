@@ -4,6 +4,7 @@
 #include "../core/directorysystemmodel.hpp"
 #include "../core/directorysortmodel.hpp"
 #include "../core/hybriddirsystem.hpp"
+#include "../core/filehistorydb.hpp"
 
 #include <QtConcurrent/QtConcurrent>
 #include <QMimeData>
@@ -225,3 +226,20 @@ void ViewController::updatePreview()
     }
 }
 
+
+FileBrowser *ViewController::fileBrowser() const
+{
+    return m_fileBrowser;
+}
+
+void ViewController::setFileBrowser(FileBrowser *newFileBrowser)
+{
+    if (m_fileBrowser == newFileBrowser)
+        return;
+
+    m_fileBrowser = newFileBrowser;
+    emit fileBrowserChanged();
+
+    m_historyDB.reset( new FileHistoryDB(m_fileBrowser->fileHistoryDBPath()) );
+    m_dirModel->setFileHistoryDB(m_historyDB);
+}

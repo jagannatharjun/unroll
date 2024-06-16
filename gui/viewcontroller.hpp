@@ -12,10 +12,12 @@
 
 #include "../core/directorysystem.hpp"
 #include "iconprovider.hpp"
+#include "filebrowser.hpp"
 
 class QAbstractItemModel;
 class DirectorySystemModel;
 class DirectorySortModel;
+class FileHistoryDB;
 
 class PreviewData
 {
@@ -55,6 +57,8 @@ class ViewController : public QObject
     Q_PROPERTY(QString url READ url NOTIFY urlChanged)
     Q_PROPERTY(QString path READ path NOTIFY urlChanged)
 
+    Q_PROPERTY(FileBrowser *fileBrowser READ fileBrowser WRITE setFileBrowser NOTIFY fileBrowserChanged)
+
 public:
     ViewController(QObject *parent = nullptr);
     ~ViewController();
@@ -68,6 +72,9 @@ public:
 
     Q_INVOKABLE PreviewData invalidPreviewData();
 
+    FileBrowser *fileBrowser() const;
+    void setFileBrowser(FileBrowser *newFileBrowser);
+
 public slots:
     void openUrl(const QUrl &url);
     void openPath(const QString &path);
@@ -77,6 +84,8 @@ public slots:
 signals:
     void urlChanged();
     void showPreview(PreviewData data);
+
+    void fileBrowserChanged();
 
 private slots:
     void updateModel();
@@ -104,6 +113,9 @@ private:
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;
 
     QFutureWatcher<PreviewData> m_previewWatcher;
+
+    std::shared_ptr<FileHistoryDB> m_historyDB;
+    FileBrowser *m_fileBrowser = nullptr;
 };
 
 

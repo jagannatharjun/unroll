@@ -27,6 +27,8 @@ ApplicationWindow {
     ViewController {
         id: controller
 
+        fileBrowser: FileBrowser
+
         onShowPreview: (data) => root.previewdata = data
 
         Component.onCompleted:
@@ -51,13 +53,14 @@ ApplicationWindow {
 
     ItemSelectionModel {
         id: selectionModel
-        onCurrentChanged: {
-            if (root.previewRow === -1 || root.previewRow !== currentIndex.row) {
-                controller.setPreview(currentIndex.row)
-                root.previewRow = currentIndex.row
+        onCurrentChanged: function (current, previous) {
+            if (root.previewRow === -1 || root.previewRow !== current.row) {
+                controller.setPreview(current.row)
+                root.previewRow = current.row
             }
 
-            history.updateCurrentIndex(currentIndex.row, currentIndex.column)
+            history.updateCurrentIndex(current.row, current.column)
+            controller.model.setData(previous, true, 262)
         }
     }
 

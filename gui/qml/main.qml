@@ -152,12 +152,17 @@ ApplicationWindow {
         }
 
         SplitView {
+            id: splitView
+
             Layout.fillWidth: true
             Layout.fillHeight: true
 
             focus: true
 
             z : 1
+
+            Component.onCompleted: splitView.restoreState(Preferences.mainSplitviewState())
+            Component.onDestruction: Preferences.setMainSplitViewState(splitView.saveState())
 
             handle: Rectangle {
                 implicitWidth: 4

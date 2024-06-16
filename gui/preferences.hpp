@@ -55,6 +55,9 @@ public:
     qreal volume() const;
     void setVolume(qreal newVolume);
 
+    Q_INVOKABLE QByteArray mainSplitviewState();
+    Q_INVOKABLE void setMainSplitViewState(const QByteArray &data);
+
 signals:
 
     void volumeMutedChanged();
@@ -65,5 +68,6 @@ private:
     QSettings m_setting;
     SettingEntry<bool> m_volumeMuted;
     SettingEntry<qreal> m_volume;
+    SettingEntry<QByteArray> m_mainSplitViewState;
 };
 

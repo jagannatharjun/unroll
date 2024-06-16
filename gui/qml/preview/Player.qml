@@ -110,7 +110,7 @@ FocusScope {
 
                 from: 0
                 to: player.duration
-                stepSize: 3000 // 3 sec
+                stepSize: 5000 // 5 sec
 
                 focus: true
 
@@ -124,6 +124,21 @@ FocusScope {
                 onValueChanged: {
                     if (player.position !== slider.value)
                         player.position = slider.value
+                }
+
+                Keys.onPressed: function (event) {
+                    let jump = 0
+                    if (event.key === Qt.Key_Left) {
+                        jump = slider.stepSize
+                    } else if (event.key === Qt.Key_Right) {
+                        jump = - slider.stepSize
+                    }
+
+                    if (jump !== 0 && (event.modifiers & Qt.ShiftModifier)) {
+                        jump *= 2
+                    }
+
+                    value += jump
                 }
             }
 

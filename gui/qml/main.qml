@@ -80,6 +80,7 @@ ApplicationWindow {
 
         onAccepted: {
             controller.openUrl(folderDialog.selectedFolder)
+            Preferences.pushRecentUrl(folderDialog.selectedFolder)
         }
     }
 
@@ -96,7 +97,8 @@ ApplicationWindow {
     menuBar: AppMenuBar {
         enableBack: history.canMoveBack
 
-        onOpenFolder: folderDialog.open()
+        onBrowseFolder: folderDialog.open()
+        onOpenUrl: url => controller.openUrl(url)
         onBack: history.pop()
         onAppExit: root.close()
     }

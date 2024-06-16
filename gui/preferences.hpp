@@ -45,6 +45,7 @@ class Preferences : public QObject
     Q_OBJECT
     Q_PROPERTY(bool volumeMuted READ volumeMuted WRITE setVolumeMuted NOTIFY volumeMutedChanged FINAL)
     Q_PROPERTY(qreal volume READ volume WRITE setVolume NOTIFY volumeChanged FINAL)
+    Q_PROPERTY(QStringList recentUrls READ recentUrls NOTIFY recentUrlsChanged FINAL)
 
 public:
     explicit Preferences(QObject *parent = nullptr);
@@ -58,16 +59,22 @@ public:
     Q_INVOKABLE QByteArray mainSplitviewState();
     Q_INVOKABLE void setMainSplitViewState(const QByteArray &data);
 
+    QStringList recentUrls() const;
+    Q_INVOKABLE void pushRecentUrl(const QString &path);
+
 signals:
 
     void volumeMutedChanged();
 
     void volumeChanged();
 
+    void recentUrlsChanged();
+
 private:
     QSettings m_setting;
     SettingEntry<bool> m_volumeMuted;
     SettingEntry<qreal> m_volume;
     SettingEntry<QByteArray> m_mainSplitViewState;
+    SettingEntry<QStringList> m_recentUrls;
 };
 

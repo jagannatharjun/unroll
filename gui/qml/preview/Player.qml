@@ -11,6 +11,8 @@ FocusScope {
     property alias muted: audioOutput.muted
     property alias volume: audioOutput.volume
 
+    signal previewCompleted()
+
     focus: true
 
     function toogleState() {
@@ -60,6 +62,10 @@ FocusScope {
         onPlayingChanged: print("resolution", metaData.keys().map(
                                     (index) => [metaData.metaDataKeyToString(index), metaData.stringValue(index)]))
 
+        onPositionChanged: {
+            if (player.position === player.duration)
+                root.previewCompleted()
+        }
     }
 
     VideoOutput {

@@ -8,9 +8,18 @@ Loader {
 
     property PreviewData previewdata
 
+    signal previewCompleted()
+
+    asynchronous: true
+
+    onItemChanged: {
+        if (!!item)
+            item.previewCompleted.connect(root.previewCompleted)
+    }
+
     onPreviewdataChanged:  {
         const fileType = previewdata.fileType()
-        active = (fileType !== PreviewData.Unknown)
+        root.active = (fileType !== PreviewData.Unknown)
 
         // reset state otherwise Player will crash with invalid inputs
         sourceComponent = undefined
@@ -19,20 +28,13 @@ Loader {
             return
 
         if (fileType === PreviewData.ImageFile) {
-
-            setSource("qrc:/preview/ImagePreview.qml"
-                      , {
-                          "previewdata": previewdata
-                      })
-
+            sourceComponent = imageComponent
         } else if ((fileType === PreviewData.VideoFile)
                    || (fileType === PreviewData.AudioFile)) {
 
             sourceComponent = playerComponent
         }
     }
-
-    asynchronous: true
 
     Component {
         id: playerComponent
@@ -54,6 +56,14 @@ Loader {
             onVolumeChanged: {
                 Preferences.volume = volume
             }
+        }
+    }
+
+    Component {
+        id: imageComponent
+
+        Preview.ImagePreview {
+            previewdata: root.previewdata
         }
     }
 }

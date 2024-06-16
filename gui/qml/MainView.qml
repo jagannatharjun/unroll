@@ -14,6 +14,10 @@ SplitView {
 
     property alias previewdata: previewView.previewdata
 
+    property alias previewProgress: previewView.progress
+
+    property var progress
+
     signal actionAtIndex(int row, int column)
 
     signal previewCompleted

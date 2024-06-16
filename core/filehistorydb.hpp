@@ -19,7 +19,7 @@ public:
     void setIsSeen(const QString &mrl, const bool seen);
 
     QFuture<double> progress(const QString &mrl);
-    void setProgress(const QString &mrl, const float progress);
+    void setProgress(const QString &mrl, const double progress);
 
 private:
     QThread m_workerThread;

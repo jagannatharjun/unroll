@@ -34,17 +34,23 @@ public:
     Q_ENUM(FileType)
 
     PreviewData() = default; // construct invalid PreviewData
-    PreviewData(std::shared_ptr<IOSource> source, FileType type) : source {source}, m_type {type} {}
+    PreviewData(std::shared_ptr<IOSource> source, FileType type, double progress)
+        : source {source}
+        , m_progress {progress}
+        , m_type {type} {}
 
     Q_INVOKABLE QString readPath() const { return source ? source->readPath() : QString {}; }
     Q_INVOKABLE QUrl readUrl() const { return QUrl::fromLocalFile(readPath()); }
 
     Q_INVOKABLE FileType fileType() const { return m_type; }
 
+    Q_INVOKABLE double progress() const { return m_progress; }
+
     bool valid() const { return !!source; }
 
 private:
     std::shared_ptr<IOSource> source;
+    double m_progress = 0;
     FileType m_type;
 };
 

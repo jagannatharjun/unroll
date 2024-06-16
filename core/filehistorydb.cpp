@@ -143,13 +143,12 @@ QFuture<double> FileHistoryDB::progress(const QString &mrl)
     return invokeWorker<double>(m_worker, &FileHistoryDBWorker::progress, mrl);
 }
 
-void FileHistoryDB::setProgress(const QString &mrl, const float progress)
+void FileHistoryDB::setProgress(const QString &mrl, const double progress)
 {
     bool s = QMetaObject::invokeMethod(m_worker, "setProgress"
                               , Q_ARG(QString, mrl)
-                              , Q_ARG(float, progress));
+                              , Q_ARG(double, progress));
     assert(s);
-
 }
 
 void FileHistoryDBWorker::open(const QString &db)
@@ -166,7 +165,7 @@ void FileHistoryDBWorker::open(const QString &db)
     QSqlQuery q("CREATE TABLE IF NOT EXISTS files ("
                 "   MRL TEXT PRIMARY KEY,"
                 "   SEEN BOOL,"
-                "   PROGRESS DECIMAL(0, 5)"
+                "   PROGRESS DECIMAL"
                 ")", *m_db);
 
     if (!q.exec())

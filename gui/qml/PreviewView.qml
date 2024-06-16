@@ -8,6 +8,8 @@ Loader {
 
     property PreviewData previewdata
 
+    property var progress: item?.progress ?? null
+
     signal previewCompleted()
 
     asynchronous: true

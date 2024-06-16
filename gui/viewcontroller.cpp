@@ -110,17 +110,18 @@ void ViewController::openRow(const int row)
 
 void ViewController::setPreview(int row)
 {
-    const auto getPreviewData = [](
+    const auto getPreviewData = [db = m_historyDB](
             std::shared_ptr<DirectorySystem> system,
             std::shared_ptr<Directory> dir,
             int child) -> PreviewData
     {
         if (dir->isDir(child))
-            return {nullptr, PreviewData::Unknown};
+            return {nullptr, PreviewData::Unknown, 0};
 
         // some directory system may have custom urls, so you can't directly use fileUrl here
         const QString path = dir->filePath(child);
         const auto mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(path)).name();
+        auto progressFuture = db->progress(path);
 
         PreviewData::FileType filetype = PreviewData::Unknown;
         const auto types =
@@ -149,10 +150,13 @@ void ViewController::setPreview(int row)
         if (!io)
         {
             qDebug("failed to get iosource '%s'", qUtf8Printable(dir->fileUrl(child).toString()));
-            return {nullptr, PreviewData::Unknown};
+            return {nullptr, PreviewData::Unknown, 1};
         }
 
-        return PreviewData(std::move(io), filetype);
+        progressFuture.waitForFinished();
+        const double progress = progressFuture.isValid() ? progressFuture.result() : 0;
+
+        return PreviewData(std::move(io), filetype, progress);
     };
 
 
@@ -169,7 +173,7 @@ void ViewController::setPreview(int row)
     }
     else
     {
-        emit showPreview({nullptr, PreviewData::Unknown});
+        emit showPreview({});
     }
 }
 

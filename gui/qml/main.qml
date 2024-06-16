@@ -56,15 +56,20 @@ ApplicationWindow {
     ItemSelectionModel {
         id: selectionModel
         onCurrentChanged: function (current, previous) {
+            if (root._previewCompleted)
+                controller.model.setData(previous, true, DirectorySystemModel.SeenRole)
+
             if (root.previewRow === -1 || root.previewRow !== current.row) {
+                const previewProgress = mainView?.previewProgress()
+                if (!!previewProgress) {
+                    controller.model.setData(previous, previewProgress, DirectorySystemModel.ProgressRole)
+                }
+
                 controller.setPreview(current.row)
                 root.previewRow = current.row
             }
 
             history.updateCurrentIndex(current.row, current.column)
-
-            if (root._previewCompleted)
-                controller.model.setData(previous, true, DirectorySystemModel.SeenRole)
 
             root._previewCompleted = false
         }
@@ -157,6 +162,8 @@ ApplicationWindow {
         }
 
         MainView {
+            id: mainView
+
             Layout.fillWidth: true
             Layout.fillHeight: true
 

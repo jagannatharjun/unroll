@@ -11,7 +11,29 @@ FocusScope {
     property alias muted: audioOutput.muted
     property alias volume: audioOutput.volume
 
+    property bool _progressRestored: false
+
     signal previewCompleted()
+
+    function progress() {
+        return player.position
+    }
+
+    function _restoreProgress() {
+        if (_progressRestored)
+            return;
+
+        const previewProgress = (previewdata?.progress() ?? 0)
+        player.position = previewProgress
+
+        _progressRestored = true
+    }
+
+    onPreviewdataChanged: {
+        _progressRestored = false
+
+        player.source = previewdata.readUrl()
+    }
 
     focus: true
 
@@ -65,6 +87,11 @@ FocusScope {
         onPositionChanged: {
             if (player.position === player.duration)
                 root.previewCompleted()
+        }
+
+        onDurationChanged: {
+            // player seems to need some time to correctly handle position change here
+            Qt.callLater(root._restoreProgress)
         }
     }
 

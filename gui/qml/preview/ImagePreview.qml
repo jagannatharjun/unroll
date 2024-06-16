@@ -9,19 +9,6 @@ Item {
 
     clip: true
 
-    Timer {
-        id: previewTimer
-
-        interval: 500
-
-        onTriggered: {
-            if (image.currentFrame === image.frameCount || image.frameCount === 1)
-                root.previewCompleted()
-        }
-    }
-
-    onPreviewdataChanged: previewTimer.restart()
-
     AnimatedImage {
         id: image
 
@@ -49,12 +36,12 @@ Item {
         }
 
         onCurrentFrameChanged: {
-            if (currentFrame == frameCount && !previewTimer.running)
+            if (currentFrame == frameCount)
                 root.previewCompleted()
         }
 
         onStatusChanged: {
-            if (status == Image.Ready)
+            if (status == Image.Ready && frameCount <= 1)
                 root.previewCompleted()
         }
     }

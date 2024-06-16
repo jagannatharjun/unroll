@@ -178,7 +178,9 @@ Pane {
 
         reuseItems: true
 
-        selectionBehavior: TableView.SelectRows
+        selectionBehavior: TableView.SelectCells
+
+        selectionMode: TableView.SingleSelection
 
         // resizableColumns: true // this doesn't work correctly if delegate is ItemDelegate
         columnWidthProvider: function (column) {
@@ -213,7 +215,7 @@ Pane {
 
             focus: true
 
-            highlighted: selected || current
+            highlighted: selected || current || row == view.selectionModel.currentIndex.row
 
             opacity: model.seen && !highlighted ? .6 : 1
 

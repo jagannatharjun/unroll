@@ -74,7 +74,7 @@ void HistoryController::urlUpdated()
     auto model = m_view->model();
     const auto index = model->index(top.row, top.col);
 
-    if (!model->checkIndex(index))
+    if (!model->checkIndex(index, QAbstractItemModel::CheckIndexOption::IndexIsValid))
     {
         emit resetFocus(0, 0);
     }

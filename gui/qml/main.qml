@@ -62,9 +62,13 @@ ApplicationWindow {
             }
         }
 
-        onCurrentChanged: function (current, previous) {
+        function updateSeen(idx) {
             if (root._previewCompleted)
-                controller.model.setData(previous, true, DirectorySystemModel.SeenRole)
+                controller.model.setData(idx, true, DirectorySystemModel.SeenRole)
+        }
+
+        onCurrentChanged: function (current, previous) {
+            updateSeen(previous)
 
             if (root.previewRow === -1 || root.previewRow !== current.row) {
                 updateProgress(previous)
@@ -78,7 +82,11 @@ ApplicationWindow {
             root._previewCompleted = false
         }
 
-        Component.onDestruction: updateProgress(selectionModel.currentIndex)
+        Component.onDestruction: {
+            const idx = selectionModel.currentIndex
+            updateProgress(idx)
+            updateSeen(idx)
+        }
     }
 
     FolderDialog {

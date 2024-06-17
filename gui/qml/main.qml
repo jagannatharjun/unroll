@@ -54,15 +54,20 @@ ApplicationWindow {
 
     ItemSelectionModel {
         id: selectionModel
+
+        function updateProgress(idx) {
+            const previewProgress = mainView?.previewProgress()
+            if (!!previewProgress) {
+                controller.model.setData(idx, previewProgress, DirectorySystemModel.ProgressRole)
+            }
+        }
+
         onCurrentChanged: function (current, previous) {
             if (root._previewCompleted)
                 controller.model.setData(previous, true, DirectorySystemModel.SeenRole)
 
             if (root.previewRow === -1 || root.previewRow !== current.row) {
-                const previewProgress = mainView?.previewProgress()
-                if (!!previewProgress) {
-                    controller.model.setData(previous, previewProgress, DirectorySystemModel.ProgressRole)
-                }
+                updateProgress(previous)
 
                 controller.setPreview(current.row)
                 root.previewRow = current.row
@@ -72,6 +77,8 @@ ApplicationWindow {
 
             root._previewCompleted = false
         }
+
+        Component.onDestruction: updateProgress(selectionModel.currentIndex)
     }
 
     FolderDialog {

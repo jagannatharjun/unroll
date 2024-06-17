@@ -26,6 +26,11 @@ ApplicationWindow {
     Component.onCompleted: FileBrowser.window = root
     Component.onDestruction: FileBrowser.window = null
 
+    function back() {
+        // history.pop()
+        controller.openParentPath()
+    }
+
     ViewController {
         id: controller
 
@@ -105,7 +110,7 @@ ApplicationWindow {
 
     Shortcut {
         sequences: [StandardKey.Back, StandardKey.Backspace]
-        onActivated: history.pop()
+        onActivated: root.back()
     }
 
     menuBar: AppMenuBar {
@@ -113,7 +118,7 @@ ApplicationWindow {
 
         onBrowseFolder: folderDialog.open()
         onOpenUrl: url => controller.openUrl(url)
-        onBack: history.pop()
+        onBack: root.back()
         onAppExit: root.close()
     }
 

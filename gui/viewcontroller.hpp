@@ -85,6 +85,8 @@ public slots:
     void openUrl(const QUrl &url);
     void openPath(const QString &path);
     void openRow(const int row);
+    void openParentPath();
+
     void setPreview(int row);
 
 signals:

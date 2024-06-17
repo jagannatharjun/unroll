@@ -6,8 +6,11 @@
 #include "../core/hybriddirsystem.hpp"
 #include "../core/filehistorydb.hpp"
 
+#include <filesystem>
+
 #include <QtConcurrent/QtConcurrent>
 #include <QMimeData>
+#include <QDir>
 
 static const QString ICON_PROVIDER_ID = "fileicon";
 
@@ -106,6 +109,16 @@ void ViewController::openRow(const int row)
     {
         m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, parent, directoryRow));
     }
+}
+
+void ViewController::openParentPath()
+{
+    // QDir::cdUp doesn't work for non existent files
+    std::filesystem::path p = path().toStdWString();
+    p /= "..";
+    p = std::filesystem::absolute(p);
+
+    openPath(QString::fromStdString(p.generic_string()));
 }
 
 void ViewController::setPreview(int row)

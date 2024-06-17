@@ -49,6 +49,7 @@ class Preferences : public QObject
     Q_PROPERTY(qreal volume READ volume WRITE setVolume NOTIFY volumeChanged FINAL)
     Q_PROPERTY(QStringList recentUrls READ recentUrls NOTIFY recentUrlsChanged FINAL)
     Q_PROPERTY(QString lastSessionUrl READ lastSessionUrl WRITE setLastSessionUrl NOTIFY lastSessionUrlChanged FINAL)
+    Q_PROPERTY(int videoRotation READ videoRotation WRITE setVideoRotation NOTIFY videoRotationChanged FINAL)
 
 public:
     using URLIdxList = QHash<QString, QVector<int>>;
@@ -75,6 +76,9 @@ public:
     Q_INVOKABLE void setUrlLastIndex(const QString &url
                                      , const QVector<int> &idx);
 
+    int videoRotation() const;
+    void setVideoRotation(int newVideoRotation);
+
 signals:
     void volumeMutedChanged();
 
@@ -86,6 +90,8 @@ signals:
 
     void lastSessionUrlChanged();
 
+    void videoRotationChanged();
+
 private:
     QSettings m_setting;
     SettingEntry<bool> m_volumeMuted;
@@ -94,6 +100,7 @@ private:
     SettingEntry<QStringList> m_recentUrls;
     SettingEntry<QString> m_lastSessionUrl;
     SettingEntry<URLIdxList> m_urlLastIndexList;
+    SettingEntry<int> m_videoRotation;
 };
 
 Q_DECLARE_METATYPE(Preferences::URLIdxList);

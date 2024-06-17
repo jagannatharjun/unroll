@@ -10,6 +10,7 @@ const QString RECENT_URLS = "RECENT_URLS";
 const QString LAST_SESSION_INDEX = "MainView/LAST_SESSION_INDEX";
 const QString LAST_SESSION_URL = "MainView/LAST_SESSION_URL";
 const QString URL_LAST_INDEX_LIST = "MainView/URL_LAST_INDEX_LIST";
+const QString PREVIEW_VIDEO_ROTATION = "MainView/PREVIEW_VIDEO_ROTATION";
 
 
 const int MAX_RECENT_PATH = 10;
@@ -28,6 +29,7 @@ Preferences::Preferences(QObject *parent)
     , m_recentUrls(RECENT_URLS, {}, m_setting)
     , m_lastSessionUrl(LAST_SESSION_URL, {}, m_setting)
     , m_urlLastIndexList(URL_LAST_INDEX_LIST, {}, m_setting)
+    , m_videoRotation(PREVIEW_VIDEO_ROTATION, {}, m_setting)
 {
 }
 
@@ -113,4 +115,18 @@ void Preferences::setUrlLastIndex(const QString &url, const QVector<int> &idx)
     auto list = m_urlLastIndexList.value();
     list.insert(url, idx);
     m_urlLastIndexList.set(list, m_setting);
+}
+
+int Preferences::videoRotation() const
+{
+    return m_videoRotation;
+}
+
+void Preferences::setVideoRotation(int newVideoRotation)
+{
+    if (m_videoRotation == newVideoRotation)
+        return;
+
+    m_videoRotation.set(newVideoRotation, m_setting);
+    emit videoRotationChanged();
 }

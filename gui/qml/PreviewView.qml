@@ -46,12 +46,18 @@ Loader {
 
             muted: Preferences.volumeMuted
 
+            videoRotation: Preferences.videoRotation
+
             onMutedChanged: {
                 Preferences.volumeMuted = muted
             }
 
             onVolumeChanged: {
                 Preferences.volume = volume
+            }
+
+            onVideoRotationChanged: {
+                Preferences.videoRotation = videoRotation
             }
 
             onPreviewCompleted: root.previewCompleted()

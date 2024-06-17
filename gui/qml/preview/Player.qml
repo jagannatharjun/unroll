@@ -10,6 +10,7 @@ FocusScope {
 
     property alias muted: audioOutput.muted
     property alias volume: audioOutput.volume
+    property alias videoRotation: videooutput.orientation
 
     property bool _progressRestored: false
 
@@ -95,123 +96,126 @@ FocusScope {
         }
     }
 
-    VideoOutput {
-        id: videooutput
-
-        anchors.fill: root
-    }
-
     MouseArea {
         anchors.fill: parent
         onClicked: root.toogleState()
     }
 
-    Pane {
-        anchors {
-            bottom: parent.bottom
-            left: parent.left
-            right: parent.right
+    ColumnLayout {
+        anchors.fill: parent
+
+        spacing: 0
+
+        VideoOutput {
+            id: videooutput
+
+            Layout.fillWidth: true
+            Layout.fillHeight: true
         }
 
-        height: 40
-        focus: true
+        Pane {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 40
 
-        RowLayout {
-            anchors.fill: parent
+            focus: true
 
-            ToolButton {
-                icon.source: player.playbackState === MediaPlayer.PlayingState ? "qrc:/resources/pause.svg" : "qrc:/resources/play.svg"
-                icon.color: palette.buttonText
-                onClicked: root.toogleState()
-            }
+            RowLayout {
+                anchors.fill: parent
 
-            Label {
-                text: millisecondsToReadable(player.position)
-            }
-
-            Slider {
-                id: slider
-
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-
-                from: 0
-                to: player.duration
-                stepSize: 5000 // 5 sec
-
-                focus: true
-
-                Binding {
-                    target: slider
-                    property: "value"
-                    when: !slider.pressed
-                    value: player.position
+                ToolButton {
+                    icon.source: player.playbackState === MediaPlayer.PlayingState ? "qrc:/resources/pause.svg" : "qrc:/resources/play.svg"
+                    icon.color: palette.buttonText
+                    onClicked: root.toogleState()
                 }
 
-                onValueChanged: {
-                    if (player.position !== slider.value)
-                        player.position = slider.value
+                Label {
+                    text: millisecondsToReadable(player.position)
                 }
 
-                Keys.onPressed: function (event) {
-                    let jump = 0
-                    if (event.key === Qt.Key_Right) {
-                        jump = slider.stepSize
-                    } else if (event.key === Qt.Key_Left) {
-                        jump = - slider.stepSize
+                Slider {
+                    id: slider
+
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+
+                    from: 0
+                    to: player.duration
+                    stepSize: 5000 // 5 sec
+
+                    focus: true
+
+                    Binding {
+                        target: slider
+                        property: "value"
+                        when: !slider.pressed
+                        value: player.position
                     }
 
-                    if (jump !== 0 && (event.modifiers & Qt.ShiftModifier)) {
-                        jump *= 2
+                    onValueChanged: {
+                        if (player.position !== slider.value)
+                            player.position = slider.value
                     }
 
-                    if (jump !== 0) {
-                        player.position += jump
-                        event.accepted = true
+                    Keys.onPressed: function (event) {
+                        let jump = 0
+                        if (event.key === Qt.Key_Right) {
+                            jump = slider.stepSize
+                        } else if (event.key === Qt.Key_Left) {
+                            jump = - slider.stepSize
+                        }
+
+                        if (jump !== 0 && (event.modifiers & Qt.ShiftModifier)) {
+                            jump *= 2
+                        }
+
+                        if (jump !== 0) {
+                            player.position += jump
+                            event.accepted = true
+                        }
+
+                    }
+                }
+
+                Label {
+                    text: millisecondsToReadable(player.duration)
+                }
+
+                ToolButton {
+                    onPressed: audioOutput.muted = !audioOutput.muted
+                    icon.color: palette.buttonText
+                    icon.source: {
+                        if (audioOutput.muted)
+                            return "qrc:/resources/speaker_off.svg"
+                        if (audioOutput.volume == 0)
+                            return "qrc:/resources/speaker_0.svg"
+                        if (audioOutput.volume < .5)
+                            return "qrc:/resources/speaker_1.svg"
+                        return "qrc:/resources/speaker_2.svg"
+                    }
+                }
+
+                Slider {
+                    id: volSlider
+                    from: 0
+                    to: 100
+                    stepSize: 1
+                    focus: true
+                    value: audioOutput.volume * to
+
+                    Layout.preferredWidth: 50
+
+                    onValueChanged: {
+                        const v = value / to
+                        audioOutput.volume = v
                     }
 
-                }
-            }
-
-            Label {
-                text: millisecondsToReadable(player.duration)
-            }
-
-            ToolButton {
-                onPressed: audioOutput.muted = !audioOutput.muted
-                icon.color: palette.buttonText
-                icon.source: {
-                    if (audioOutput.muted)
-                        return "qrc:/resources/speaker_off.svg"
-                    if (audioOutput.volume == 0)
-                        return "qrc:/resources/speaker_0.svg"
-                    if (audioOutput.volume < .5)
-                        return "qrc:/resources/speaker_1.svg"
-                    return "qrc:/resources/speaker_2.svg"
-                }
-            }
-
-            Slider {
-                id: volSlider
-                from: 0
-                to: 100
-                stepSize: 1
-                focus: true
-                value: audioOutput.volume * to
-
-                Layout.preferredWidth: 50
-
-                onValueChanged: {
-                    const v = value / to
-                    audioOutput.volume = v
-                }
-
-                Connections {
-                    target: audioOutput
-                    function onVolumeChanged() {
-                        const v = Math.trunc(audioOutput.volume * volSlider.to)
-                        if (v != volSlider.value) {
-                            volSlider.value = v
+                    Connections {
+                        target: audioOutput
+                        function onVolumeChanged() {
+                            const v = Math.trunc(audioOutput.volume * volSlider.to)
+                            if (v != volSlider.value) {
+                                volSlider.value = v
+                            }
                         }
                     }
                 }
@@ -221,6 +225,11 @@ FocusScope {
 
     Keys.onSpacePressed: {
         root.toogleState()
+    }
+
+    Keys.onPressed: function (event) {
+        if (event.key == Qt.Key_R)
+            videoRotation = (videoRotation + 90) % 360
     }
 
     Component.onCompleted: player.play()

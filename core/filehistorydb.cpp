@@ -98,7 +98,10 @@ void insert(std::unique_ptr<QSqlDatabase> &db
 
     if (!query.exec())
     {
-        qWarning("Failed to update seen status: %s", qUtf8Printable(query.lastError().text()));
+        qWarning("Failed to update '%s', mrl '%s' status: %s"
+                 , qUtf8Printable(col)
+                 , qUtf8Printable(mrl)
+                 , qUtf8Printable(query.lastError().text()));
     }
 }
 

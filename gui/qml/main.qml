@@ -211,7 +211,7 @@ ApplicationWindow {
                 if (event.key === Qt.Key_Refresh || event.key === Qt.Key_F5) {
                     controller.refresh()
                     event.accepted = true
-                } else if (event.key == Qt.Key_PageDown || event.key == Qt.Key_PageUp) {
+                } else if (event.key == Qt.Key_PageDown || event.key === Qt.Key_PageUp) {
                     const diff = event.key === Qt.Key_PageDown ? 1 : - 1
                     const current = selectionModel.currentIndex
                     const newRow = current.row + diff
@@ -222,6 +222,8 @@ ApplicationWindow {
                     selectionModel.setCurrentIndex(idx, ItemSelectionModel.ClearAndSelect)
 
                     event.accepted = true
+                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    controller.openRow(selectionModel.currentIndex.row)
                 }
             }
         }

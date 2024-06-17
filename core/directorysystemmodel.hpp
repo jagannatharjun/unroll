@@ -64,20 +64,12 @@ public:
     void setFileHistoryDB(const std::shared_ptr<FileHistoryDB> &newHistoryDB);
 
 private:
-    struct DataDB
-    {
-        std::optional<bool> seen;
-        std::optional<double> progress;
-    };
-
-    bool getSeen(const QPersistentModelIndex &idx, const QString &mrl) const;
-    double getProgress(const QPersistentModelIndex &idx, const QString &mrl) const;
+    class DBHandler;
 
     std::shared_ptr<Directory> m_dir;
     IconProviderFunctor m_iconProvider;
 
-    mutable std::shared_ptr<FileHistoryDB> m_historyDB;
-    mutable QHash<QString, DataDB> m_data;
+    mutable std::shared_ptr<DBHandler> m_dbHandler;
 };
 
 #endif // DIRECTORYSYSTEMMODEL_HPP

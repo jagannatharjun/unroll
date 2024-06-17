@@ -158,7 +158,10 @@ bool DirectorySystemModel::setData(const QModelIndex &index, const QVariant &val
 
         m_historyDB->setIsSeen(m_dir->filePath(r), value.toBool());
         m_data[m_dir->filePath(r)].seen = value.toBool();
-        emit dataChanged(index, this->index(index.row(), ColumnCount - 1), {SeenRole});
+
+        emit dataChanged(this->index(index.row(), 0)
+                    , this->index(index.row(), ColumnCount - 1)
+                    , {SeenRole});
 
     } else if (role == ProgressRole) {
         bool ok = false;
@@ -168,7 +171,10 @@ bool DirectorySystemModel::setData(const QModelIndex &index, const QVariant &val
 
         m_historyDB->setProgress(m_dir->filePath(r), progress);
         m_data[m_dir->filePath(r)].progress = progress;
-        emit dataChanged(index, this->index(index.row(), ColumnCount - 1), {ProgressRole});
+
+        emit dataChanged(this->index(index.row(), 0)
+                    , this->index(index.row(), ColumnCount - 1)
+                    , {ProgressRole});
     }
 
     return false;
@@ -237,7 +243,9 @@ bool DirectorySystemModel::getSeen(const QPersistentModelIndex &idx, const QStri
                 return;
 
             m_data[mrl].seen = seen;
-            emit const_cast<DirectorySystemModel *>(this)->dataChanged(idx, index(idx.row(), ColumnCount - 1), {SeenRole});
+            emit const_cast<DirectorySystemModel *>(this)->dataChanged(index(idx.row(), 0)
+                                                                       , index(idx.row(), ColumnCount - 1)
+                                                                       , {SeenRole});
         });
     }
 
@@ -259,7 +267,9 @@ double DirectorySystemModel::getProgress(const QPersistentModelIndex &idx, const
                 return;
 
             m_data[mrl].progress = progress;
-            emit const_cast<DirectorySystemModel *>(this)->dataChanged(idx, index(idx.row(), ColumnCount - 1), {ProgressRole});
+            emit const_cast<DirectorySystemModel *>(this)->dataChanged(index(idx.row(), 0)
+                                                                       , index(idx.row(), ColumnCount - 1)
+                                                                       , {ProgressRole});
         });
     }
 

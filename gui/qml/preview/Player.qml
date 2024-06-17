@@ -36,6 +36,10 @@ FocusScope {
         player.source = previewdata.readUrl()
     }
 
+    onVideoRotationChanged: {
+        statusLabel.showStatus("Rotation %1°".arg(videoRotation))
+    }
+
     focus: true
 
     function toogleState() {
@@ -111,6 +115,16 @@ FocusScope {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
+
+            StatusLabel {
+                id: statusLabel
+
+                anchors {
+                    top: parent.top
+                    right: parent.right
+                    margins: 10
+                }
+            }
         }
 
         Pane {
@@ -233,5 +247,43 @@ FocusScope {
     }
 
     Component.onCompleted: player.play()
+
+
+    component StatusLabel : Label {
+        id: lbl
+
+        font.pixelSize: 32
+
+        function showStatus(txt) {
+            lbl.text = txt
+
+            lbl.opacity = 1
+            visibleTimer.restart()
+        }
+
+        Behavior on opacity {
+            OpacityAnimator {
+                duration: 400
+
+                onStarted: {
+                    if (to == 1)
+                        lbl.visible = true
+                }
+
+                onFinished: {
+                    if (lbl.opacity == 0)
+                        lbl.visible = false
+                }
+            }
+        }
+
+        Timer {
+            id: visibleTimer
+
+            interval: 1600
+
+            onTriggered: lbl.opacity = 0
+        }
+    }
 
 }

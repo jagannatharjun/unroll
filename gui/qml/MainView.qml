@@ -39,7 +39,7 @@ SplitView {
     TableViewExt {
         id: tableView
 
-        SplitView.minimumWidth: splitView.width / 3
+        SplitView.minimumWidth: 200
 
         focus: true
 
@@ -51,8 +51,7 @@ SplitView {
     Pane {
         // tableview content can overflow, so wrap preview inside Pane,
         // so the extra content is not visible
-        SplitView.minimumWidth: splitView.width / 4
-        SplitView.preferredWidth: splitView.width / 3
+
         SplitView.fillWidth: true
 
         PreviewView {

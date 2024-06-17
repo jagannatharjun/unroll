@@ -71,10 +71,21 @@ void HistoryController::urlUpdated()
         if (m_index + 1 != m_history.size())
             m_history.erase(m_history.begin() + m_index + 1, m_history.end());
 
+        QVector<int> lastIdx;
+        if (m_preferences)
+        {
+            lastIdx = m_preferences->urlLastIndex(m_view->url());
+        }
+
+        if (lastIdx.size() != 2)
+            lastIdx = {0, 0};
+
         ++m_index;
-        m_history.push_back(Point {m_view->url(), -1, -1});
+        m_history.push_back(Point {m_view->url(), lastIdx[0], lastIdx[1]});
+
         emit depthChanged();
-        emit resetFocus(0, 0);
+        emit resetFocus(lastIdx[0], lastIdx[1]);
+
         return;
     }
 
@@ -127,7 +138,7 @@ void HistoryController::updateCurrentIndex(int row, int column)
 
     if (m_preferences)
     {
-        m_preferences->setLastSessionIndex({row, column});
+        m_preferences->setUrlLastIndex(m_view->url(), {row, column});
     }
 
     auto &top = current();
@@ -154,7 +165,7 @@ void HistoryController::restorePreviousSession()
             url = home.first();
     }
 
-    auto lastIdx = m_preferences->lastSessionIndex();
+    auto lastIdx = m_preferences->urlLastIndex(url);
     if (lastIdx.empty())
         lastIdx = {-1, -1};
 

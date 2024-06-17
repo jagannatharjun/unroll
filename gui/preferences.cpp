@@ -9,9 +9,13 @@ const QString MAIN_SPLITVIEW_STATE = "MainView/SplitviewState";
 const QString RECENT_URLS = "RECENT_URLS";
 const QString LAST_SESSION_INDEX = "MainView/LAST_SESSION_INDEX";
 const QString LAST_SESSION_URL = "MainView/LAST_SESSION_URL";
+const QString URL_LAST_INDEX_LIST = "MainView/URL_LAST_INDEX_LIST";
 
 
 const int MAX_RECENT_PATH = 10;
+
+const int UrlIdxListMetaID
+    = qRegisterMetaType<Preferences::URLIdxList>("Preferences::URLIdxList");
 
 }
 
@@ -22,8 +26,8 @@ Preferences::Preferences(QObject *parent)
     , m_volume (VOLUME_KEY, .5, m_setting)
     , m_mainSplitViewState (MAIN_SPLITVIEW_STATE, {}, m_setting)
     , m_recentUrls(RECENT_URLS, {}, m_setting)
-    , m_lastSessionIndex(LAST_SESSION_INDEX, {}, m_setting)
     , m_lastSessionUrl(LAST_SESSION_URL, {}, m_setting)
+    , m_urlLastIndexList(URL_LAST_INDEX_LIST, {}, m_setting)
 {
 }
 
@@ -85,27 +89,6 @@ void Preferences::pushRecentUrl(const QString &path)
     emit recentUrlsChanged();
 }
 
-QVector<int> Preferences::lastSessionIndex() const
-{
-    return m_lastSessionIndex;
-}
-
-void Preferences::setLastSessionIndex(const QVector<int> &newLastSessionIndex)
-{
-    const auto lastSessionIndex = m_lastSessionIndex.value();
-    if (lastSessionIndex == newLastSessionIndex)
-        return;
-
-    if (newLastSessionIndex.size() != 2)
-    {
-        qWarning("invalid last session index");
-        return;
-    }
-
-    m_lastSessionIndex.set(newLastSessionIndex, m_setting);
-    emit lastSessionIndexChanged();
-}
-
 QString Preferences::lastSessionUrl() const
 {
     return m_lastSessionUrl;
@@ -118,4 +101,16 @@ void Preferences::setLastSessionUrl(const QString &newLastSessionUrl)
 
     m_lastSessionUrl.set(newLastSessionUrl, m_setting);
     emit lastSessionUrlChanged();
+}
+
+QVector<int> Preferences::urlLastIndex(const QString &url) const
+{
+    return m_urlLastIndexList.value().value(url, {});
+}
+
+void Preferences::setUrlLastIndex(const QString &url, const QVector<int> &idx)
+{
+    auto list = m_urlLastIndexList.value();
+    list.insert(url, idx);
+    m_urlLastIndexList.set(list, m_setting);
 }

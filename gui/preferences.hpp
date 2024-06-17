@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
+#include <QList>
 #include <QSettings>
 
 
@@ -46,12 +48,10 @@ class Preferences : public QObject
     Q_PROPERTY(bool volumeMuted READ volumeMuted WRITE setVolumeMuted NOTIFY volumeMutedChanged FINAL)
     Q_PROPERTY(qreal volume READ volume WRITE setVolume NOTIFY volumeChanged FINAL)
     Q_PROPERTY(QStringList recentUrls READ recentUrls NOTIFY recentUrlsChanged FINAL)
-
-    // row int
-    Q_PROPERTY(QVector<int> lastSessionIndex READ lastSessionIndex WRITE setLastSessionIndex NOTIFY lastSessionIndexChanged FINAL)
     Q_PROPERTY(QString lastSessionUrl READ lastSessionUrl WRITE setLastSessionUrl NOTIFY lastSessionUrlChanged FINAL)
 
 public:
+    using URLIdxList = QHash<QString, QVector<int>>;
     explicit Preferences(QObject *parent = nullptr);
 
     bool volumeMuted() const;
@@ -66,11 +66,14 @@ public:
     QStringList recentUrls() const;
     Q_INVOKABLE void pushRecentUrl(const QString &path);
 
-    QVector<int> lastSessionIndex() const;
-    void setLastSessionIndex(const QVector<int> &newLastSessionIndex);
-
     QString lastSessionUrl() const;
     void setLastSessionUrl(const QString &newLastSessionUrl);
+
+    // index: {row, col}
+    Q_INVOKABLE QVector<int> urlLastIndex(const QString &url) const;
+
+    Q_INVOKABLE void setUrlLastIndex(const QString &url
+                                     , const QVector<int> &idx);
 
 signals:
     void volumeMutedChanged();
@@ -89,7 +92,9 @@ private:
     SettingEntry<qreal> m_volume;
     SettingEntry<QByteArray> m_mainSplitViewState;
     SettingEntry<QStringList> m_recentUrls;
-    SettingEntry<QVector<int>> m_lastSessionIndex;
     SettingEntry<QString> m_lastSessionUrl;
+    SettingEntry<URLIdxList> m_urlLastIndexList;
 };
+
+Q_DECLARE_METATYPE(Preferences::URLIdxList);
 

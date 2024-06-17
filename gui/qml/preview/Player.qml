@@ -155,9 +155,9 @@ FocusScope {
 
                 Keys.onPressed: function (event) {
                     let jump = 0
-                    if (event.key === Qt.Key_Left) {
+                    if (event.key === Qt.Key_Right) {
                         jump = slider.stepSize
-                    } else if (event.key === Qt.Key_Right) {
+                    } else if (event.key === Qt.Key_Left) {
                         jump = - slider.stepSize
                     }
 
@@ -165,7 +165,11 @@ FocusScope {
                         jump *= 2
                     }
 
-                    value += jump
+                    if (jump !== 0) {
+                        player.position += jump
+                        event.accepted = true
+                    }
+
                 }
             }
 

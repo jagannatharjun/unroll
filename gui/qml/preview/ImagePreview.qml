@@ -29,6 +29,16 @@ Item {
             acceptedModifiers: Qt.ControlModifier
         }
 
+        TapHandler {
+            onDoubleTapped: {
+                image.scale = 1
+                image.x = 0
+                image.y = 0
+                image.width = root.width
+                image.height = root.height
+            }
+        }
+
         Behavior on scale {
             SmoothedAnimation {
                 velocity: 4

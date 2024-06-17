@@ -89,7 +89,8 @@ void insert(std::unique_ptr<QSqlDatabase> &db
         return;
     }
 
-    QString stat = QString("INSERT OR REPLACE INTO files (MRL, %1) VALUES (:mrl, :val)").arg(col);
+    QString stat = QString("INSERT INTO files (MRL, %1) VALUES (:mrl, :val)"
+                           "ON CONFLICT(MRL) DO UPDATE SET %1 = :val").arg(col);
     QSqlQuery query(*db);
     query.prepare(stat);
     query.bindValue(":mrl", mrl);

@@ -1,5 +1,8 @@
 #include "historycontroller.hpp"
 
+#include <QStandardPaths>
+#include <QDir>
+
 HistoryController::HistoryController(QObject *parent)
     : QObject{parent}
 {
@@ -24,6 +27,8 @@ void HistoryController::setView(ViewController *newView)
 
     connect(m_view, &ViewController::urlChanged
             , this, &HistoryController::urlUpdated);
+
+    restorePreviousSession();
 }
 
 int HistoryController::depth() const
@@ -55,6 +60,11 @@ void HistoryController::forward()
 
 void HistoryController::urlUpdated()
 {
+    if (m_preferences)
+    {
+        m_preferences->setLastSessionUrl(m_view->url());
+    }
+
     if (m_history.empty() || current().url != m_view->url())
     {
         // new history point
@@ -115,12 +125,61 @@ void HistoryController::updateCurrentIndex(int row, int column)
         return;
     }
 
+    if (m_preferences)
+    {
+        m_preferences->setLastSessionIndex({row, column});
+    }
+
     auto &top = current();
     top.row =  index.row();
     top.col = index.column();
 }
 
+void HistoryController::restorePreviousSession()
+{
+    if (!m_history.empty()
+            || !m_view
+            || !m_preferences)
+        return;
+
+    ++m_index;
+
+    auto url = m_preferences->lastSessionUrl();
+    if (url.isEmpty())
+    {
+        auto home = QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
+        if (home.isEmpty())
+            url = QDir(".").absolutePath();
+        else
+            url = home.first();
+    }
+
+    auto lastIdx = m_preferences->lastSessionIndex();
+    if (lastIdx.empty())
+        lastIdx = {-1, -1};
+
+    m_history.push_back(Point {url, lastIdx[0], lastIdx[1]});
+    m_view->openUrl(url);
+
+    emit depthChanged();
+}
+
 bool HistoryController::canMoveBack() const
 {
     return m_index > 0;
+}
+
+Preferences *HistoryController::pref() const
+{
+    return m_preferences;
+}
+
+void HistoryController::setPref(Preferences *newPreferences)
+{
+    if (m_preferences == newPreferences)
+        return;
+
+    m_preferences = newPreferences;
+    emit preferencesChanged();
+    restorePreviousSession();
 }

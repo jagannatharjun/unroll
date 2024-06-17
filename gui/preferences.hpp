@@ -26,7 +26,7 @@ public:
 
     void set(const T& value, QSettings &setting)
     {
-        setting.setValue(m_key, value);
+        setting.setValue(m_key, QVariant::fromValue(value));
         m_value = value;
     }
 
@@ -47,6 +47,10 @@ class Preferences : public QObject
     Q_PROPERTY(qreal volume READ volume WRITE setVolume NOTIFY volumeChanged FINAL)
     Q_PROPERTY(QStringList recentUrls READ recentUrls NOTIFY recentUrlsChanged FINAL)
 
+    // row int
+    Q_PROPERTY(QVector<int> lastSessionIndex READ lastSessionIndex WRITE setLastSessionIndex NOTIFY lastSessionIndexChanged FINAL)
+    Q_PROPERTY(QString lastSessionUrl READ lastSessionUrl WRITE setLastSessionUrl NOTIFY lastSessionUrlChanged FINAL)
+
 public:
     explicit Preferences(QObject *parent = nullptr);
 
@@ -62,13 +66,22 @@ public:
     QStringList recentUrls() const;
     Q_INVOKABLE void pushRecentUrl(const QString &path);
 
-signals:
+    QVector<int> lastSessionIndex() const;
+    void setLastSessionIndex(const QVector<int> &newLastSessionIndex);
 
+    QString lastSessionUrl() const;
+    void setLastSessionUrl(const QString &newLastSessionUrl);
+
+signals:
     void volumeMutedChanged();
 
     void volumeChanged();
 
     void recentUrlsChanged();
+
+    void lastSessionIndexChanged();
+
+    void lastSessionUrlChanged();
 
 private:
     QSettings m_setting;
@@ -76,5 +89,7 @@ private:
     SettingEntry<qreal> m_volume;
     SettingEntry<QByteArray> m_mainSplitViewState;
     SettingEntry<QStringList> m_recentUrls;
+    SettingEntry<QVector<int>> m_lastSessionIndex;
+    SettingEntry<QString> m_lastSessionUrl;
 };
 

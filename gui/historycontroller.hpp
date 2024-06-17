@@ -5,13 +5,14 @@
 #include <QQmlEngine>
 
 #include "viewcontroller.hpp"
-
+#include "preferences.hpp"
 
 class HistoryController : public QObject
 {
     Q_OBJECT
 
     Q_PROPERTY(ViewController* view READ view WRITE setView NOTIFY viewChanged)
+    Q_PROPERTY(Preferences* preferences READ pref WRITE setPref NOTIFY preferencesChanged FINAL)
 
     Q_PROPERTY(bool canMoveBack READ canMoveBack NOTIFY depthChanged FINAL)
     Q_PROPERTY(bool canMoveForward READ canMoveForward NOTIFY depthChanged FINAL)
@@ -29,6 +30,9 @@ public:
 
     bool canMoveBack() const;
 
+    Preferences *pref() const;
+    void setPref(Preferences *newPreferences);
+
 public slots:
     void pop();
 
@@ -36,10 +40,16 @@ public slots:
 
     void updateCurrentIndex(int row, int column);
 
+    void restorePreviousSession();
+
 signals:
     void depthChanged();
     void viewChanged();
     void resetFocus(int row, int column);
+
+    void fileBrowserChanged();
+
+    void preferencesChanged();
 
 private slots:
     void urlUpdated();
@@ -61,6 +71,7 @@ private:
     int m_index = - 1;
 
     ViewController *m_view = nullptr;
+    Preferences *m_preferences = nullptr;
 };
 
 #endif // HISTORYCONTROLLER_HPP

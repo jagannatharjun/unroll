@@ -32,15 +32,14 @@ ApplicationWindow {
         fileBrowser: FileBrowser
 
         onShowPreview: (data) => root.previewdata = data
-
-        Component.onCompleted:
-            controller.openUrl("file:///C:/Users/prince/Pictures/")
     }
 
     HistoryController {
         id: history
 
         view: controller
+
+        preferences: Preferences
 
         onResetFocus: function (row, column) {
             // reset current preview

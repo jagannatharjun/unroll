@@ -21,6 +21,8 @@ Pane {
 
     signal actionAtIndex(int row, int column)
 
+    signal rightClicked(var model)
+
     signal _columnWidthChanged
 
     function _setColumnWidth(column, width) {
@@ -235,6 +237,11 @@ Pane {
                 view.selectionModel.setCurrentIndex(
                             view.model.index(row, column),
                             ItemSelectionModel.SelectCurrent)
+            }
+
+            TapHandler {
+                acceptedButtons: Qt.RightButton
+                onTapped: root.rightClicked(model)
             }
 
             HResizeHandle {

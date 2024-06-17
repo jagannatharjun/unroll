@@ -4,6 +4,116 @@
 #include <QStorageInfo>
 #include <QStandardPaths>
 
+
+#include <windows.h>
+#include <shlobj.h>
+#include <shlwapi.h>
+#include <shellapi.h>
+#include <string>
+#include <iostream>
+
+// Helper function to print Windows API errors
+void printError(HRESULT hr) {
+    LPVOID lpMsgBuf;
+    DWORD bufLen = FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr,
+        hr,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        reinterpret_cast<LPTSTR>(&lpMsgBuf),
+        0, nullptr);
+    if (bufLen) {
+        std::wstring msg(reinterpret_cast<LPTSTR>(lpMsgBuf), bufLen);
+        std::wcerr << L"Error: " << msg << std::endl;
+        LocalFree(lpMsgBuf);
+    }
+}
+
+// RAII wrapper for COM initialization and resource management
+class COMInitializer {
+public:
+    COMInitializer() : pidl(nullptr), psfParent(nullptr), pcm(nullptr), hMenu(nullptr) {
+        HRESULT hr = CoInitialize(nullptr);
+        if (FAILED(hr)) throw hr;
+    }
+    ~COMInitializer() {
+        if (pcm) pcm->Release();
+        if (psfParent) psfParent->Release();
+        if (hMenu) DestroyMenu(hMenu);
+        if (pidl) ILFree(pidl);
+        CoUninitialize();
+    }
+    LPITEMIDLIST pidl;
+    IShellFolder* psfParent;
+    IContextMenu* pcm;
+    HMENU hMenu;
+};
+
+// Function to show context menu for a file path
+void showContextMenu(HWND hwnd, const std::wstring& filePath) {
+    try {
+        COMInitializer com;
+
+        // Parse the display name to get the PIDL
+        HRESULT hr = SHParseDisplayName(filePath.c_str(), nullptr, &com.pidl, 0, nullptr);
+        if (FAILED(hr)) throw hr;
+
+        // Bind to the parent folder
+        LPCITEMIDLIST pidlChild = nullptr;
+        hr = SHBindToParent(com.pidl, IID_IShellFolder, (void**)&com.psfParent, &pidlChild);
+        if (FAILED(hr)) throw hr;
+
+        // Get the IContextMenu interface for the file
+        hr = com.psfParent->GetUIObjectOf(hwnd, 1, &pidlChild, IID_IContextMenu, nullptr, (void**)&com.pcm);
+        if (FAILED(hr)) throw hr;
+
+        // Create and populate the context menu
+        com.hMenu = CreatePopupMenu();
+        if (!com.hMenu) throw HRESULT_FROM_WIN32(GetLastError());
+
+        hr = com.pcm->QueryContextMenu(com.hMenu, 0, 1, 0x7FFF, CMF_NORMAL);
+        if (FAILED(hr)) throw hr;
+
+        // Insert custom actions at the second position in the context menu
+        InsertMenu(com.hMenu, 1, MF_BYPOSITION | MF_SEPARATOR, 0, nullptr);
+
+        const int OPEN_EXPLORER = 0x8000;
+        InsertMenu(com.hMenu, 2, MF_BYPOSITION, OPEN_EXPLORER, L"Show in Explorer");
+
+        InsertMenu(com.hMenu, 3, MF_BYPOSITION | MF_SEPARATOR, 0, nullptr);
+
+        // Show the context menu at the cursor position
+        POINT pt;
+        GetCursorPos(&pt);
+
+        int cmd = TrackPopupMenu(com.hMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, hwnd, nullptr);
+        if (cmd > 0) {
+            if (cmd == OPEN_EXPLORER) {
+                // Show in Explorer action
+                LPITEMIDLIST pidlFull = nullptr;
+                SHParseDisplayName(filePath.c_str(), nullptr, &pidlFull, 0, nullptr);
+                if (pidlFull) {
+                    SHOpenFolderAndSelectItems(pidlFull, 0, nullptr, 0);
+                    ILFree(pidlFull);
+                }
+            } else {
+                CMINVOKECOMMANDINFOEX cmi = { sizeof(cmi) };
+                cmi.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE;
+                cmi.hwnd = hwnd;
+                cmi.lpVerb = MAKEINTRESOURCEA(cmd - 1);
+                cmi.lpVerbW = MAKEINTRESOURCEW(cmd - 1);
+                cmi.nShow = SW_SHOWNORMAL;
+
+                hr = com.pcm->InvokeCommand((LPCMINVOKECOMMANDINFO)&cmi);
+                if (FAILED(hr)) throw hr;
+            }
+        }
+    } catch (HRESULT hr) {
+        printError(hr);
+    }
+}
+
+
 FileBrowser::FileBrowser(QObject *parent)
     : QObject{parent}
 {
@@ -51,5 +161,16 @@ QDir FileBrowser::cacheDir() const
 QString FileBrowser::fileHistoryDBPath() const
 {
     return cacheDir().absoluteFilePath("filehistory.db");
+}
+
+void FileBrowser::showFileContextMenu(const QString &filePath)
+{
+    if (!QFileInfo::exists(filePath))
+        return;
+
+    const QString nativePath = QDir::toNativeSeparators(filePath);
+    auto id = (HWND)m_window->winId();
+
+    showContextMenu(id, nativePath.toStdWString());
 }
 

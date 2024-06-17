@@ -46,6 +46,10 @@ SplitView {
         onActionAtIndex: function (row, col) {
             splitView.actionAtIndex(row, col)
         }
+
+        onRightClicked: function (model) {
+            FileBrowser.showFileContextMenu(model.path)
+        }
     }
 
     Pane {

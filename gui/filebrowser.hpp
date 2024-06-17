@@ -23,8 +23,11 @@ public:
     QDir cacheDir() const;
     QString fileHistoryDBPath() const;
 
+    Q_INVOKABLE void showFileContextMenu(const QString &filePath);
+
 signals:
     void windowChanged();
+
 private:
     QWindow *m_window;
 };

@@ -200,8 +200,23 @@ ApplicationWindow {
             onPreviewCompleted: root._previewCompleted = true
 
             Keys.onPressed: function (event) {
+                if (event.accepted)
+                    return
+
                 if (event.key === Qt.Key_Refresh || event.key === Qt.Key_F5) {
                     controller.refresh()
+                    event.accepted = true
+                } else if (event.key == Qt.Key_PageDown || event.key == Qt.Key_PageUp) {
+                    const diff = event.key === Qt.Key_PageDown ? 1 : - 1
+                    const current = selectionModel.currentIndex
+                    const newRow = current.row + diff
+                    if (newRow < 0 || newRow >= controller.model.rowCount())
+                        return
+
+                    const idx = controller.model.index(newRow, current.column)
+                    selectionModel.setCurrentIndex(idx, ItemSelectionModel.ClearAndSelect)
+
+                    event.accepted = true
                 }
             }
         }

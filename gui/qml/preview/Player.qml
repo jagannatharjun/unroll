@@ -404,6 +404,8 @@ FocusScope {
         color: "white"
         styleColor: "black"
 
+        elide: Text.ElideRight
+
         Label {
             anchors {
                 top: parent.top

@@ -31,6 +31,17 @@ ApplicationWindow {
         controller.openParentPath()
     }
 
+    function nextIndex(up) {
+        const diff = up ? - 1 : 1
+        const current = selectionModel.currentIndex
+        const newRow = current.row + diff
+        if (newRow < 0 || newRow >= controller.model.rowCount())
+            return false
+
+        const idx = controller.model.index(newRow, current.column)
+        selectionModel.setCurrentIndex(idx, ItemSelectionModel.ClearAndSelect)
+    }
+
     ViewController {
         id: controller
 
@@ -173,7 +184,6 @@ ApplicationWindow {
                             verticalCenter: parent.verticalCenter
                             margins: 3
                         }
-
                         color: palette.text
 
                         onTextChanged: controller.model.setFilterWildcard(text)
@@ -202,7 +212,14 @@ ApplicationWindow {
 
             onActionAtIndex: (row) => controller.openRow(row)
 
-            onPreviewCompleted: root._previewCompleted = true
+            onPreviewCompleted: {
+                root._previewCompleted = true
+
+                const previewType = root.previewdata.fileType()
+                if ((previewType === PreviewData.AudioFile)
+                        || (previewType === PreviewData.VideoFile))
+                    root.nextIndex(false)
+            }
 
             Keys.onPressed: function (event) {
                 if (event.accepted)
@@ -211,15 +228,9 @@ ApplicationWindow {
                 if (event.key === Qt.Key_Refresh || event.key === Qt.Key_F5) {
                     controller.refresh()
                     event.accepted = true
-                } else if (event.key == Qt.Key_PageDown || event.key === Qt.Key_PageUp) {
-                    const diff = event.key === Qt.Key_PageDown ? 1 : - 1
-                    const current = selectionModel.currentIndex
-                    const newRow = current.row + diff
-                    if (newRow < 0 || newRow >= controller.model.rowCount())
+                } else if (event.key === Qt.Key_PageDown || event.key === Qt.Key_PageUp) {
+                    if (!root.nextIndex(event.key === Qt.Key_PageUp))
                         return
-
-                    const idx = controller.model.index(newRow, current.column)
-                    selectionModel.setCurrentIndex(idx, ItemSelectionModel.ClearAndSelect)
 
                     event.accepted = true
                 } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {

@@ -24,8 +24,9 @@ FocusScope {
         if (_progressRestored)
             return;
 
-        const previewProgress = (previewdata?.progress() ?? 0)
-        player.position = previewProgress
+        const position = (previewdata?.progress() ?? 0)
+        if (position !== player.duration)
+            player.position = position
 
         _progressRestored = true
     }
@@ -83,10 +84,8 @@ FocusScope {
             id: audioOutput
         }
 
-        loops: MediaPlayer.Infinite
-
-        onPositionChanged: {
-            if (player.position === player.duration)
+        onMediaStatusChanged: {
+            if (mediaStatus === MediaPlayer.EndOfMedia)
                 root.previewCompleted()
         }
 

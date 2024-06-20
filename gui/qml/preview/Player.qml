@@ -94,6 +94,13 @@ FocusScope {
             // player seems to need some time to correctly handle position change here
             Qt.callLater(root._restoreProgress)
         }
+
+        onPlayingChanged: {
+            const TitleIdx = 0
+            const title = metaData.stringValue(TitleIdx)
+            if (!!title)
+                fileLabel.showStatus(title)
+        }
     }
 
     MouseArea {
@@ -120,13 +127,27 @@ FocusScope {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            StatusLabel {
-                id: statusLabel
-
+            RowLayout {
                 anchors {
                     top: parent.top
+                    left: parent.left
                     right: parent.right
                     margins: 10
+                }
+
+                StatusLabel {
+                    id: fileLabel
+
+                    Layout.fillWidth: true
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 32
+                }
+
+                StatusLabel {
+                    id: statusLabel
                 }
             }
         }
@@ -281,6 +302,8 @@ FocusScope {
         font.pixelSize: 32
 
         visible: opacity > 0
+
+        opacity: 0
 
         function showStatus(txt) {
             lbl.text = txt

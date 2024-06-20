@@ -246,9 +246,30 @@ FocusScope {
     }
 
     Keys.onPressed: function (event) {
-        if (event.key === Qt.Key_R) {
+        switch (event.key)
+        {
+        case Qt.Key_R:
+            event.accepted = true
+
             videoRotation = (videoRotation + 90) % 360
             statusLabel.showStatus("Rotation %1°".arg(videoRotation))
+
+            break;
+
+        case Qt.Key_BracketLeft:
+        case Qt.Key_BracketRight:
+            var rate = player.playbackRate
+            const jump = (event.modifiers & Qt.ControlModifier) ? .1 : .25
+
+            rate += (event.key === Qt.Key_BracketLeft) ? - jump : jump
+            if (rate <= 0 || rate > 4)
+                break;
+
+            player.playbackRate = rate
+            statusLabel.showStatus("Playback Speed: %1x".arg(player.playbackRate))
+
+            event.accepted = true
+            break;
         }
     }
 

@@ -95,10 +95,19 @@ SplitView {
     }
 
     Keys.onPressed: function (event) {
-        if (event.key === Qt.Key_Z || event.key === Qt.Key_Comma)
-            tableView.forceActiveFocus(Qt.TabFocusReason)
-        else if (event.key === Qt.Key_X || event.key === Qt.Key_Period)
-            previewView.forceActiveFocus(Qt.TabFocusReason)
+        switch (event.key) {
+            case Qt.Key_Z:
+            case Qt.Key_Comma:
+                tableView.forceActiveFocus(Qt.TabFocusReason)
+                event.accepted = true
+                break
+
+            case Qt.Key_X:
+            case Qt.Key_Period:
+                previewView.forceActiveFocus(Qt.TabFocusReason)
+                event.accepted = true
+                break
+        }
     }
 }
 

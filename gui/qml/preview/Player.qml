@@ -98,7 +98,13 @@ FocusScope {
 
     MouseArea {
         anchors.fill: parent
-        onClicked: root.toogleState()
+        onClicked: {
+            root.toogleState()
+            if (player.playbackState === MediaPlayer.PlayingState)
+                statusLabel.showStatus("Playing")
+            else if (player.playbackState === MediaPlayer.PausedState)
+                statusLabel.showStatus("Paused")
+        }
     }
 
     ColumnLayout {

@@ -24,6 +24,8 @@ SplitView {
 
     Component.onCompleted: {
         splitView.restoreState(Preferences.mainSplitviewState())
+
+        previewView.forceActiveFocus()
     }
 
     Component.onDestruction: Preferences.setMainSplitViewState(splitView.saveState())

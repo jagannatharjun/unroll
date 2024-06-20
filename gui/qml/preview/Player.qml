@@ -372,9 +372,29 @@ FocusScope {
     component StatusLabel : Label {
         id: lbl
 
-        font.pixelSize: 32
+        font.pointSize: 50
 
         visible: opacity > 0
+
+        style: Text.Outline
+
+        color: "white"
+        styleColor: "black"
+
+        Label {
+            anchors {
+                top: parent.top
+                left: parent.left
+                topMargin: 2
+                leftMargin: 2
+            }
+
+            z: -1
+            color: "black"
+            opacity: .45
+            text: lbl.text
+            font: lbl.font
+        }
 
         function showStatus(txt) {
             lbl.text = txt

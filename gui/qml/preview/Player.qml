@@ -36,10 +36,6 @@ FocusScope {
         player.source = previewdata.readUrl()
     }
 
-    onVideoRotationChanged: {
-        statusLabel.showStatus("Rotation %1°".arg(videoRotation))
-    }
-
     focus: true
 
     function toogleState() {
@@ -242,8 +238,10 @@ FocusScope {
     }
 
     Keys.onPressed: function (event) {
-        if (event.key == Qt.Key_R)
+        if (event.key == Qt.Key_R) {
             videoRotation = (videoRotation + 90) % 360
+            statusLabel.showStatus("Rotation %1°".arg(videoRotation))
+        }
     }
 
     Component.onCompleted: player.play()

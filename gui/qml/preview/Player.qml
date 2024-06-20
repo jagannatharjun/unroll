@@ -240,15 +240,18 @@ FocusScope {
                     id: volSlider
                     from: 0
                     to: 100
-                    stepSize: 1
+                    stepSize: 5
                     focus: true
                     value: audioOutput.volume * to
+                    snapMode: Slider.SnapAlways
 
-                    Layout.preferredWidth: 50
+                    Layout.preferredWidth: 70
 
                     onValueChanged: {
                         const v = value / to
                         audioOutput.volume = v
+
+                        statusLabel.showStatus("Volume: %1%".arg(root.volume * 100))
                     }
 
                     Connections {
@@ -291,6 +294,16 @@ FocusScope {
 
             player.playbackRate = rate
             statusLabel.showStatus("Playback Speed: %1x".arg(player.playbackRate))
+
+            event.accepted = true
+            break;
+
+        case Qt.Key_M:
+            root.muted = !root.muted
+            if (root.muted)
+                statusLabel.showStatus("Volume: Muted")
+            else
+                statusLabel.showStatus("Volume: %1%".arg(root.volume * 100))
 
             event.accepted = true
             break;

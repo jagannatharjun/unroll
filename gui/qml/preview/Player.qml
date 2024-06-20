@@ -33,6 +33,26 @@ FocusScope {
         _progressRestored = true
     }
 
+    function _changeSubtitleTrack() {
+        const tracks = player.subtitleTracks
+        const next = player.activeSubtitleTrack + 1
+        if (next === tracks.length) {
+            player.activeSubtitleTrack = - 1
+            statusLabel.showStatus("Subtitle track: Disable")
+        } else {
+            player.activeSubtitleTrack = next
+
+            const track = tracks[next]
+            const text = track.stringValue(6) // Language
+            if (!text)
+                text = track.stringValue(0) // Title
+            if (!text)
+                text = "Track %1".arg(next + 1)
+
+            statusLabel.showStatus("Subtitle track: %1".arg(text))
+        }
+    }
+
     onPreviewdataChanged: {
         _progressRestored = false
 
@@ -316,6 +336,10 @@ FocusScope {
                 volSlider.decrease()
 
             event.accepted = true
+            break;
+
+        case Qt.Key_V:
+            root._changeSubtitleTrack()
             break;
         }
     }

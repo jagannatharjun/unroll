@@ -168,11 +168,18 @@ FocusScope {
 
         spacing: 0
 
-        VideoOutput {
-            id: videooutput
+        Rectangle {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
+
+            color: "black"
+
+            VideoOutput {
+                id: videooutput
+
+                anchors.fill: parent
+            }
 
             RowLayout {
                 anchors {

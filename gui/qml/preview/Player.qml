@@ -269,6 +269,10 @@ FocusScope {
                         if (jump !== 0) {
                             player.position += jump
                             event.accepted = true
+
+                            const p = root.millisecondsToReadable(player.position)
+                            const d = root.millisecondsToReadable(player.duration)
+                            statusLabel.showStatus("%1 / %2".arg(p).arg(d))
                         }
 
                     }

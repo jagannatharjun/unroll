@@ -163,7 +163,6 @@ FocusScope {
             const steps = Math.abs(y) / 120
             const delta = steps * volSlider.stepSize * (y > 0 ? 1 : -1) * (wheel.inverted ? - 1 : 1)
 
-            volSlider._showStatus = true
             volSlider.value += delta
         }
     }
@@ -299,8 +298,8 @@ FocusScope {
                 Slider {
                     id: volSlider
 
-                    property bool _showStatus: false
-                    property bool _inhibitValueUpdate: false
+                    property bool _showStatus: true
+                    property bool _updateSource: true
 
                     from: 0
                     to: 100
@@ -312,8 +311,8 @@ FocusScope {
                     Layout.preferredWidth: 70
 
                     onValueChanged: {
-                        _inhibitValueUpdate = true
-                        root.volume = value
+                        if (_updateSource)
+                            root.volume = value
 
                         if (_showStatus)
                             statusLabel.showStatus("Volume: %1%".arg(root.volume))
@@ -326,13 +325,13 @@ FocusScope {
                             if (root.volume === volSlider.value)
                                  return
 
-                            volSlider._inhibitValueUpdate = true
+                            volSlider._updateSource = false
                             volSlider._showStatus = false
 
                             volSlider.value = v
 
                             volSlider._showStatus = true
-                            volSlider._inhibitValueUpdate = false
+                            volSlider._updateSource = true
                         }
                     }
                 }

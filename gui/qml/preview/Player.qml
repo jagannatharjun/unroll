@@ -9,7 +9,10 @@ FocusScope {
     required property var previewdata
 
     property alias muted: audioOutput.muted
-    property alias volume: audioOutput.volume
+
+    // volume value 1-100
+    property int volume
+
     property alias videoRotation: videooutput.orientation
 
     property bool _progressRestored: false
@@ -116,6 +119,8 @@ FocusScope {
 
         audioOutput: AudioOutput {
             id: audioOutput
+
+            volume: 1 - Math.exp(-root.volume / 100. * 4.60517018599 /*LOG 10*/)
         }
 
         onMediaStatusChanged: {
@@ -297,39 +302,33 @@ FocusScope {
                     to: 100
                     stepSize: 5
                     focus: true
-                    value: audioOutput.volume * to
+                    value: root.volume
                     snapMode: Slider.SnapAlways
 
                     Layout.preferredWidth: 70
 
                     onValueChanged: {
-                        const f = (value * 100) / to
-                        const s = volSlider.stepSize
-
-                        // Calculate the value ensuring it's a multiple of stepSize
-                        const v = ((Math.round(f / s) * s) / 100).toFixed(2)
-
                         _inhibitValueUpdate = true
-                        audioOutput.volume = v
+                        root.volume = value
 
                         if (_showStatus)
-                            statusLabel.showStatus("Volume: %1%".arg(root.volume * 100))
+                            statusLabel.showStatus("Volume: %1%".arg(root.volume))
                     }
 
                     Connections {
-                        target: audioOutput
+                        target: root
 
                         function onVolumeChanged() {
-                            const v = Math.trunc(audioOutput.volume * volSlider.to)
-                            if (v !== volSlider.value) {
-                                volSlider._inhibitValueUpdate = true
-                                volSlider._showStatus = false
+                            if (root.volume === volSlider.value)
+                                 return
 
-                                volSlider.value = v
+                            volSlider._inhibitValueUpdate = true
+                            volSlider._showStatus = false
 
-                                volSlider._showStatus = true
-                                volSlider._inhibitValueUpdate = false
-                            }
+                            volSlider.value = v
+
+                            volSlider._showStatus = true
+                            volSlider._inhibitValueUpdate = false
                         }
                     }
                 }

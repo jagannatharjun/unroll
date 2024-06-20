@@ -101,6 +101,8 @@ FocusScope {
                 statusLabel.showStatus("Playing")
             else if (player.playbackState === MediaPlayer.PausedState)
                 statusLabel.showStatus("Paused")
+
+            root.forceActiveFocus(Qt.MouseFocusReason)
         }
     }
 

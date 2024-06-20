@@ -270,6 +270,9 @@ FocusScope {
 
                 Slider {
                     id: volSlider
+
+                    property bool _showStatus: false
+
                     from: 0
                     to: 100
                     stepSize: 5
@@ -283,7 +286,8 @@ FocusScope {
                         const v = value / to
                         audioOutput.volume = v
 
-                        statusLabel.showStatus("Volume: %1%".arg(root.volume * 100))
+                        if (_showStatus)
+                            statusLabel.showStatus("Volume: %1%".arg(root.volume * 100))
                     }
 
                     Connections {
@@ -291,7 +295,9 @@ FocusScope {
                         function onVolumeChanged() {
                             const v = Math.trunc(audioOutput.volume * volSlider.to)
                             if (v !== volSlider.value) {
+                                volSlider._showStatus = false
                                 volSlider.value = v
+                                volSlider._showStatus = true
                             }
                         }
                     }

@@ -409,7 +409,7 @@ FocusScope {
     component StatusLabel : Label {
         id: lbl
 
-        font.pointSize: 50
+        font.pointSize: 18 * Math.max(root.width, root.height) / 1000
 
         visible: opacity > 0
 
@@ -424,8 +424,8 @@ FocusScope {
             anchors {
                 top: parent.top
                 left: parent.left
-                topMargin: 2
-                leftMargin: 2
+                topMargin: 3
+                leftMargin: 3
             }
 
             z: -1

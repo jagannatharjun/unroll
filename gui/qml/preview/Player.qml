@@ -85,13 +85,15 @@ FocusScope {
         }
 
         onMediaStatusChanged: {
-            if (mediaStatus === MediaPlayer.EndOfMedia)
+            switch (mediaStatus) {
+            case MediaPlayer.EndOfMedia:
                 root.previewCompleted()
-        }
+                break;
 
-        onDurationChanged: {
-            // player seems to need some time to correctly handle position change here
-            Qt.callLater(root._restoreProgress)
+            case MediaPlayer.LoadedMedia:
+                root._restoreProgress()
+                break;
+            }
         }
 
         onPlayingChanged: {

@@ -389,10 +389,14 @@ FocusScope {
 
         case Qt.Key_V:
             root._changeSubtitleTrack()
+
+            event.accepted = true
             break;
 
         case Qt.Key_B:
             root._changeAudioTrack()
+
+            event.accepted = true
             break;
         }
     }

@@ -50,7 +50,7 @@ public:
 };
 
 // Function to show context menu for a file path
-void showContextMenu(HWND hwnd, const std::wstring& filePath) {
+void showContextMenu(HWND hwnd, const QPoint &p, const std::wstring& filePath) {
     try {
         COMInitializer com;
 
@@ -82,11 +82,7 @@ void showContextMenu(HWND hwnd, const std::wstring& filePath) {
 
         InsertMenu(com.hMenu, 3, MF_BYPOSITION | MF_SEPARATOR, 0, nullptr);
 
-        // Show the context menu at the cursor position
-        POINT pt;
-        GetCursorPos(&pt);
-
-        int cmd = TrackPopupMenu(com.hMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, hwnd, nullptr);
+        int cmd = TrackPopupMenu(com.hMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, p.x(), p.y(), 0, hwnd, nullptr);
         if (cmd > 0) {
             if (cmd == OPEN_EXPLORER) {
                 // Show in Explorer action
@@ -163,7 +159,8 @@ QString FileBrowser::fileHistoryDBPath() const
     return cacheDir().absoluteFilePath("filehistory.db");
 }
 
-void FileBrowser::showFileContextMenu(const QString &filePath)
+void FileBrowser::showFileContextMenu(const QPoint &p
+                                      , const QString &filePath)
 {
     if (!QFileInfo::exists(filePath))
         return;
@@ -171,6 +168,6 @@ void FileBrowser::showFileContextMenu(const QString &filePath)
     const QString nativePath = QDir::toNativeSeparators(filePath);
     auto id = (HWND)m_window->winId();
 
-    showContextMenu(id, nativePath.toStdWString());
+    showContextMenu(id, p, nativePath.toStdWString());
 }
 

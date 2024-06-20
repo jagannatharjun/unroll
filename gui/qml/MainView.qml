@@ -55,8 +55,8 @@ SplitView {
             splitView.actionAtIndex(row, col)
         }
 
-        onRightClicked: function (model) {
-            FileBrowser.showFileContextMenu(model.path)
+        onRightClicked: function (pos, model) {
+            FileBrowser.showFileContextMenu(pos, model.path)
         }
     }
 

@@ -21,7 +21,7 @@ Pane {
 
     signal actionAtIndex(int row, int column)
 
-    signal rightClicked(var model)
+    signal rightClicked(var pos, var model)
 
     signal _columnWidthChanged
 
@@ -241,7 +241,7 @@ Pane {
 
             TapHandler {
                 acceptedButtons: Qt.RightButton
-                onTapped: root.rightClicked(model)
+                onTapped: eventPoint => root.rightClicked(eventPoint.globalPosition, model)
             }
 
             HResizeHandle {

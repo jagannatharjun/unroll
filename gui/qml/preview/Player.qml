@@ -33,24 +33,36 @@ FocusScope {
         _progressRestored = true
     }
 
-    function _changeSubtitleTrack() {
-        const tracks = player.subtitleTracks
-        const next = player.activeSubtitleTrack + 1
+    function _changeTrack(tracks, activeTrackIndex, type) {
+        const next = activeTrackIndex + 1
         if (next === tracks.length) {
-            player.activeSubtitleTrack = - 1
-            statusLabel.showStatus("Subtitle track: Disable")
+            return {
+                newIndex: -1,
+                status: `${type} track: Disable`
+            }
         } else {
-            player.activeSubtitleTrack = next
-
             const track = tracks[next]
-            const text = track.stringValue(6) // Language
-            if (!text)
-                text = track.stringValue(0) // Title
-            if (!text)
-                text = "Track %1".arg(next + 1)
+            let text = track.stringValue(6) // Language
+            if (!text) text = track.stringValue(0) // Title
+            if (!text) text = `Track ${next + 1}`
 
-            statusLabel.showStatus("Subtitle track: %1".arg(text))
+            return {
+                newIndex: next,
+                status: `${type} track: ${text}`
+            }
         }
+    }
+
+    function _changeSubtitleTrack() {
+        const result = _changeTrack(player.subtitleTracks, player.activeSubtitleTrack, "Subtitle")
+        player.activeSubtitleTrack = result.newIndex
+        statusLabel.showStatus(result.status)
+    }
+
+    function _changeAudioTrack() {
+        const result = _changeTrack(player.audioTracks, player.activeAudioTrack, "Audio")
+        player.activeAudioTrack = result.newIndex
+        statusLabel.showStatus(result.status)
     }
 
     onPreviewdataChanged: {
@@ -340,6 +352,10 @@ FocusScope {
 
         case Qt.Key_V:
             root._changeSubtitleTrack()
+            break;
+
+        case Qt.Key_B:
+            root._changeAudioTrack()
             break;
         }
     }

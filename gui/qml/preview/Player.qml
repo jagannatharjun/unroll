@@ -180,7 +180,7 @@ FocusScope {
                         }
 
                         if (jump !== 0 && (event.modifiers & Qt.ShiftModifier)) {
-                            jump *= 2
+                            jump *= 3
                         }
 
                         if (jump !== 0) {

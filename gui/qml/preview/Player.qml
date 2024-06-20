@@ -292,6 +292,7 @@ FocusScope {
 
                     Connections {
                         target: audioOutput
+
                         function onVolumeChanged() {
                             const v = Math.trunc(audioOutput.volume * volSlider.to)
                             if (v !== volSlider.value) {
@@ -375,8 +376,6 @@ FocusScope {
 
         visible: opacity > 0
 
-        opacity: 0
-
         function showStatus(txt) {
             lbl.text = txt
 
@@ -384,10 +383,11 @@ FocusScope {
             visibleTimer.restart()
         }
 
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 400
-            }
+        OpacityAnimator {
+            id: oAnim
+
+            target: lbl
+            duration: 400
         }
 
         Timer {
@@ -395,7 +395,10 @@ FocusScope {
 
             interval: 1600
 
-            onTriggered: lbl.opacity = 0
+            onTriggered: {
+                oAnim.to = 0
+                oAnim.start()
+            }
         }
     }
 

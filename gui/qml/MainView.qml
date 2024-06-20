@@ -16,11 +16,15 @@ SplitView {
 
     property alias previewProgress: previewView.progress
 
+    property bool _showTableView: false
+
     property var progress
 
     signal actionAtIndex(int row, int column)
 
     signal previewCompleted
+
+    focus: true
 
     Component.onCompleted: {
         splitView.restoreState(Preferences.mainSplitviewState())
@@ -44,6 +48,8 @@ SplitView {
         SplitView.minimumWidth: 200
 
         focus: true
+
+        visible: splitView._showTableView || (previewdata?.fileType() ?? PreviewData.Unknown) === PreviewData.Unknown
 
         onActionAtIndex: function (row, col) {
             splitView.actionAtIndex(row, col)
@@ -107,6 +113,11 @@ SplitView {
                 previewView.forceActiveFocus(Qt.TabFocusReason)
                 event.accepted = true
                 break
+
+            case Qt.Key_F1:
+                splitView._showTableView = !splitView._showTableView
+                event.accepted = true
+                break;
         }
     }
 }

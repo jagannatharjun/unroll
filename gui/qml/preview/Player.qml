@@ -41,12 +41,15 @@ FocusScope {
     function toogleState() {
         var playbackState = player.playbackState
 
-        if (playbackState == MediaPlayer.PlayingState)
+        switch (playbackState) {
+        case MediaPlayer.PlayingState:
             player.pause()
-        else if (playbackState === MediaPlayer.PausedState)
-            player.play()
-        else if (playbackState === MediaPlayer.StoppedState)
-            player.play()
+            break;
+        case MediaPlayer.PausedState:
+        case MediaPlayer.StoppedState:
+            player.play();
+            break;
+        }
     }
 
     function millisecondsToReadable(ms) {
@@ -201,7 +204,7 @@ FocusScope {
                     icon.source: {
                         if (audioOutput.muted)
                             return "qrc:/resources/speaker_off.svg"
-                        if (audioOutput.volume == 0)
+                        if (audioOutput.volume === 0)
                             return "qrc:/resources/speaker_0.svg"
                         if (audioOutput.volume < .5)
                             return "qrc:/resources/speaker_1.svg"
@@ -228,7 +231,7 @@ FocusScope {
                         target: audioOutput
                         function onVolumeChanged() {
                             const v = Math.trunc(audioOutput.volume * volSlider.to)
-                            if (v != volSlider.value) {
+                            if (v !== volSlider.value) {
                                 volSlider.value = v
                             }
                         }
@@ -243,7 +246,7 @@ FocusScope {
     }
 
     Keys.onPressed: function (event) {
-        if (event.key == Qt.Key_R) {
+        if (event.key === Qt.Key_R) {
             videoRotation = (videoRotation + 90) % 360
             statusLabel.showStatus("Rotation %1°".arg(videoRotation))
         }
@@ -269,12 +272,12 @@ FocusScope {
                 duration: 400
 
                 onStarted: {
-                    if (to == 1)
+                    if (to === 1)
                         lbl.visible = true
                 }
 
                 onFinished: {
-                    if (lbl.opacity == 0)
+                    if (lbl.opacity === 0)
                         lbl.visible = false
                 }
             }

@@ -275,11 +275,12 @@ FocusScope {
 
     Component.onCompleted: player.play()
 
-
     component StatusLabel : Label {
         id: lbl
 
         font.pixelSize: 32
+
+        visible: opacity > 0
 
         function showStatus(txt) {
             lbl.text = txt
@@ -289,18 +290,8 @@ FocusScope {
         }
 
         Behavior on opacity {
-            OpacityAnimator {
+            NumberAnimation {
                 duration: 400
-
-                onStarted: {
-                    if (to === 1)
-                        lbl.visible = true
-                }
-
-                onFinished: {
-                    if (lbl.opacity === 0)
-                        lbl.visible = false
-                }
             }
         }
 

@@ -307,6 +307,16 @@ FocusScope {
 
             event.accepted = true
             break;
+
+        case Qt.Key_Up:
+        case Qt.Key_Down:
+            if (event.key === Qt.Key_Up)
+                volSlider.increase()
+            else
+                volSlider.decrease()
+
+            event.accepted = true
+            break;
         }
     }
 

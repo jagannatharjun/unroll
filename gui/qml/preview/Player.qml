@@ -284,6 +284,7 @@ FocusScope {
                     id: volSlider
 
                     property bool _showStatus: false
+                    property bool _inhibitValueUpdate: false
 
                     from: 0
                     to: 100
@@ -295,7 +296,13 @@ FocusScope {
                     Layout.preferredWidth: 70
 
                     onValueChanged: {
-                        const v = value / to
+                        const f = (value * 100) / to
+                        const s = volSlider.stepSize
+
+                        // Calculate the value ensuring it's a multiple of stepSize
+                        const v = ((Math.round(f / s) * s) / 100).toFixed(2)
+
+                        _inhibitValueUpdate = true
                         audioOutput.volume = v
 
                         if (_showStatus)
@@ -308,9 +315,13 @@ FocusScope {
                         function onVolumeChanged() {
                             const v = Math.trunc(audioOutput.volume * volSlider.to)
                             if (v !== volSlider.value) {
+                                volSlider._inhibitValueUpdate = true
                                 volSlider._showStatus = false
+
                                 volSlider.value = v
+
                                 volSlider._showStatus = true
+                                volSlider._inhibitValueUpdate = false
                             }
                         }
                     }

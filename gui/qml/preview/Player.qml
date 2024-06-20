@@ -14,6 +14,8 @@ FocusScope {
 
     property bool _progressRestored: false
 
+    property int _positionRounded: Math.floor(player.position / 1000) * 1000
+
     signal previewCompleted()
 
     function progress() {
@@ -169,7 +171,7 @@ FocusScope {
                 }
 
                 Label {
-                    text: millisecondsToReadable(player.position)
+                    text: millisecondsToReadable(root._positionRounded)
                 }
 
                 Slider {

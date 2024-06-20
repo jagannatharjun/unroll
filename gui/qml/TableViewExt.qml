@@ -303,8 +303,8 @@ Pane {
             bottom: parent.bottom
         }
 
-        width: 2
-        color: palette.mid
+        width: 1
+        color: palette.midlight
     }
 
     component HorizontalBorder: Rectangle {
@@ -314,7 +314,7 @@ Pane {
             bottom: parent.bottom
         }
 
-        height: 2
-        color: palette.mid
+        height: 1
+        color: palette.midlight
     }
 }

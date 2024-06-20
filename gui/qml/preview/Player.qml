@@ -149,6 +149,18 @@ FocusScope {
 
             root.forceActiveFocus(Qt.MouseFocusReason)
         }
+
+        onWheel: function (wheel)  {
+            if (wheel.angleDelta.y === 0)
+                return
+
+            const y = wheel.angleDelta.y
+            const steps = Math.abs(y) / 120
+            const delta = steps * volSlider.stepSize * (y > 0 ? 1 : -1) * (wheel.inverted ? - 1 : 1)
+
+            volSlider._showStatus = true
+            volSlider.value += delta
+        }
     }
 
     ColumnLayout {

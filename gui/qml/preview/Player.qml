@@ -415,10 +415,13 @@ FocusScope {
             }
 
             z: -1
+            width: parent.width
+            height: parent.width
             color: "black"
             opacity: .45
             text: lbl.text
             font: lbl.font
+            elide: lbl.elide
         }
 
         function showStatus(txt) {

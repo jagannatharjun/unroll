@@ -135,7 +135,7 @@ FocusScope {
             }
         }
 
-        onPlayingChanged: {
+        onMetaDataChanged: {
             const TitleIdx = 0
             const title = metaData.stringValue(TitleIdx)
             if (!!title)

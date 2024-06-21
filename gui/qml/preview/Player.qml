@@ -1,3 +1,4 @@
+import QtQml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -140,6 +141,21 @@ FocusScope {
             const title = metaData.stringValue(TitleIdx)
             if (!!title)
                 fileLabel.showStatus(title)
+        }
+
+        onSubtitleTracksChanged: {
+            if (activeSubtitleTrack !== -1)
+                return
+
+            const subtitles = player.subtitleTracks
+            for (var i in subtitles) {
+                const track = subtitles[i]
+                if (track.value(6) === Locale.English) {
+                    activeSubtitleTrack = i
+                    statusLabel.showStatus("Subtitle track: %1"
+                                           .arg(track.stringValue(6)))
+                }
+            }
         }
     }
 

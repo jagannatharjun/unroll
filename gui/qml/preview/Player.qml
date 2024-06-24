@@ -121,7 +121,7 @@ FocusScope {
         audioOutput: AudioOutput {
             id: audioOutput
 
-            volume: 1 - Math.exp(-root.volume / 100. * 4.60517018599 /*LOG 10*/)
+            volume:  - Math.log(1 - (root.volume / 100.)) / 4.60517018599 /*LOG 100*/
         }
 
         onMediaStatusChanged: {

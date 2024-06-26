@@ -50,6 +50,8 @@ class Preferences : public QObject
     Q_PROPERTY(QStringList recentUrls READ recentUrls NOTIFY recentUrlsChanged FINAL)
     Q_PROPERTY(QString lastSessionUrl READ lastSessionUrl WRITE setLastSessionUrl NOTIFY lastSessionUrlChanged FINAL)
     Q_PROPERTY(int videoRotation READ videoRotation WRITE setVideoRotation NOTIFY videoRotationChanged FINAL)
+    Q_PROPERTY(bool showMainFileView READ showMainFileView WRITE setShowMainFileView NOTIFY showMainFileViewChanged FINAL)
+
 
 public:
     using URLIdxList = QHash<QString, QVector<int>>;
@@ -79,6 +81,9 @@ public:
     int videoRotation() const;
     void setVideoRotation(int newVideoRotation);
 
+    bool showMainFileView() const;
+    void setShowMainFileView(bool newShowMainFileView);
+
 signals:
     void volumeMutedChanged();
 
@@ -92,11 +97,14 @@ signals:
 
     void videoRotationChanged();
 
+    void showMainFileViewChanged();
+
 private:
     QSettings m_setting;
     SettingEntry<bool> m_volumeMuted;
     SettingEntry<qreal> m_volume;
     SettingEntry<QByteArray> m_mainSplitViewState;
+    SettingEntry<bool> m_showMainFileView;
     SettingEntry<QStringList> m_recentUrls;
     SettingEntry<QString> m_lastSessionUrl;
     SettingEntry<URLIdxList> m_urlLastIndexList;

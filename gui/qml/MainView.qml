@@ -16,7 +16,8 @@ SplitView {
 
     property alias previewProgress: previewView.progress
 
-    property bool _showTableView: false
+    property bool _showTableView: Preferences.showMainFileView
+    on_ShowTableViewChanged: Preferences.showMainFileView = _showTableView
 
     property var progress
 

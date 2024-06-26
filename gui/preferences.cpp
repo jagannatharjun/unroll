@@ -6,6 +6,7 @@ namespace
 const QString VOLUME_MUTE_KEY = "Player/VolumeMute";
 const QString VOLUME_KEY = "Player/Volume";
 const QString MAIN_SPLITVIEW_STATE = "MainView/SplitviewState";
+const QString SHOW_MAIN_FILEVIEW = "MainView/ShowFileView";
 const QString RECENT_URLS = "RECENT_URLS";
 const QString LAST_SESSION_INDEX = "MainView/LAST_SESSION_INDEX";
 const QString LAST_SESSION_URL = "MainView/LAST_SESSION_URL";
@@ -26,6 +27,7 @@ Preferences::Preferences(QObject *parent)
     , m_volumeMuted (VOLUME_MUTE_KEY, false, m_setting)
     , m_volume (VOLUME_KEY, .5, m_setting)
     , m_mainSplitViewState (MAIN_SPLITVIEW_STATE, {}, m_setting)
+    , m_showMainFileView (SHOW_MAIN_FILEVIEW, {}, m_setting)
     , m_recentUrls(RECENT_URLS, {}, m_setting)
     , m_lastSessionUrl(LAST_SESSION_URL, {}, m_setting)
     , m_urlLastIndexList(URL_LAST_INDEX_LIST, {}, m_setting)
@@ -129,4 +131,18 @@ void Preferences::setVideoRotation(int newVideoRotation)
 
     m_videoRotation.set(newVideoRotation, m_setting);
     emit videoRotationChanged();
+}
+
+bool Preferences::showMainFileView() const
+{
+    return m_showMainFileView;
+}
+
+void Preferences::setShowMainFileView(bool newShowMainFileView)
+{
+    if (m_showMainFileView == newShowMainFileView)
+        return;
+
+    m_showMainFileView.set(newShowMainFileView, m_setting);
+    emit showMainFileViewChanged();
 }

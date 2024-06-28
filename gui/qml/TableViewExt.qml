@@ -263,7 +263,7 @@ Pane {
                 height: 10
 
                 color: "#FF610A"
-                visible: model.showNewIndicator
+                visible: (column == 0) && (model.showNewIndicator ?? false)
             }
         }
 

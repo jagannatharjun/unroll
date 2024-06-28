@@ -54,8 +54,9 @@ public:
     void SETTER(QPersistentModelIndex idx, const QString &mrl, TYPE value) \
     { \
         m_db->SETTER(mrl, value); \
+        QList<int> r{ROLE, DirectorySystemModel::ShowNewIndicatorRole}; \
         m_data[mrl].MEMBER = value; \
-        m_cb(idx, {ROLE}); \
+        m_cb(idx, r); \
     }
 
     DBHandler_IMPL(bool, seen, setSeen
@@ -76,11 +77,9 @@ public:
             return false;
         }
 
-        if (!itr->previewed
-                || !itr->progress)
-            return true;
-
-        return !itr->previewed.value() && itr->progress.value() < 0.05;
+        return !itr->seen.value_or(false)
+                && !itr->previewed.value_or(false)
+                && (itr->progress.value_or(0.0) < 0.02);
     }
 
 private:
@@ -97,7 +96,8 @@ private:
             m_data[mrl] = data;
 
             // only notify if something was changed, QML views doesn't like us otherwise
-            QList<int> changed;
+            QList<int> changed({DirectorySystemModel::ShowNewIndicatorRole});
+
             if (data.seen)
                 changed.push_back(DirectorySystemModel::SeenRole);
 
@@ -106,9 +106,6 @@ private:
 
             if (data.previewed)
                 changed.push_back(DirectorySystemModel::PreviewedRole);
-
-            if (data.progress && data.previewed)
-                changed.push_back(DirectorySystemModel::ShowNewIndicatorRole);
 
             if (changed.empty())
                 return;
@@ -233,13 +230,24 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
     case IsDirRole:
         return m_dir->isDir(r);
     case SeenRole:
-        return m_dbHandler->seen(QPersistentModelIndex(index), m_dir->filePath(r));
     case ProgressRole:
-        return m_dbHandler->progress(QPersistentModelIndex(index), m_dir->filePath(r));
     case PreviewedRole:
-        return m_dbHandler->previewed(QPersistentModelIndex(index), m_dir->filePath(r));
     case ShowNewIndicatorRole:
-        return m_dbHandler->showNewIndicator(QPersistentModelIndex(index), m_dir->filePath(r));
+    {
+        if (m_dir->isDir(r))
+            return {};
+        switch (role)
+        {
+        case SeenRole:
+            return m_dbHandler->seen(QPersistentModelIndex(index), m_dir->filePath(r));
+        case ProgressRole:
+            return m_dbHandler->progress(QPersistentModelIndex(index), m_dir->filePath(r));
+        case PreviewedRole:
+            return m_dbHandler->previewed(QPersistentModelIndex(index), m_dir->filePath(r));
+        case ShowNewIndicatorRole:
+            return m_dbHandler->showNewIndicator(QPersistentModelIndex(index), m_dir->filePath(r));
+        }
+    }
     }
 
     return {};

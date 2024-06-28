@@ -125,6 +125,10 @@ FocusScope {
         onTriggered: root.previewed()
     }
 
+    MediaDevices {
+        id: devices
+    }
+
     MediaPlayer {
         id: player
 
@@ -134,6 +138,8 @@ FocusScope {
 
         audioOutput: AudioOutput {
             id: audioOutput
+
+            device: devices.defaultAudioOutput
 
             volume:  - Math.log(1 - (root.volume / 100.)) / 4.60517018599 /*LOG 100*/
         }

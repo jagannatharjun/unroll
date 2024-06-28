@@ -5,6 +5,8 @@
 #include <QFuture>
 #include <QSqlDatabase>
 
+#include "filehistorydb.hpp"
+
 
 class FileHistoryDBWorker : public QObject
 {
@@ -15,6 +17,8 @@ public:
 
 public slots:
     void open(const QString &db);
+
+    void read(QPromise<FileHistoryDB::Data> &result, const QString &mrl);
 
     void seen(QPromise<bool> &result, const QString &mrl);
     void setSeen(const QString &mrl, bool seen);

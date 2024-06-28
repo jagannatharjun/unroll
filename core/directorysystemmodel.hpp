@@ -21,6 +21,7 @@ public:
         SeenRole,
         ProgressRole,
         PreviewedRole,
+        ShowNewIndicatorRole,
 
         // Meta Roles
         DataRole

@@ -257,6 +257,14 @@ Pane {
             HorizontalBorder {
                 palette: delegate.palette
             }
+
+            Triangle {
+                width: 10
+                height: 10
+
+                color: "#FF610A"
+                visible: model.showNewIndicator
+            }
         }
 
         Keys.onPressed: function (event) {
@@ -314,5 +322,30 @@ Pane {
 
         height: 1
         color: palette.midlight
+    }
+
+    component Triangle : Item {
+        id : tri
+
+        clip : true
+
+        // The index of corner for the triangle to be attached
+        property int corner : 0;
+        property alias color : rect.color
+
+        Rectangle {
+            id : rect
+
+            x : tri.width * ((tri.corner+1) % 4 < 2 ? 0 : 1) - width / 2
+            y : tri.height * (tri.corner    % 4 < 2 ? 0 : 1) - height / 2
+
+            color : "red"
+            antialiasing: true
+            width : Math.min(tri.width, tri.height)
+            height : width
+            transformOrigin: Item.Center
+            rotation : 45
+            scale : 1.414
+        }
     }
 }

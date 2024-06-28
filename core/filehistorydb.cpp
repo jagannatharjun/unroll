@@ -105,6 +105,17 @@ void insert(std::unique_ptr<QSqlDatabase> &db
     }
 }
 
+
+template <typename Result>
+std::optional<Result> get(QSqlQuery &q, int index)
+{
+    const QVariant val = q.value(index);
+    if (!val.canConvert<Result>())
+        return std::nullopt;
+
+    return val.value<Result>();
+}
+
 }
 
 FileHistoryDB::FileHistoryDB(const QString &source
@@ -127,6 +138,11 @@ FileHistoryDB::~FileHistoryDB()
 
     m_workerThread.quit();
     m_workerThread.wait();
+}
+
+QFuture<FileHistoryDB::Data> FileHistoryDB::read(const QString &mrl)
+{
+    return invokeWorker<Data>(m_worker, &FileHistoryDBWorker::read, mrl);
 }
 
 
@@ -154,6 +170,45 @@ void FileHistoryDBWorker::open(const QString &db)
         qFatal() << "failed to execute query" << q.lastError();
         return;
     }
+}
+
+void FileHistoryDBWorker::read(QPromise<FileHistoryDB::Data> &result, const QString &mrl)
+{
+    if (!m_db || !m_db->isOpen())
+    {
+        qFatal("Database is not open");
+        return;
+    }
+
+    const auto reportError = [&](const QString error)
+    {
+        qFatal("failed to read for '%s' - error '%s'"
+               , qUtf8Printable(mrl)
+               , qUtf8Printable(error));
+    };
+
+
+    QSqlQuery query(*m_db);
+    query.prepare("SELECT SEEN, PROGRESS, PREVIEWED FROM files WHERE MRL = :mrl");
+    query.bindValue(":mrl", mrl);
+
+    if (!query.exec())
+    {
+        reportError(query.lastError().text());
+        return;
+    }
+
+    FileHistoryDB::Data data;
+    if (query.next())
+    {
+        data.seen = get<bool>(query, 0);
+        data.progress = get<double>(query, 1);
+        data.previewed = get<bool>(query, 2);
+    }
+
+    result.start();
+    result.addResult(std::move(data));
+    result.finish();
 }
 
 

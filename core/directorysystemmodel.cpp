@@ -28,7 +28,7 @@ QString formatDateTime(const QDateTime &t)
 class DirectorySystemModel::DBHandler
 {
 public:
-    using UpdateCB = std::function<void(QPersistentModelIndex idx, int role)>;
+    using UpdateCB = std::function<void(QPersistentModelIndex idx, QList<int> role)>;
 
     DBHandler(DirectorySystemModel *parent
               , std::shared_ptr<FileHistoryDB> db
@@ -45,23 +45,17 @@ public:
     TYPE MEMBER(QPersistentModelIndex idx, const QString &mrl) \
     { \
         auto itr = m_data.find(mrl); \
-        if (itr == m_data.end() || !itr->MEMBER) \
+        if (itr == m_data.end()) \
         { \
-            m_db->MEMBER(mrl).then(m_parent, [this, idx, mrl](TYPE value) \
-            { \
-                if (!idx.isValid()) \
-                    return; \
-                m_data[mrl].MEMBER = value; \
-                m_cb(idx, ROLE); \
-            }); \
+            read(idx, mrl); \
         } \
-        return itr != m_data.end() ? itr->MEMBER.value() : DEFAULT; \
+        return itr != m_data.end() && itr-> MEMBER.has_value() ? itr->MEMBER.value() : DEFAULT; \
     } \
     void SETTER(QPersistentModelIndex idx, const QString &mrl, TYPE value) \
     { \
         m_db->SETTER(mrl, value); \
         m_data[mrl].MEMBER = value; \
-        m_cb(idx, ROLE); \
+        m_cb(idx, {ROLE}); \
     }
 
     DBHandler_IMPL(bool, seen, setSeen
@@ -73,18 +67,61 @@ public:
     DBHandler_IMPL(bool, previewed, setPreviewed
                    , DirectorySystemModel::PreviewedRole, false)
 
-private:
-    struct DataDB
+    bool showNewIndicator(QPersistentModelIndex idx, const QString &mrl)
     {
-        std::optional<bool> seen;
-        std::optional<double> progress;
-        std::optional<bool> previewed;
-    };
+        auto itr = m_data.find(mrl);
+        if (itr == m_data.end())
+        {
+            read(idx, mrl);
+            return false;
+        }
+
+        if (!itr->previewed
+                || !itr->progress)
+            return true;
+
+        return !itr->previewed.value() && itr->progress.value() < 0.05;
+    }
+
+private:
+    void read(const QPersistentModelIndex &idx, const QString &mrl)
+    {
+        if (m_reading.contains(mrl)) return;
+
+        m_reading.insert(mrl);
+        m_db->read(mrl).then(m_parent, [this, mrl, idx](const FileHistoryDB::Data &data)
+        {
+            m_reading.remove(mrl);
+            if (!idx.isValid()) return;
+
+            m_data[mrl] = data;
+
+            // only notify if something was changed, QML views doesn't like us otherwise
+            QList<int> changed;
+            if (data.seen)
+                changed.push_back(DirectorySystemModel::SeenRole);
+
+            if (data.progress)
+                changed.push_back(DirectorySystemModel::ProgressRole);
+
+            if (data.previewed)
+                changed.push_back(DirectorySystemModel::PreviewedRole);
+
+            if (data.progress && data.previewed)
+                changed.push_back(DirectorySystemModel::ShowNewIndicatorRole);
+
+            if (changed.empty())
+                return;
+
+            m_cb(idx, changed);
+        });
+    }
 
     DirectorySystemModel *m_parent;
     std::shared_ptr<FileHistoryDB> m_db;
     UpdateCB m_cb;
-    QHash<QString, DataDB> m_data;
+    QHash<QString, FileHistoryDB::Data> m_data;
+    QSet<QString> m_reading;
 };
 
 DirectorySystemModel::DirectorySystemModel(QObject *parent)
@@ -201,6 +238,8 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
         return m_dbHandler->progress(QPersistentModelIndex(index), m_dir->filePath(r));
     case PreviewedRole:
         return m_dbHandler->previewed(QPersistentModelIndex(index), m_dir->filePath(r));
+    case ShowNewIndicatorRole:
+        return m_dbHandler->showNewIndicator(QPersistentModelIndex(index), m_dir->filePath(r));
     }
 
     return {};
@@ -277,7 +316,8 @@ QHash<int, QByteArray> DirectorySystemModel::roleNames() const
         {IconIDRole, "iconId"},
         {SeenRole, "seen"},
         {ProgressRole, "progress"},
-        {PreviewedRole, "previewed"}
+        {PreviewedRole, "previewed"},
+        {ShowNewIndicatorRole, "showNewIndicator"}
     };
 }
 
@@ -288,9 +328,10 @@ std::shared_ptr<FileHistoryDB> DirectorySystemModel::fileHistoryDB() const
 
 void DirectorySystemModel::setFileHistoryDB(const std::shared_ptr<FileHistoryDB> &newHistoryDB)
 {
-    const auto updateHandler = [this](const QPersistentModelIndex &idx, int role)
+    const auto updateHandler = [this](const QPersistentModelIndex &idx, QList<int> role)
     {
-        emit dataChanged(index(idx.row(), 0), index(idx.row(), ColumnCount - 1), {role});
+        emit dataChanged(index(idx.row(), 0)
+                         , index(idx.row(), ColumnCount - 1), role);
     };
 
     m_dbHandler.reset(new DBHandler(this, newHistoryDB, updateHandler));

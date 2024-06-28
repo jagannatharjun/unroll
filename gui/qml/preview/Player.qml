@@ -25,14 +25,16 @@ FocusScope {
     signal previewed()
 
     function progress() {
-        return player.position
+        return player.position / player.duration
     }
 
     function _restoreProgress() {
         if (_progressRestored)
             return;
 
-        const position = (previewdata?.progress() ?? 0)
+        let position = (previewdata?.progress() ?? 0)
+        if (position > 0 && position < 1)
+            position = player.duration * position
         if (position !== player.duration)
             player.position = position
 

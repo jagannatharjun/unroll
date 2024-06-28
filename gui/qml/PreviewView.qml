@@ -12,6 +12,8 @@ Loader {
 
     signal previewCompleted()
 
+    signal previewed()
+
     asynchronous: true
 
     onPreviewdataChanged:  {
@@ -61,6 +63,8 @@ Loader {
             }
 
             onPreviewCompleted: root.previewCompleted()
+
+            onPreviewed: root.previewed()
         }
     }
 
@@ -70,7 +74,11 @@ Loader {
         Preview.ImagePreview {
             previewdata: root.previewdata
 
-            onPreviewCompleted: root.previewCompleted()
+            onPreviewCompleted: {
+                root.previewCompleted()
+
+                root.previewed()
+            }
         }
     }
 }

@@ -15,11 +15,14 @@ public:
 
     ~FileHistoryDB();
 
-    QFuture<bool> isSeen(const QString &mrl);
-    void setIsSeen(const QString &mrl, const bool seen);
+    QFuture<bool> seen(const QString &mrl);
+    void setSeen(const QString &mrl, const bool seen);
 
     QFuture<double> progress(const QString &mrl);
     void setProgress(const QString &mrl, const double progress);
+
+    QFuture<bool> previewed(const QString &mrl);
+    void setPreviewed(const QString &mrl, const bool previewed);
 
 private:
     QThread m_workerThread;

@@ -25,6 +25,8 @@ SplitView {
 
     signal previewCompleted
 
+    signal previewed
+
     focus: true
 
     Component.onCompleted: {
@@ -73,6 +75,8 @@ SplitView {
             anchors.fill: parent
 
             onPreviewCompleted: splitView.previewCompleted()
+
+            onPreviewed: splitView.previewed()
         }
     }
 

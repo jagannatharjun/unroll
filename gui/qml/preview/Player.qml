@@ -22,6 +22,8 @@ FocusScope {
 
     signal previewCompleted()
 
+    signal previewed()
+
     function progress() {
         return player.position
     }
@@ -73,6 +75,8 @@ FocusScope {
         _progressRestored = false
 
         player.source = previewdata.readUrl()
+
+        previewTimer.restart()
     }
 
     focus: true
@@ -109,6 +113,14 @@ FocusScope {
         }
 
         return formattedTime
+    }
+
+    Timer {
+        id: previewTimer
+
+        interval: 5000
+
+        onTriggered: root.previewed()
     }
 
     MediaPlayer {
@@ -478,5 +490,4 @@ FocusScope {
             }
         }
     }
-
 }

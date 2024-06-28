@@ -41,63 +41,44 @@ public:
 
     auto db() const { return m_db; }
 
-    bool isSeen(QPersistentModelIndex idx, const QString &mrl)
-    {
-        auto itr = m_data.find(mrl);
-        if (itr == m_data.end() || !itr->seen)
-        {
-            m_db->isSeen(mrl).then(m_parent, [this, idx, mrl](bool seen)
-            {
-                if (!idx.isValid())
-                    return;
-
-                m_data[mrl].seen = seen;
-                m_cb(idx, DirectorySystemModel::SeenRole);
-            });
-        }
-
-        return itr != m_data.end() ? itr->seen.value() : false;
+#define DBHandler_IMPL(TYPE, MEMBER, SETTER, ROLE, DEFAULT) \
+    TYPE MEMBER(QPersistentModelIndex idx, const QString &mrl) \
+    { \
+        auto itr = m_data.find(mrl); \
+        if (itr == m_data.end() || !itr->MEMBER) \
+        { \
+            m_db->MEMBER(mrl).then(m_parent, [this, idx, mrl](TYPE value) \
+            { \
+                if (!idx.isValid()) \
+                    return; \
+                m_data[mrl].MEMBER = value; \
+                m_cb(idx, ROLE); \
+            }); \
+        } \
+        return itr != m_data.end() ? itr->MEMBER.value() : DEFAULT; \
+    } \
+    void SETTER(QPersistentModelIndex idx, const QString &mrl, TYPE value) \
+    { \
+        m_db->SETTER(mrl, value); \
+        m_data[mrl].MEMBER = value; \
+        m_cb(idx, ROLE); \
     }
 
-    void setSeen(QPersistentModelIndex idx, const QString &mrl, bool seen)
-    {
-        m_db->setIsSeen(mrl, seen);
-        m_data[mrl].seen = seen;
+    DBHandler_IMPL(bool, seen, setSeen
+                   , DirectorySystemModel::SeenRole, false)
 
-        m_cb(idx, DirectorySystemModel::SeenRole);
-    }
+    DBHandler_IMPL(double, progress, setProgress
+                   , DirectorySystemModel::ProgressRole, 0)
 
-    double progress(QPersistentModelIndex idx, const QString &mrl)
-    {
-        auto itr = m_data.find(mrl);
-        if (itr == m_data.end() || !itr->seen)
-        {
-            m_db->progress(mrl).then(m_parent, [this, idx, mrl](double progress)
-            {
-                if (!idx.isValid())
-                    return;
-
-                m_data[mrl].progress = progress;
-                m_cb(idx, DirectorySystemModel::ProgressRole);
-            });
-        }
-
-        return itr != m_data.end() ? itr->progress.value() : 0.;
-    }
-
-    void setProgress(QPersistentModelIndex idx, const QString &mrl, double progress)
-    {
-        m_db->setProgress(mrl, progress);
-        m_data[mrl].progress = progress;
-
-        m_cb(idx, DirectorySystemModel::ProgressRole);
-    }
+    DBHandler_IMPL(bool, previewed, setPreviewed
+                   , DirectorySystemModel::PreviewedRole, false)
 
 private:
     struct DataDB
     {
         std::optional<bool> seen;
         std::optional<double> progress;
+        std::optional<bool> previewed;
     };
 
     DirectorySystemModel *m_parent;
@@ -215,9 +196,11 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
     case IsDirRole:
         return m_dir->isDir(r);
     case SeenRole:
-        return m_dbHandler->isSeen(QPersistentModelIndex(index), m_dir->filePath(r));
+        return m_dbHandler->seen(QPersistentModelIndex(index), m_dir->filePath(r));
     case ProgressRole:
         return m_dbHandler->progress(QPersistentModelIndex(index), m_dir->filePath(r));
+    case PreviewedRole:
+        return m_dbHandler->previewed(QPersistentModelIndex(index), m_dir->filePath(r));
     }
 
     return {};
@@ -247,6 +230,13 @@ bool DirectorySystemModel::setData(const QModelIndex &index, const QVariant &val
             return false;
 
         m_dbHandler->setProgress(index, m_dir->filePath(r), progress);
+    }
+    else if (role == PreviewedRole)
+    {
+        if (value.metaType() != QMetaType(QMetaType::Bool))
+            return false;
+
+        m_dbHandler->setPreviewed(index, m_dir->filePath(r), value.toBool());
     }
 
     return false;
@@ -286,7 +276,8 @@ QHash<int, QByteArray> DirectorySystemModel::roleNames() const
         {IsDirRole, "isdir"},
         {IconIDRole, "iconId"},
         {SeenRole, "seen"},
-        {ProgressRole, "progress"}
+        {ProgressRole, "progress"},
+        {PreviewedRole, "previewed"}
     };
 }
 

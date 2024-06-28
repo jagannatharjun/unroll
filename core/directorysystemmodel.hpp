@@ -20,6 +20,7 @@ public:
         IconIDRole,
         SeenRole,
         ProgressRole,
+        PreviewedRole,
 
         // Meta Roles
         DataRole

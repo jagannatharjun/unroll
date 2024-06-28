@@ -129,35 +129,11 @@ FileHistoryDB::~FileHistoryDB()
     m_workerThread.wait();
 }
 
-QFuture<bool> FileHistoryDB::isSeen(const QString &mrl)
-{
-    return invokeWorker<bool>(m_worker, &FileHistoryDBWorker::isSeen, mrl);
-}
-
-void FileHistoryDB::setIsSeen(const QString &mrl, const bool seen)
-{
-    bool s = QMetaObject::invokeMethod(m_worker, "setIsSeen"
-                              , Q_ARG(QString, mrl)
-                              , Q_ARG(bool, seen));
-    assert(s);
-}
-
-QFuture<double> FileHistoryDB::progress(const QString &mrl)
-{
-    return invokeWorker<double>(m_worker, &FileHistoryDBWorker::progress, mrl);
-}
-
-void FileHistoryDB::setProgress(const QString &mrl, const double progress)
-{
-    bool s = QMetaObject::invokeMethod(m_worker, "setProgress"
-                              , Q_ARG(QString, mrl)
-                              , Q_ARG(double, progress));
-    assert(s);
-}
 
 void FileHistoryDBWorker::open(const QString &db)
 {
-    m_db = std::unique_ptr<QSqlDatabase>(new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE")));
+    m_db = std::unique_ptr<QSqlDatabase>(
+                new QSqlDatabase(QSqlDatabase::addDatabase("QSQLITE")));
 
     m_db->setDatabaseName(db);
     if (!m_db->open())
@@ -169,7 +145,8 @@ void FileHistoryDBWorker::open(const QString &db)
     QSqlQuery q("CREATE TABLE IF NOT EXISTS files ("
                 "   MRL TEXT PRIMARY KEY,"
                 "   SEEN BOOL,"
-                "   PROGRESS DECIMAL"
+                "   PROGRESS DECIMAL,"
+                "   PREVIEWED BOOL"
                 ")", *m_db);
 
     if (!q.exec())
@@ -180,12 +157,25 @@ void FileHistoryDBWorker::open(const QString &db)
 }
 
 
-void FileHistoryDBWorker::isSeen(QPromise<bool> &result, const QString &mrl)
+#define FileHistoryDB_IMPL(type, getter, setter) \
+    QFuture<type> FileHistoryDB::getter(const QString &mrl) { \
+        return invokeWorker<type>(m_worker, &FileHistoryDBWorker:: getter, mrl);    \
+    } \
+    void FileHistoryDB::set ##setter(const QString &mrl, const type newValue) { \
+        QMetaObject::invokeMethod(m_worker, "set" #setter, Q_ARG(QString, mrl), Q_ARG(type, newValue)); \
+    }
+
+FileHistoryDB_IMPL(bool, seen, Seen)
+FileHistoryDB_IMPL(double, progress, Progress)
+FileHistoryDB_IMPL(bool, previewed, Previewed)
+
+
+void FileHistoryDBWorker::seen(QPromise<bool> &result, const QString &mrl)
 {
     select(result, m_db, "SEEN", mrl, false);
 }
 
-void FileHistoryDBWorker::setIsSeen(const QString &mrl, bool seen)
+void FileHistoryDBWorker::setSeen(const QString &mrl, bool seen)
 {
     insert(m_db, "SEEN", mrl, seen);
 }
@@ -198,4 +188,14 @@ void FileHistoryDBWorker::progress(QPromise<double> &result, const QString &mrl)
 void FileHistoryDBWorker::setProgress(const QString &mrl, double progress)
 {
     insert(m_db, "PROGRESS", mrl, progress);
+}
+
+void FileHistoryDBWorker::previewed(QPromise<bool> &result, const QString &mrl)
+{
+    select(result, m_db, "PREVIEWED", mrl, false);
+}
+
+void FileHistoryDBWorker::setPreviewed(const QString &mrl, const bool previewed)
+{
+    insert(m_db, "PREVIEWED", mrl, previewed);
 }

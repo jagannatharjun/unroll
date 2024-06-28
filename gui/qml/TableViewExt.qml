@@ -204,8 +204,6 @@ Pane {
             required property bool selected
             required property bool current
 
-
-
             text: model.display
 
             icon.cache: true

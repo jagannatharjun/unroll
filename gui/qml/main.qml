@@ -221,6 +221,10 @@ ApplicationWindow {
                     root.nextIndex(false)
             }
 
+            onPreviewed: {
+                controller.model.setData(selectionModel.currentIndex, true, DirectorySystemModel.PreviewedRole)
+            }
+
             Keys.onPressed: function (event) {
                 if (event.accepted)
                     return

@@ -178,33 +178,30 @@ void ViewController::setPreview(int row)
     // skip previous request
     const size_t requestID = ++m_previewRequest;
 
-    if (auto parent = m_dirModel->directory())
-    {
-        using FutureVariant = std::variant<QFuture<PreviewData>, QFuture<FileHistoryDB::Data>>;
-
-        QFuture<PreviewData> preview = QtConcurrent::run(
-                    &m_pool, getPreviewData, m_system, parent, directoryRow);
-
-        QFuture<FileHistoryDB::Data> data = m_historyDB->read(parent->filePath(directoryRow));
-
-        QtFuture::whenAll(preview, data)
-                .then(this
-                      , [this, requestID](const QList<FutureVariant> &results)
-        {
-            if (requestID != m_previewRequest)
-                return;
-
-            PreviewData preview = std::get<0>(results[0]).result();
-            FileHistoryDB::Data data = std::get<1>(results[1]).result();
-
-            preview.m_progress = data.progress.value_or(0);
-            emit showPreview(preview);
-        });
-    }
-    else
-    {
+    auto root = m_dirModel->directory();
+    if (!root)
         emit showPreview({});
-    }
+
+    using FutureVariant = std::variant<QFuture<PreviewData>, QFuture<FileHistoryDB::Data>>;
+
+    QFuture<PreviewData> preview = QtConcurrent::run(
+                &m_pool, getPreviewData, m_system, root, directoryRow);
+
+    QFuture<FileHistoryDB::Data> data = m_historyDB->read(root->filePath(directoryRow));
+
+    QtFuture::whenAll(preview, data)
+            .then(this
+                  , [this, requestID](const QList<FutureVariant> &results)
+    {
+        if (requestID != m_previewRequest)
+            return;
+
+        PreviewData preview = std::get<0>(results[0]).result();
+        FileHistoryDB::Data data = std::get<1>(results[1]).result();
+
+        preview.m_progress = data.progress.value_or(0);
+        emit showPreview(preview);
+    });
 }
 
 int ViewController::sourceRow(const int row)

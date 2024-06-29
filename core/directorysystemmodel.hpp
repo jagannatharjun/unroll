@@ -11,6 +11,8 @@ class DirectorySystemModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
+    using IconProviderFunctor = std::function<QString (Directory *, int)>;
+
     enum Roles
     {
         NameRole = Qt::UserRole + 1,
@@ -42,9 +44,6 @@ public:
     };
 
     explicit DirectorySystemModel(QObject *parent = nullptr);
-    ~DirectorySystemModel();
-
-    using IconProviderFunctor = std::function<QString (Directory *, int)>;
 
     void setDirectory(std::shared_ptr<Directory> dir);
     std::shared_ptr<Directory> directory();

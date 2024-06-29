@@ -126,11 +126,6 @@ DirectorySystemModel::DirectorySystemModel(QObject *parent)
 {
 }
 
-DirectorySystemModel::~DirectorySystemModel()
-{
-
-}
-
 void DirectorySystemModel::setDirectory(std::shared_ptr<Directory> dir)
 {
     beginResetModel();

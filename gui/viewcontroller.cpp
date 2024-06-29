@@ -175,10 +175,11 @@ void ViewController::setPreview(int row)
         return;
     }
 
+    // skip previous request
+    const size_t requestID = ++m_previewRequest;
+
     if (auto parent = m_dirModel->directory())
     {
-        const size_t requestID = ++m_previewRequest;
-
         using FutureVariant = std::variant<QFuture<PreviewData>, QFuture<FileHistoryDB::Data>>;
 
         QFuture<PreviewData> preview = QtConcurrent::run(

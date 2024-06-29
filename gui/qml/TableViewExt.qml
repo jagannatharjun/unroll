@@ -259,8 +259,8 @@ Pane {
             }
 
             Triangle {
-                width: 10
-                height: 10
+                width: 8
+                height: 8
 
                 color: "#FF610A"
                 visible: (column == 0) && (model.showNewIndicator ?? false)
@@ -346,6 +346,8 @@ Pane {
             transformOrigin: Item.Center
             rotation : 45
             scale : 1.414
+
+            radius: 3
         }
     }
 }

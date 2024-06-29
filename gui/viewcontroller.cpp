@@ -134,7 +134,7 @@ void ViewController::setPreview(int row)
         // some directory system may have custom urls, so you can't directly use fileUrl here
         const QString path = dir->filePath(child);
         const auto mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(path)).name();
-        auto progressFuture = db->progress(path);
+        auto dbData = db->read(path);
 
         PreviewData::FileType filetype = PreviewData::Unknown;
         const auto types =
@@ -166,8 +166,9 @@ void ViewController::setPreview(int row)
             return {nullptr, PreviewData::Unknown, 1};
         }
 
-        progressFuture.waitForFinished();
-        const double progress = progressFuture.isValid() ? progressFuture.result() : 0;
+        dbData.waitForFinished();
+        const double progress = dbData.isValid()
+                ? dbData.result().progress.value_or(0.) : 0;
 
         return PreviewData(std::move(io), filetype, progress);
     };

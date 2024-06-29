@@ -20,13 +20,10 @@ public slots:
 
     void read(QPromise<FileHistoryDB::Data> &result, const QString &mrl);
 
-    void seen(QPromise<bool> &result, const QString &mrl);
     void setSeen(const QString &mrl, bool seen);
 
-    void progress(QPromise<double> &result, const QString &mrl);
     void setProgress(const QString &mrl, double progress);
 
-    void previewed(QPromise<bool> &result, const QString &mrl);
     void setPreviewed(const QString &mrl, bool previewed);
 
 

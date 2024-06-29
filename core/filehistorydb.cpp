@@ -212,42 +212,24 @@ void FileHistoryDBWorker::read(QPromise<FileHistoryDB::Data> &result, const QStr
 }
 
 
-#define FileHistoryDB_IMPL(type, getter, setter) \
-    QFuture<type> FileHistoryDB::getter(const QString &mrl) { \
-        return invokeWorker<type>(m_worker, &FileHistoryDBWorker:: getter, mrl);    \
-    } \
-    void FileHistoryDB::set ##setter(const QString &mrl, const type newValue) { \
-        QMetaObject::invokeMethod(m_worker, "set" #setter, Q_ARG(QString, mrl), Q_ARG(type, newValue)); \
+#define FileHistoryDB_IMPL(type, setter) \
+    void FileHistoryDB:: setter (const QString &mrl, const type newValue) { \
+        QMetaObject::invokeMethod(m_worker, #setter, Q_ARG(QString, mrl), Q_ARG(type, newValue)); \
     }
 
-FileHistoryDB_IMPL(bool, seen, Seen)
-FileHistoryDB_IMPL(double, progress, Progress)
-FileHistoryDB_IMPL(bool, previewed, Previewed)
+FileHistoryDB_IMPL(bool, setSeen)
+FileHistoryDB_IMPL(double, setProgress)
+FileHistoryDB_IMPL(bool, setPreviewed)
 
-
-void FileHistoryDBWorker::seen(QPromise<bool> &result, const QString &mrl)
-{
-    select(result, m_db, "SEEN", mrl, false);
-}
 
 void FileHistoryDBWorker::setSeen(const QString &mrl, bool seen)
 {
     insert(m_db, "SEEN", mrl, seen);
 }
 
-void FileHistoryDBWorker::progress(QPromise<double> &result, const QString &mrl)
-{
-    select(result, m_db, "PROGRESS", mrl, 0.0);
-}
-
 void FileHistoryDBWorker::setProgress(const QString &mrl, double progress)
 {
     insert(m_db, "PROGRESS", mrl, progress);
-}
-
-void FileHistoryDBWorker::previewed(QPromise<bool> &result, const QString &mrl)
-{
-    select(result, m_db, "PREVIEWED", mrl, false);
 }
 
 void FileHistoryDBWorker::setPreviewed(const QString &mrl, const bool previewed)

@@ -7,7 +7,8 @@ add_library(core directorysystem.hpp
     directorysortmodel.hpp directorysortmodel.cpp
     filetype.hpp filetype.cpp
     filehistorydb.hpp filehistorydb.cpp
-    filehistorydb_p.hpp)
+    filehistorydb_p.hpp
+    asyncdirectorysystem.hpp asyncdirectorysystem.cpp)
 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent Sql)
 

@@ -30,7 +30,6 @@ ViewController::ViewController(QObject *parent)
     m_sortModel->setSourceModel(m_dirModel.get());
 
     connect(&m_urlWatcher, &QFutureWatcherBase::finished, this, &ViewController::updateModel);
-    connect(&m_previewWatcher, &QFutureWatcherBase::finished, this, &ViewController::updatePreview);
 }
 
 ViewController::~ViewController()
@@ -123,7 +122,7 @@ void ViewController::openParentPath()
 
 void ViewController::setPreview(int row)
 {
-    const auto getPreviewData = [db = m_historyDB](
+    const auto getPreviewData = [](
             std::shared_ptr<DirectorySystem> system,
             std::shared_ptr<Directory> dir,
             int child) -> PreviewData
@@ -134,7 +133,6 @@ void ViewController::setPreview(int row)
         // some directory system may have custom urls, so you can't directly use fileUrl here
         const QString path = dir->filePath(child);
         const auto mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(path)).name();
-        auto dbData = db->read(path);
 
         PreviewData::FileType filetype = PreviewData::Unknown;
         const auto types =
@@ -166,11 +164,7 @@ void ViewController::setPreview(int row)
             return {nullptr, PreviewData::Unknown, 1};
         }
 
-        dbData.waitForFinished();
-        const double progress = dbData.isValid()
-                ? dbData.result().progress.value_or(0.) : 0;
-
-        return PreviewData(std::move(io), filetype, progress);
+        return PreviewData(std::move(io), filetype, 0);
     };
 
 
@@ -183,7 +177,28 @@ void ViewController::setPreview(int row)
 
     if (auto parent = m_dirModel->directory())
     {
-        m_previewWatcher.setFuture(QtConcurrent::run(&m_pool, getPreviewData, m_system, parent, directoryRow));
+        const size_t requestID = ++m_previewRequest;
+
+        using FutureVariant = std::variant<QFuture<PreviewData>, QFuture<FileHistoryDB::Data>>;
+
+        QFuture<PreviewData> preview = QtConcurrent::run(
+                    &m_pool, getPreviewData, m_system, parent, directoryRow);
+
+        QFuture<FileHistoryDB::Data> data = m_historyDB->read(parent->filePath(directoryRow));
+
+        QtFuture::whenAll(preview, data)
+                .then(this
+                      , [this, requestID](const QList<FutureVariant> &results)
+        {
+            if (requestID != m_previewRequest)
+                return;
+
+            PreviewData preview = std::get<0>(results[0]).result();
+            FileHistoryDB::Data data = std::get<1>(results[1]).result();
+
+            preview.m_progress = data.progress.value_or(0);
+            emit showPreview(preview);
+        });
     }
     else
     {
@@ -234,16 +249,6 @@ void ViewController::updateModel()
         emit urlChanged();
     }
 }
-
-void ViewController::updatePreview()
-{
-    auto s = dynamic_cast<decltype (m_previewWatcher) *>(sender());
-    if (s)
-    {
-        emit showPreview(s->result());
-    }
-}
-
 
 FileBrowser *ViewController::fileBrowser() const
 {

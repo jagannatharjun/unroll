@@ -52,6 +52,8 @@ private:
     std::shared_ptr<IOSource> source;
     double m_progress = 0;
     FileType m_type;
+
+    friend class ViewController;
 };
 
 
@@ -97,7 +99,6 @@ signals:
 
 private slots:
     void updateModel();
-    void updatePreview();
 
 private:
     int sourceRow(const int row);
@@ -120,7 +121,7 @@ private:
     std::shared_ptr<DirectorySystem> m_system;
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;
 
-    QFutureWatcher<PreviewData> m_previewWatcher;
+    size_t m_previewRequest = 0;
 
     std::shared_ptr<FileHistoryDB> m_historyDB;
     FileBrowser *m_fileBrowser = nullptr;

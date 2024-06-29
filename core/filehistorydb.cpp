@@ -25,59 +25,6 @@ QFuture<Result> invokeWorker(FileHistoryDBWorker *obj,
     return future;
 }
 
-template<typename ResultType>
-void select(QPromise<ResultType> &result
-            , std::unique_ptr<QSqlDatabase> &db
-            , const QString &col
-            , const QString &mrl, ResultType defaultValue)
-{
-    if (!db || !db->isOpen())
-    {
-        qFatal("Database is not open");
-        return;
-    }
-
-    const auto reportError = [&](const QString error)
-    {
-        qFatal("failed to get '%s' for '%s' - error '%s'"
-               , qUtf8Printable(col)
-               , qUtf8Printable(mrl)
-               , qUtf8Printable(error));
-    };
-
-
-    QSqlQuery query(*db);
-    query.prepare(QString("SELECT %1 FROM files WHERE MRL = :mrl").arg(col));
-    query.bindValue(":mrl", mrl);
-
-    if (!query.exec())
-    {
-        reportError(query.lastError().text());
-        return;
-    }
-
-    result.start();
-
-    if (query.next())
-    {
-        const QVariant val = query.value(0);
-        if (!val.canConvert<ResultType>())
-        {
-            reportError("invalid value type");
-            return;
-        }
-
-        result.addResult(val.value<ResultType>());
-    }
-    else
-    {
-        // this is necessary otherwise it may cause crash
-        result.addResult(defaultValue);
-    }
-
-    result.finish();
-}
-
 template<typename T>
 void insert(std::unique_ptr<QSqlDatabase> &db
         , const QString &col

@@ -226,19 +226,30 @@ ApplicationWindow {
             }
 
             Keys.onPressed: function (event) {
-                if (event.accepted)
-                    return
+                if (event.accepted) return;
 
-                if (event.key === Qt.Key_Refresh || event.key === Qt.Key_F5) {
-                    controller.refresh()
-                    event.accepted = true
-                } else if (event.key === Qt.Key_PageDown || event.key === Qt.Key_PageUp) {
-                    if (!root.nextIndex(event.key === Qt.Key_PageUp))
-                        return
+                switch (event.key) {
+                    case Qt.Key_Refresh:
+                    case Qt.Key_F5:
+                        controller.refresh();
+                        event.accepted = true;
+                        break;
 
-                    event.accepted = true
-                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                    controller.openRow(selectionModel.currentIndex.row)
+                    case Qt.Key_PageDown:
+                    case Qt.Key_N:
+                    case Qt.Key_P:
+                    case Qt.Key_PageUp:
+                        let isNext = (event.key === Qt.Key_PageUp || event.key === Qt.Key_P);
+                        if (root.nextIndex(isNext)) {
+                            event.accepted = true;
+                        }
+                        break;
+
+                    case Qt.Key_Return:
+                    case Qt.Key_Enter:
+                        controller.openRow(selectionModel.currentIndex.row);
+                        event.accepted = true;
+                        break;
                 }
             }
         }

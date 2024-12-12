@@ -12,6 +12,37 @@
 #include <string>
 #include <iostream>
 
+static const char *SUPPORTED_FORMATS[] = {
+    ".7z",      // 7-Zip
+    ".a",       // Archive (ar)
+    ".arj",     // ARJ
+    ".cab",     // Microsoft Cabinet
+    ".cpio",    // CPIO
+    ".iso",     // ISO9660
+    ".jar",     // Java Archive
+    ".rar",     // RAR
+    ".tar",     // TAR
+    ".tgz",     // TAR.GZ
+    ".tbz",     // TAR.BZ2
+    ".txz",     // TAR.XZ
+    ".tlz",     // TAR.LZMA
+    ".gz",      // Gzip
+    ".bz2",     // Bzip2
+    ".xz",      // XZ
+    ".lzma",    // LZMA
+    ".lz4",     // LZ4
+    ".zip",     // ZIP
+    ".war",     // Web Archive
+    ".xz",      // XZ
+    ".z",       // Compress
+    ".Z",       // Compress (case sensitive)
+    ".7zip",    // 7zip alias
+    ".apk",     // APK (Android)
+    ".tar.gz",  // Alias for TGZ
+    ".tar.bz2", // Alias for TBZ
+    ".tar.xz",  // Alias for TXZ
+};
+
 // Helper function to print Windows API errors
 void printError(HRESULT hr) {
     LPVOID lpMsgBuf;
@@ -157,6 +188,16 @@ QDir FileBrowser::cacheDir() const
 QString FileBrowser::fileHistoryDBPath() const
 {
     return cacheDir().absoluteFilePath("filehistory.db");
+}
+
+bool FileBrowser::isContainer(const QString &path) const
+{
+    return std::any_of(std::begin(SUPPORTED_FORMATS)
+                       , std::end(SUPPORTED_FORMATS)
+    , [path](const char *suffix)
+    {
+        return path.endsWith(suffix);
+    });
 }
 
 void FileBrowser::showFileContextMenu(const QPoint &p

@@ -45,7 +45,7 @@ public:
 
     auto db() const { return m_db; }
 
-    void clear() { m_data.clear(); m_seenFiles = 0; }
+    void clear() { m_data.clear(); m_seenCount.reset(); m_parentSeen.reset(); }
 
 #define DBHandler_IMPL(TYPE, MEMBER, SETTER, ROLE, DEFAULT) \
     TYPE MEMBER(QPersistentModelIndex idx, const QString &mrl) \
@@ -61,6 +61,7 @@ public:
     { \
         m_db->SETTER(mrl, value); \
         QList<int> r{ROLE, DirectorySystemModel::ShowNewIndicatorRole}; \
+        if (ROLE == DirectorySystemModel::SeenRole && (value != m_data[mrl].MEMBER)) updateSeen(value); \
         m_data[mrl].MEMBER = value; \
         callUpdateCB(idx, r); \
     }
@@ -105,14 +106,7 @@ private:
             QList<int> changed({DirectorySystemModel::ShowNewIndicatorRole});
 
             if (data.seen)
-            {
-                ++m_seenFiles;
                 changed.push_back(DirectorySystemModel::SeenRole);
-            }
-            else
-            {
-                --m_seenFiles;
-            }
 
             if (data.progress)
                 changed.push_back(DirectorySystemModel::ProgressRole);
@@ -129,11 +123,13 @@ private:
 
     void onFileSeen(QPersistentModelIndex idx, QList<int> role)
     {
-        const bool dataForAllAvailable = (m_data.size() == m_parent->directory()->fileCount());
-        if (dataForAllAvailable
-            && (m_seenFiles == m_data.size()))
+        const auto fileCount = m_parent->directory()->fileCount();
+        const bool dataForAllAvailable = (m_data.size() == fileCount);
+        if (dataForAllAvailable)
         {
-            m_db->setSeen(m_parent->directory()->path(), true);
+            m_seenCount = std::count_if(m_data.begin(), m_data.end(), [](auto d) { return d.seen; });
+
+            updateParentSeen();
         }
     }
 
@@ -145,12 +141,45 @@ private:
         }
     }
 
+    // should only be called when data is changed
+    void updateSeen(bool seen)
+    {
+        if (!m_seenCount.has_value())
+            return;
+
+        if (seen)
+            ++m_seenCount.value();
+        else
+            --m_seenCount.value();
+
+        updateParentSeen();
+    }
+
+    // should only be called when data is changed
+    void updateParentSeen()
+    {
+        assert(m_seenCount.has_value());
+
+        auto dir = m_parent->directory();
+        const bool seen = (m_seenCount == dir->fileCount());
+
+        if (!m_parentSeen.has_value() || m_parentSeen != seen)
+        {
+            m_parentSeen = seen;
+            m_db->setSeen(dir->path(), seen);
+
+            qDebug() << "updating" << dir->path() << seen;
+        }
+    }
+
     DirectorySystemModel *m_parent;
     std::shared_ptr<FileHistoryDB> m_db;
     UpdateCB m_cb[2];
     QHash<QString, FileHistoryDB::Data> m_data;
     QSet<QString> m_reading;
-    std::intmax_t m_seenFiles = 0;
+
+    std::optional<std::intmax_t> m_seenCount;
+    std::optional<bool> m_parentSeen;
 };
 
 DirectorySystemModel::DirectorySystemModel(QObject *parent)
@@ -292,6 +321,7 @@ bool DirectorySystemModel::setData(const QModelIndex &index, const QVariant &val
         return false;
 
     const int r = index.row();
+    qDebug() << "setData" << index.data(PathRole) << (Roles)role << value;
     if (m_dir->isDir(r))
         return false;
 

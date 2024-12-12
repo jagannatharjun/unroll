@@ -23,6 +23,8 @@ public:
     QDir cacheDir() const;
     QString fileHistoryDBPath() const;
 
+    Q_INVOKABLE bool isContainer(const QString &path) const;
+
     Q_INVOKABLE void showFileContextMenu(const QPoint &p
                                          , const QString &filePath);
 

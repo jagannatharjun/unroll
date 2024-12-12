@@ -26,6 +26,30 @@ ApplicationWindow {
     Component.onCompleted: FileBrowser.window = root
     Component.onDestruction: FileBrowser.window = null
 
+    onPreviewdataChanged: {
+        if (previewdata.fileType() === PreviewData.Unknown)
+        {
+            const idx = selectionModel.currentIndex
+            if (!idx.valid)
+                return
+
+            const isDir = controller.model.data(idx, DirectorySystemModel.IsDirRole)
+            if (isDir)
+                return
+
+            const path = controller.model.data(idx, DirectorySystemModel.PathRole)
+            const isContainer = FileBrowser.isContainer(path)
+            if (isContainer)
+                return
+
+            _previewCompleted = true
+        }
+    }
+
+    on_PreviewCompletedChanged: {
+        selectionModel.updateSeen(selectionModel.currentIndex)
+    }
+
     function back() {
         // history.pop()
         controller.openParentPath()
@@ -71,6 +95,7 @@ ApplicationWindow {
     ItemSelectionModel {
         id: selectionModel
 
+
         function updateProgress(idx) {
             const previewProgress = mainView?.previewProgress()
             if (!!previewProgress) {
@@ -101,7 +126,6 @@ ApplicationWindow {
         Component.onDestruction: {
             const idx = selectionModel.currentIndex
             updateProgress(idx)
-            updateSeen(idx)
         }
     }
 

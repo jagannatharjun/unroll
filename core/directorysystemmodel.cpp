@@ -35,11 +35,17 @@ public:
               , UpdateCB cb)
         : m_parent {parent}
         , m_db {std::move(db)}
-        , m_cb {cb}
     {
+        m_cb[0] = std::move(cb);
+        m_cb[1] = [this](QPersistentModelIndex idx, QList<int> role)
+        {
+            return this->onFileSeen(idx, role);
+        };
     }
 
     auto db() const { return m_db; }
+
+    void clear() { m_data.clear(); m_seenFiles = 0; }
 
 #define DBHandler_IMPL(TYPE, MEMBER, SETTER, ROLE, DEFAULT) \
     TYPE MEMBER(QPersistentModelIndex idx, const QString &mrl) \
@@ -56,7 +62,7 @@ public:
         m_db->SETTER(mrl, value); \
         QList<int> r{ROLE, DirectorySystemModel::ShowNewIndicatorRole}; \
         m_data[mrl].MEMBER = value; \
-        m_cb(idx, r); \
+        callUpdateCB(idx, r); \
     }
 
     DBHandler_IMPL(bool, seen, setSeen
@@ -99,7 +105,14 @@ private:
             QList<int> changed({DirectorySystemModel::ShowNewIndicatorRole});
 
             if (data.seen)
+            {
+                ++m_seenFiles;
                 changed.push_back(DirectorySystemModel::SeenRole);
+            }
+            else
+            {
+                --m_seenFiles;
+            }
 
             if (data.progress)
                 changed.push_back(DirectorySystemModel::ProgressRole);
@@ -110,15 +123,34 @@ private:
             if (changed.empty())
                 return;
 
-            m_cb(idx, changed);
+            callUpdateCB(idx, changed);
         });
+    }
+
+    void onFileSeen(QPersistentModelIndex idx, QList<int> role)
+    {
+        const bool dataForAllAvailable = (m_data.size() == m_parent->directory()->fileCount());
+        if (dataForAllAvailable
+            && (m_seenFiles == m_data.size()))
+        {
+            m_db->setSeen(m_parent->directory()->path(), true);
+        }
+    }
+
+    void callUpdateCB(const QPersistentModelIndex &idx, const QList<int> &role)
+    {
+        for (const auto &cb : m_cb)
+        {
+            cb(idx, role);
+        }
     }
 
     DirectorySystemModel *m_parent;
     std::shared_ptr<FileHistoryDB> m_db;
-    UpdateCB m_cb;
+    UpdateCB m_cb[2];
     QHash<QString, FileHistoryDB::Data> m_data;
     QSet<QString> m_reading;
+    std::intmax_t m_seenFiles = 0;
 };
 
 DirectorySystemModel::DirectorySystemModel(QObject *parent)
@@ -129,7 +161,11 @@ DirectorySystemModel::DirectorySystemModel(QObject *parent)
 void DirectorySystemModel::setDirectory(std::shared_ptr<Directory> dir)
 {
     beginResetModel();
+
     m_dir = dir;
+    if (m_dbHandler)
+        m_dbHandler->clear();
+
     endResetModel();
 }
 
@@ -229,8 +265,10 @@ QVariant DirectorySystemModel::data(const QModelIndex &index, int role) const
     case PreviewedRole:
     case ShowNewIndicatorRole:
     {
-        if (m_dir->isDir(r))
+        if (m_dir->isDir(r)
+            && (role != SeenRole))
             return {};
+
         switch (role)
         {
         case SeenRole:

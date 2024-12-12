@@ -31,6 +31,12 @@ Pane {
         view.forceLayout()
     }
 
+    function _setCurrentIndex(row, col) {
+        const idx = model.index(row, col)
+
+        selectionModel.setCurrentIndex(idx, ItemSelectionModel.SelectCurrent)
+    }
+
     focus: true
 
     Item {
@@ -232,9 +238,7 @@ Pane {
             }
 
             function select() {
-                view.selectionModel.setCurrentIndex(
-                            view.model.index(row, column),
-                            ItemSelectionModel.SelectCurrent)
+                root._setCurrentIndex(row, column)
             }
 
             TapHandler {
@@ -271,9 +275,34 @@ Pane {
             if (event.accepted)
                 return
 
-            if (event.key === Qt.Key_Return) {
+            switch (event.key)
+            {
+            case Qt.Key_PageUp:
+            {
+                if (view.currentRow - 1 >= 0) {
+                    root._setCurrentIndex(view.currentRow - 1, view.currentColumn)
+
+                    event.accepted = true
+                }
+                break;
+            }
+
+            case Qt.Key_PageDown:
+            {
+                if (view.currentRow + 1 < view.rows)
+                {
+                   root._setCurrentIndex(view.currentRow + 1, view.currentColumn)
+
+                    event.accepted = true
+                }
+                break;
+            }
+            case Qt.Key_Return:
+            {
                 event.accepted = true
                 actionAtIndex(currentRow, currentColumn)
+                break;
+            }
             }
         }
 

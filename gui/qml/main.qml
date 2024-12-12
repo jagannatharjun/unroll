@@ -87,6 +87,10 @@ ApplicationWindow {
             root.previewdata = controller.invalidPreviewData()
             _previewCompleted = false
 
+            // start from beginning if already at the end of view
+            if (row + 1 >= controller.model.rowCount())
+                row = 0
+
             var index = controller.model.index(row, column)
             selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect)
         }

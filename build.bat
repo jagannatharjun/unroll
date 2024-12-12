@@ -1,5 +1,5 @@
 SET SRC=E:\Projects\Gui\file-browser
-SET QTDIR=C:\Qt\6.7.1\msvc2019_64
+SET QTDIR=C:\Qt\6.7.3\msvc2019_64
 set LIBARCHIVE=C:\local\libarchive
 
 call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
@@ -19,11 +19,11 @@ cd ..
 mkdir release
 cd release
 
-cp ..\build\gui\file-browser.exe file-browser.exe 
+copy ..\build\gui\file-browser.exe file-browser.exe 
 
 %QTDIR%\bin\windeployqt.exe  --qmldir %SRC%\gui\qml file-browser.exe
 
-cp %LIBARCHIVE%\bin\archive.dll archive.dll
+copy %LIBARCHIVE%\bin\archive.dll archive.dll
 
 cd ..
 

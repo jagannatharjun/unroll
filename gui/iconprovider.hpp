@@ -21,4 +21,5 @@ private:
     QHash<QString, QImage> m_images;
 };
 
+
 #endif // ICONPROVIDER_HPP

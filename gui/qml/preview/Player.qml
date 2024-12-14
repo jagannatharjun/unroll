@@ -4,6 +4,9 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtMultimedia
 
+
+import "./widgets"
+
 FocusScope {
     id: root
 
@@ -284,6 +287,12 @@ FocusScope {
                         value: player.position
                     }
 
+                    HoverHandler {
+                        id: durationHoverHandler
+
+                        target: slider
+                    }
+
                     onValueChanged: {
                         if (player.position !== slider.value)
                             player.position = slider.value
@@ -374,6 +383,52 @@ FocusScope {
             }
         }
     }
+
+    VideoPreview {
+        id: videoPreview
+
+        source: player.source
+
+        property bool sliderLongPressed: false
+
+        property point pos: {
+            const p = durationHoverHandler.point.position
+            const mp = durationHoverHandler.target.mapToItem(parent, p)
+            const mid = mp.x - width / 2
+            const x = Math.min(Math.max(0, mid), parent.width - width)
+            const y = durationHoverHandler.target.mapToItem(parent, Qt.point(0, 0)).y - height - 10
+            return Qt.point(x, y)
+        }
+
+
+        x: pos.x
+
+        y: pos.y
+
+        width: implicitWidth
+        height: implicitHeight
+
+        enabled: durationHoverHandler.hovered && !sliderLongPressed
+
+        position: {
+            if (!enabled) return 0
+            const pos = durationHoverHandler.point.position.x / slider.background.width
+            return pos * player.duration
+        }
+
+        Timer {
+            id: pressedTimeout
+
+            running: slider.pressed
+
+            interval: 200
+
+            onRunningChanged: if (running) videoPreview.sliderLongPressed = false
+
+            onTriggered: videoPreview.sliderLongPressed = Qt.binding(() => slider.pressed)
+        }
+    }
+
 
     Keys.onSpacePressed: {
         root.toogleState()

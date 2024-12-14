@@ -7,6 +7,7 @@
 #include "viewcontroller.hpp"
 #include "historycontroller.hpp"
 #include "preferences.hpp"
+#include "ffmpegframeextractor.h"
 
 #include <QQuickStyle>
 
@@ -23,6 +24,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<ViewController>("filebrowser", 0, 1, "ViewController");
     qmlRegisterType<HistoryController>("filebrowser", 0, 1, "HistoryController");
     qmlRegisterType<PreviewData>("filebrowser", 0, 1, "PreviewData");
+    qmlRegisterType<FrameRenderer>("filebrowser", 0, 1, "FrameRenderer");
 
     qmlRegisterSingletonType<FileBrowser>("filebrowser", 0, 1, "FileBrowser" ,[](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
     {

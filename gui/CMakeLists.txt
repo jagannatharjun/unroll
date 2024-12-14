@@ -15,6 +15,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 	MANUAL_FINALIZATION
 	${SOURCES}
 	preferences.hpp preferences.cpp
+        ffmpegframeextractor.h ffmpegframeextractor.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET file-browser APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

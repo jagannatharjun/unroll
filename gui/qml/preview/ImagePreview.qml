@@ -46,7 +46,7 @@ Item {
         }
 
         onCurrentFrameChanged: {
-            if (currentFrame == frameCount)
+            if (currentFrame + 1 == frameCount)
                 root.previewCompleted()
         }
 

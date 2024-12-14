@@ -8,7 +8,7 @@ Rectangle {
 
     property alias source: player.source
 
-    property alias position: player.position
+    property int position: player.position
 
     readonly property real apr: {
         const res = player.metaData.value(MediaMetaData.Resolution)
@@ -26,7 +26,6 @@ Rectangle {
     }
 
     onPositionChanged: {
-
         if (enabled)
             player.pause()
         else
@@ -39,6 +38,9 @@ Rectangle {
         id: player
 
         videoOutput: voutput
+
+        // resolution is 1sec, we don't need this too much accurate
+        position: (root.position / 1000) * 1000
     }
 
     VideoOutput {
@@ -46,5 +48,7 @@ Rectangle {
 
         anchors.fill: parent
         anchors.margins: 2
+
+        visible: player.mediaStatus === MediaPlayer.LoadedMedia
     }
 }

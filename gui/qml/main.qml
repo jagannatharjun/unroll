@@ -263,12 +263,14 @@ ApplicationWindow {
                         event.accepted = true;
                         break;
 
+                    case Qt.Key_Up:
+                    case Qt.Key_Down:
                     case Qt.Key_PageDown:
                     case Qt.Key_N:
                     case Qt.Key_P:
                     case Qt.Key_PageUp:
-                        let isNext = (event.key === Qt.Key_PageUp || event.key === Qt.Key_P);
-                        if (root.nextIndex(isNext)) {
+                        let up = (event.key === Qt.Key_PageUp || event.key === Qt.Key_P || event.key === Qt.Key_Up);
+                        if (root.nextIndex(up)) {
                             event.accepted = true;
                         }
                         break;

@@ -417,7 +417,7 @@ FocusScope {
 
         case Qt.Key_Up:
         case Qt.Key_Down:
-            if (event.modifiers & Qt.ShiftModifier)
+            if (!(event.modifiers & Qt.ShiftModifier))
                 break
 
             if (event.key === Qt.Key_Up)

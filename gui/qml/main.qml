@@ -112,9 +112,6 @@ ApplicationWindow {
             if (_previewCompleted) {
                 if (!root.nextIndex(false)) {
                     root._autoPreviewNext = false
-
-                    // transfer focus so auto preview can be safely aborted
-                    mainView.forceActiveFocus()
                 }
             }
         }
@@ -174,6 +171,13 @@ ApplicationWindow {
     Shortcut {
         sequences: [StandardKey.Back, StandardKey.Backspace]
         onActivated: root.back()
+    }
+
+    Shortcut {
+        sequences: ["A","\\"]
+        onActivated: {
+            root._autoPreviewNext = !root._autoPreviewNext
+        }
     }
 
     menuBar: AppMenuBar {
@@ -281,12 +285,6 @@ ApplicationWindow {
                 if (event.accepted) return;
 
                 switch (event.key) {
-                    case Qt.Key_A:
-                    case Qt.Key_Backslash:
-                        root._autoPreviewNext = !root._autoPreviewNext
-                        event.accepted = true;
-                        break;
-
                     case Qt.Key_Refresh:
                     case Qt.Key_F5:
                         controller.refresh();

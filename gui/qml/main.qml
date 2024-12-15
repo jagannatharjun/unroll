@@ -23,8 +23,6 @@ ApplicationWindow {
 
     property bool _previewCompleted: false
 
-    property bool _autoPreviewNext: false
-
     Component.onCompleted: FileBrowser.window = root
     Component.onDestruction: FileBrowser.window = null
 
@@ -69,6 +67,14 @@ ApplicationWindow {
         return true
     }
 
+    AutoPreviewHandler {
+        id: autoPreviewHandler
+
+        currentPreviewCompleted: root._previewCompleted
+
+        nextIndex: root.nextIndex
+    }
+
     ViewController {
         id: controller
 
@@ -96,24 +102,6 @@ ApplicationWindow {
 
             var index = controller.model.index(row, column)
             selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect)
-        }
-    }
-
-    Timer {
-        id: autoPreviewTimer
-
-        interval: 900
-
-        running: root._autoPreviewNext
-
-        repeat: true
-
-        onTriggered: {
-            if (_previewCompleted) {
-                if (!root.nextIndex(false)) {
-                    root._autoPreviewNext = false
-                }
-            }
         }
     }
 
@@ -176,7 +164,7 @@ ApplicationWindow {
     Shortcut {
         sequences: ["A","\\"]
         onActivated: {
-            root._autoPreviewNext = !root._autoPreviewNext
+            autoPreviewHandler.active = !autoPreviewHandler.active
         }
     }
 
@@ -272,8 +260,10 @@ ApplicationWindow {
                 root._previewCompleted = true
 
                 const previewType = root.previewdata.fileType()
-                if ((previewType === PreviewData.AudioFile)
-                        || (previewType === PreviewData.VideoFile))
+                const isPlaybackTypeMedia = (previewType === PreviewData.AudioFile)
+                                          || (previewType === PreviewData.VideoFile)
+
+                if (!autoPreviewHandler.active && isPlaybackTypeMedia)
                     root.nextIndex(false)
             }
 
@@ -302,13 +292,13 @@ ApplicationWindow {
                             event.accepted = true;
 
                             // disable auto preview on navigation
-                            root._autoPreviewNext = false
+                            autoPreviewHandler.active = false
                         }
                         break;
 
                     case Qt.Key_Escape:
                     {
-                        root._autoPreviewNext = false
+                        autoPreviewHandler.active = false
                         break;
                     }
 

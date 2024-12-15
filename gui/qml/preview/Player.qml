@@ -391,7 +391,7 @@ FocusScope {
 
         property bool sliderLongPressed: false
 
-        property point pos: {
+        readonly property point pos: {
             const p = durationHoverHandler.point.position
             const mp = durationHoverHandler.target.mapToItem(parent, p)
             const mid = mp.x - width / 2
@@ -415,6 +415,8 @@ FocusScope {
             const pos = durationHoverHandler.point.position.x / slider.background.width
             return pos * player.duration
         }
+
+        videoRotation: root.videoRotation
 
         Timer {
             id: pressedTimeout

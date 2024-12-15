@@ -10,9 +10,11 @@ Rectangle {
 
     property int position: player.position
 
+    property alias videoRotation: voutput.orientation
+
     readonly property real apr: {
         const res = player.metaData.value(MediaMetaData.Resolution)
-        return res.width / res.height
+        return !res ? 1 : res.width / res.height
     }
 
     implicitHeight: 150

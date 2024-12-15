@@ -36,11 +36,7 @@ public:
         : m_parent {parent}
         , m_db {std::move(db)}
     {
-        m_cb[0] = std::move(cb);
-        m_cb[1] = [this](QPersistentModelIndex idx, QList<int> role)
-        {
-            return this->onFileSeen(idx, role);
-        };
+        m_cb = std::move(cb);
     }
 
     auto db() const { return m_db; }
@@ -63,7 +59,7 @@ public:
         QList<int> r{ROLE, DirectorySystemModel::ShowNewIndicatorRole}; \
         if (ROLE == DirectorySystemModel::SeenRole && (value != m_data[mrl].MEMBER)) updateSeen(value); \
         m_data[mrl].MEMBER = value; \
-        callUpdateCB(idx, r); \
+        handleUpdate(idx, r); \
     }
 
     DBHandler_IMPL(bool, seen, setSeen
@@ -117,7 +113,7 @@ private:
             if (changed.empty())
                 return;
 
-            callUpdateCB(idx, changed);
+            handleUpdate(idx, changed);
         });
     }
 
@@ -127,18 +123,18 @@ private:
         const bool dataForAllAvailable = (m_data.size() == fileCount);
         if (dataForAllAvailable)
         {
-            m_seenCount = std::count_if(m_data.begin(), m_data.end(), [](auto d) { return d.seen; });
+            m_seenCount = std::count_if(m_data.begin(), m_data.end()
+                                        , [](auto d) { return d.seen; });
 
             updateParentSeen();
         }
     }
 
-    void callUpdateCB(const QPersistentModelIndex &idx, const QList<int> &role)
+    void handleUpdate(const QPersistentModelIndex &idx, const QList<int> &role)
     {
-        for (const auto &cb : m_cb)
-        {
-            cb(idx, role);
-        }
+        m_cb(idx, role);
+
+        onFileSeen(idx, role);
     }
 
     // should only be called when data is changed
@@ -174,7 +170,7 @@ private:
 
     DirectorySystemModel *m_parent;
     std::shared_ptr<FileHistoryDB> m_db;
-    UpdateCB m_cb[2];
+    UpdateCB m_cb;
     QHash<QString, FileHistoryDB::Data> m_data;
     QSet<QString> m_reading;
 

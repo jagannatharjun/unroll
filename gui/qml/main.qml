@@ -23,6 +23,8 @@ ApplicationWindow {
 
     property bool _previewCompleted: false
 
+    property bool _autoPreviewNext: false
+
     Component.onCompleted: FileBrowser.window = root
     Component.onDestruction: FileBrowser.window = null
 
@@ -64,6 +66,7 @@ ApplicationWindow {
 
         const idx = controller.model.index(newRow, current.column)
         selectionModel.setCurrentIndex(idx, ItemSelectionModel.ClearAndSelect)
+        return true
     }
 
     ViewController {
@@ -93,6 +96,27 @@ ApplicationWindow {
 
             var index = controller.model.index(row, column)
             selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect)
+        }
+    }
+
+    Timer {
+        id: autoPreviewTimer
+
+        interval: 900
+
+        running: root._autoPreviewNext
+
+        repeat: true
+
+        onTriggered: {
+            if (_previewCompleted) {
+                if (!root.nextIndex(false)) {
+                    root._autoPreviewNext = false
+
+                    // transfer focus so auto preview can be safely aborted
+                    mainView.forceActiveFocus()
+                }
+            }
         }
     }
 
@@ -257,6 +281,12 @@ ApplicationWindow {
                 if (event.accepted) return;
 
                 switch (event.key) {
+                    case Qt.Key_A:
+                    case Qt.Key_Backslash:
+                        root._autoPreviewNext = !root._autoPreviewNext
+                        event.accepted = true;
+                        break;
+
                     case Qt.Key_Refresh:
                     case Qt.Key_F5:
                         controller.refresh();
@@ -272,8 +302,17 @@ ApplicationWindow {
                         let up = (event.key === Qt.Key_PageUp || event.key === Qt.Key_P || event.key === Qt.Key_Up);
                         if (root.nextIndex(up)) {
                             event.accepted = true;
+
+                            // disable auto preview on navigation
+                            root._autoPreviewNext = false
                         }
                         break;
+
+                    case Qt.Key_Escape:
+                    {
+                        root._autoPreviewNext = false
+                        break;
+                    }
 
                     case Qt.Key_Return:
                     case Qt.Key_Enter:

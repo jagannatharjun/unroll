@@ -81,6 +81,17 @@ ApplicationWindow {
         fileBrowser: FileBrowser
 
         onShowPreview: (data) => root.previewdata = data
+
+    }
+
+    Connections {
+        target: controller.model
+
+        function onSortParametersChanged() {
+            const model = controller.model
+
+            history.updateSortParams(model.sortColumn, model.sortOrder)
+        }
     }
 
     HistoryController {
@@ -90,17 +101,22 @@ ApplicationWindow {
 
         preferences: Preferences
 
-        onResetFocus: function (row, column) {
+        onResetFocus: function (row, column, sortcolumn, sortorder) {
             // reset current preview
             previewRow = -1
             root.previewdata = controller.invalidPreviewData()
             _previewCompleted = false
 
+            const model = controller.model
+
+            if (sortcolumn !== -1)
+                model.sort(sortcolumn, sortorder)
+
             // start from beginning if already at the end of view
-            if (row + 1 >= controller.model.rowCount())
+            if (row + 1 >= model.rowCount())
                 row = 0
 
-            var index = controller.model.index(row, column)
+            var index = model.index(row, column)
             selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect)
         }
     }

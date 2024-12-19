@@ -23,7 +23,6 @@ Preferences::Preferences(const QDir &appDataDir
                          , const QString &pathHistoryDBPath
                          , QObject *parent)
     : QObject{parent}
-    , m_pathHistory(pathHistoryDBPath)
     , m_setting (appDataDir.absoluteFilePath("settings.ini"), QSettings::IniFormat)
     , m_volumeMuted (VOLUME_MUTE_KEY, false, m_setting)
     , m_volume (VOLUME_KEY, .5, m_setting)
@@ -105,20 +104,6 @@ void Preferences::setLastSessionUrl(const QString &newLastSessionUrl)
 
     m_lastSessionUrl.set(newLastSessionUrl, m_setting);
     emit lastSessionUrlChanged();
-}
-
-QVector<int> Preferences::urlLastIndex(const QString &url) const
-{
-    const auto data = m_pathHistory.read(url);
-    return {data.row.value_or(0), data.col.value_or(0)};
-}
-
-void Preferences::setUrlLastIndex(const QString &url, const QVector<int> &idx)
-{
-    auto data = m_pathHistory.read(url);
-    data.row = idx[0];
-    data.col = idx[1];
-    m_pathHistory.set(url, data);
 }
 
 int Preferences::videoRotation() const

@@ -2,6 +2,7 @@
 
 #include <QStandardPaths>
 #include <QDir>
+#include "pathhistorydb.hpp"
 
 HistoryController::HistoryController(QObject *parent)
     : QObject{parent}
@@ -23,6 +24,10 @@ void HistoryController::setView(ViewController *newView)
         m_view->disconnect(this);
 
     m_view = newView;
+
+    const auto dbPath = m_view->fileBrowser()->pathHistoryDBPath();
+    m_pathHistory = std::make_unique<PathHistoryDB>(dbPath);
+
     emit viewChanged();
 
     connect(m_view, &ViewController::urlChanged
@@ -71,20 +76,20 @@ void HistoryController::urlUpdated()
         if (m_index + 1 != m_history.size())
             m_history.erase(m_history.begin() + m_index + 1, m_history.end());
 
-        QVector<int> lastIdx;
-        if (m_preferences)
-        {
-            lastIdx = m_preferences->urlLastIndex(m_view->url());
-        }
+        auto [row, col] = lastRowAndColumn(m_view->url());
+        if (row == -1)
+            row = 0;
 
-        if (lastIdx.size() != 2)
-            lastIdx = {0, 0};
+        if (col == -1)
+            col = 0;
+
+        const auto [sortCol, sortOrder] = lastSortParams(m_view->url());
 
         ++m_index;
-        m_history.push_back(Point {m_view->url(), lastIdx[0], lastIdx[1]});
+        m_history.push_back(Point {m_view->url(), row, col, sortCol, sortOrder});
 
         emit depthChanged();
-        emit resetFocus(lastIdx[0], lastIdx[1]);
+        emit resetFocus(row, col, sortCol, sortOrder);
 
         return;
     }
@@ -95,13 +100,15 @@ void HistoryController::urlUpdated()
     auto model = m_view->model();
     const auto index = model->index(top.row, top.col);
 
-    if (!model->checkIndex(index, QAbstractItemModel::CheckIndexOption::IndexIsValid))
+    if (!model->checkIndex(index
+                           , QAbstractItemModel::CheckIndexOption::IndexIsValid))
     {
-        emit resetFocus(0, 0);
+        emit resetFocus(0, 0, -1, -1);
     }
     else
     {
-        emit resetFocus(index.row(), index.column());
+        emit resetFocus(index.row(), index.column()
+                        , top.sortcolumn, top.sortorder);
     }
 }
 
@@ -124,6 +131,22 @@ void HistoryController::setIndex(int index)
     m_view->openUrl(current().url);
 }
 
+std::pair<int, int> HistoryController::lastRowAndColumn(const QString &url)
+{
+    auto historyData = m_pathHistory->read(url);
+    const int lastRow = historyData.row.value_or(-1);
+    const int lastCol = historyData.col.value_or(-1);
+    return {lastRow, lastCol};
+}
+
+std::pair<int, int> HistoryController::lastSortParams(const QString &url)
+{
+    auto historyData = m_pathHistory->read(url);
+    const int lastSortCol = historyData.sortcolumn.value_or(-1);
+    const int lastSortOrder = historyData.sortorder.value_or(-1);
+    return {lastSortCol, lastSortOrder};
+}
+
 void HistoryController::updateCurrentIndex(int row, int column)
 {
     if (m_history.empty())
@@ -136,14 +159,32 @@ void HistoryController::updateCurrentIndex(int row, int column)
         return;
     }
 
-    if (m_preferences)
+    if (m_pathHistory)
     {
-        m_preferences->setUrlLastIndex(m_view->url(), {row, column});
+        m_pathHistory->setRowAndColumn(m_view->url(), row, column);
     }
 
+    // update values of top
     auto &top = current();
     top.row =  index.row();
     top.col = index.column();
+}
+
+void HistoryController::updateSortParams(int sortColumn, int sortOrder)
+{
+    qDebug() << "sort paramupdate" << sortColumn << sortOrder;
+    if (m_history.empty())
+        return; // no url has been pushed yet, why currentUpated is called then?
+
+    if (m_pathHistory)
+    {
+        m_pathHistory->setSortParams(m_view->url(), sortColumn, sortOrder);
+    }
+
+    // update values of top
+    auto &top = current();
+    top.sortcolumn = sortColumn;
+    top.sortorder = sortOrder;
 }
 
 void HistoryController::restorePreviousSession()
@@ -165,11 +206,10 @@ void HistoryController::restorePreviousSession()
             url = home.first();
     }
 
-    auto lastIdx = m_preferences->urlLastIndex(url);
-    if (lastIdx.empty())
-        lastIdx = {-1, -1};
+    const auto [row, col] = lastRowAndColumn(url);
+    const auto [sortcol, sortorder] = lastSortParams(url);
 
-    m_history.push_back(Point {url, lastIdx[0], lastIdx[1]});
+    m_history.push_back(Point {url, row, col, sortcol, sortorder});
     m_view->openUrl(url);
 
     emit depthChanged();
@@ -192,5 +232,6 @@ void HistoryController::setPref(Preferences *newPreferences)
 
     m_preferences = newPreferences;
     emit preferencesChanged();
+
     restorePreviousSession();
 }

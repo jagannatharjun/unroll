@@ -13,7 +13,7 @@ public:
     struct HistoryData
     {
         std::optional<int> row, col;
-        std::optional<int> sortcolumn;
+        std::optional<int> sortcolumn, sortorder;
     };
 
     explicit PathHistoryDB(const QString &dbPath
@@ -22,7 +22,10 @@ public:
     ~PathHistoryDB();
 
     HistoryData read(const QString &url) const;
-    void set(const QString &url, const HistoryData &data);
+
+    void setRowAndColumn(const QString &url, int row, int col);
+
+    void setSortParams(const QString &url, int sortcolumn, int sortorder);
 
 signals:
 

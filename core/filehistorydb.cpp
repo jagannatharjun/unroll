@@ -7,6 +7,8 @@
 #include <QSqlError>
 #include <QDebug>
 
+#include "dbutil.hpp"
+
 namespace
 {
 
@@ -50,16 +52,6 @@ void insert(std::unique_ptr<QSqlDatabase> &db
                  , qUtf8Printable(mrl)
                  , qUtf8Printable(query.lastError().text()));
     }
-}
-
-template <typename Result>
-std::optional<Result> get(QSqlQuery &q, int index)
-{
-    const QVariant val = q.value(index);
-    if (!val.canConvert<Result>())
-        return std::nullopt;
-
-    return val.value<Result>();
 }
 
 }
@@ -116,6 +108,8 @@ void FileHistoryDBWorker::open(const QString &db)
         qFatal() << "failed to execute query" << q.lastError();
         return;
     }
+
+    enableAutoVacuum(*m_db);
 }
 
 void FileHistoryDBWorker::read(QPromise<FileHistoryDB::Data> &result, const QString &mrl)

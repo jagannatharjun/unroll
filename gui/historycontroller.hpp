@@ -7,6 +7,7 @@
 #include "viewcontroller.hpp"
 #include "preferences.hpp"
 
+class PathHistoryDB;
 
 class HistoryController : public QObject
 {
@@ -39,14 +40,17 @@ public slots:
 
     void forward();
 
-    void updateCurrentIndex(int row, int column);
+    Q_INVOKABLE void updateCurrentIndex(int row, int column);
+
+    Q_INVOKABLE void updateSortParams(int sortColumn, int sortOrder);
 
     void restorePreviousSession();
 
 signals:
     void depthChanged();
     void viewChanged();
-    void resetFocus(int row, int column);
+    void resetFocus(int row, int column
+                    , int sortOder, int sortColumn);
 
     void fileBrowserChanged();
 
@@ -55,19 +59,24 @@ signals:
 private slots:
     void urlUpdated();
 
-private:
+private:    
     struct Point
     {
         QUrl url;
         int row;
         int col;
+        int sortcolumn;
+        int sortorder;
     };
 
     Point &current();
     const Point &current() const;
 
     void setIndex(int index);
+    std::pair<int, int> lastRowAndColumn(const QString &url);
+    std::pair<int, int> lastSortParams(const QString &url);
 
+    std::unique_ptr<PathHistoryDB> m_pathHistory;
     std::vector<Point> m_history;
     int m_index = - 1;
 

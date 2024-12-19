@@ -77,12 +77,6 @@ public:
     QString lastSessionUrl() const;
     void setLastSessionUrl(const QString &newLastSessionUrl);
 
-    // index: {row, col}
-    Q_INVOKABLE QVector<int> urlLastIndex(const QString &url) const;
-
-    Q_INVOKABLE void setUrlLastIndex(const QString &url
-                                     , const QVector<int> &idx);
-
     int videoRotation() const;
     void setVideoRotation(int newVideoRotation);
 
@@ -105,8 +99,6 @@ signals:
     void showMainFileViewChanged();
 
 private:
-    PathHistoryDB m_pathHistory;
-
     QSettings m_setting;
     SettingEntry<bool> m_volumeMuted;
     SettingEntry<qreal> m_volume;

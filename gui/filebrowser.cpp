@@ -185,9 +185,23 @@ QDir FileBrowser::cacheDir() const
     return d;
 }
 
+QDir FileBrowser::appDataPath() const
+{
+    QDir d(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+    if (!d.exists())
+        d.mkdir(".");
+    return d;
+
+}
+
 QString FileBrowser::fileHistoryDBPath() const
 {
     return cacheDir().absoluteFilePath("filehistory.db");
+}
+
+QString FileBrowser::pathHistoryDBPath() const
+{
+    return cacheDir().absoluteFilePath("path_history.db");
 }
 
 bool FileBrowser::isContainer(const QString &path) const

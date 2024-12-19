@@ -1,5 +1,7 @@
 #include "preferences.hpp"
 
+#include <QDir>
+
 namespace
 {
 
@@ -10,27 +12,25 @@ const QString SHOW_MAIN_FILEVIEW = "MainView/ShowFileView";
 const QString RECENT_URLS = "RECENT_URLS";
 const QString LAST_SESSION_INDEX = "MainView/LAST_SESSION_INDEX";
 const QString LAST_SESSION_URL = "MainView/LAST_SESSION_URL";
-const QString URL_LAST_INDEX_LIST = "MainView/URL_LAST_INDEX_LIST";
 const QString PREVIEW_VIDEO_ROTATION = "MainView/PREVIEW_VIDEO_ROTATION";
 
 
 const int MAX_RECENT_PATH = 10;
 
-const int UrlIdxListMetaID
-    = qRegisterMetaType<Preferences::URLIdxList>("Preferences::URLIdxList");
-
 }
 
-Preferences::Preferences(QObject *parent)
+Preferences::Preferences(const QDir &appDataDir
+                         , const QString &pathHistoryDBPath
+                         , QObject *parent)
     : QObject{parent}
-    , m_setting ("filebrowser")
+    , m_pathHistory(pathHistoryDBPath)
+    , m_setting (appDataDir.absoluteFilePath("settings.ini"), QSettings::IniFormat)
     , m_volumeMuted (VOLUME_MUTE_KEY, false, m_setting)
     , m_volume (VOLUME_KEY, .5, m_setting)
     , m_mainSplitViewState (MAIN_SPLITVIEW_STATE, {}, m_setting)
     , m_showMainFileView (SHOW_MAIN_FILEVIEW, {}, m_setting)
     , m_recentUrls(RECENT_URLS, {}, m_setting)
     , m_lastSessionUrl(LAST_SESSION_URL, {}, m_setting)
-    , m_urlLastIndexList(URL_LAST_INDEX_LIST, {}, m_setting)
     , m_videoRotation(PREVIEW_VIDEO_ROTATION, {}, m_setting)
 {
 }
@@ -109,14 +109,16 @@ void Preferences::setLastSessionUrl(const QString &newLastSessionUrl)
 
 QVector<int> Preferences::urlLastIndex(const QString &url) const
 {
-    return m_urlLastIndexList.value().value(url, {});
+    const auto data = m_pathHistory.read(url);
+    return {data.row.value_or(0), data.col.value_or(0)};
 }
 
 void Preferences::setUrlLastIndex(const QString &url, const QVector<int> &idx)
 {
-    auto list = m_urlLastIndexList.value();
-    list.insert(url, idx);
-    m_urlLastIndexList.set(list, m_setting);
+    auto data = m_pathHistory.read(url);
+    data.row = idx[0];
+    data.col = idx[1];
+    m_pathHistory.set(url, data);
 }
 
 int Preferences::videoRotation() const
@@ -146,3 +148,4 @@ void Preferences::setShowMainFileView(bool newShowMainFileView)
     m_showMainFileView.set(newShowMainFileView, m_setting);
     emit showMainFileViewChanged();
 }
+

@@ -24,15 +24,14 @@ int main(int argc, char *argv[])
     qmlRegisterType<HistoryController>("filebrowser", 0, 1, "HistoryController");
     qmlRegisterType<PreviewData>("filebrowser", 0, 1, "PreviewData");
 
-    qmlRegisterSingletonType<FileBrowser>("filebrowser", 0, 1, "FileBrowser" ,[](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
-    {
-        return new FileBrowser();
-    });
+    FileBrowser mainCtx;
+    Preferences pref(mainCtx.appDataPath()
+                     , mainCtx.pathHistoryDBPath());
 
-    qmlRegisterSingletonType<Preferences>("filebrowser", 0, 1, "Preferences" ,[](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject *
-    {
-        return new Preferences();
-    });
+
+    qmlRegisterSingletonInstance<FileBrowser>("filebrowser", 0, 1, "FileBrowser" , &mainCtx);
+
+    qmlRegisterSingletonInstance<Preferences>("filebrowser", 0, 1, "Preferences" , &pref);
 
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/main.qml"));

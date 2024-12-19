@@ -52,7 +52,6 @@ void insert(std::unique_ptr<QSqlDatabase> &db
     }
 }
 
-
 template <typename Result>
 std::optional<Result> get(QSqlQuery &q, int index)
 {

@@ -7,6 +7,7 @@
 #include "viewcontroller.hpp"
 #include "preferences.hpp"
 
+
 class HistoryController : public QObject
 {
     Q_OBJECT

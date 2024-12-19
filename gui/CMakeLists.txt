@@ -15,6 +15,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 	MANUAL_FINALIZATION
 	${SOURCES}
 	preferences.hpp preferences.cpp
+        pathhistorydb.hpp pathhistorydb.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET file-browser APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -40,6 +41,7 @@ target_link_libraries(file-browser
   PRIVATE Qt${QT_VERSION_MAJOR}::Core
   Qt${QT_VERSION_MAJOR}::Quick
   Qt${QT_VERSION_MAJOR}::QuickControls2
+  Qt${QT_VERSION_MAJOR}::Sql
 )
 
 target_link_libraries(file-browser

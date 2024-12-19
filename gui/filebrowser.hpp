@@ -21,7 +21,12 @@ public:
     Q_INVOKABLE QString volumeName(const QString &path) const;
 
     QDir cacheDir() const;
+
+    QDir appDataPath() const;
+
     QString fileHistoryDBPath() const;
+
+    QString pathHistoryDBPath() const;
 
     Q_INVOKABLE bool isContainer(const QString &path) const;
 

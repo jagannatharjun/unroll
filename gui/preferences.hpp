@@ -1,10 +1,14 @@
 #pragma once
 
+
+#include "pathhistorydb.hpp"
+
 #include <QObject>
 #include <QHash>
 #include <QList>
 #include <QSettings>
 
+class QDir;
 
 template <typename T>
 class SettingEntry
@@ -54,8 +58,9 @@ class Preferences : public QObject
 
 
 public:
-    using URLIdxList = QHash<QString, QVector<int>>;
-    explicit Preferences(QObject *parent = nullptr);
+    explicit Preferences(const QDir &appDataDir
+                         , const QString &pathHistoryDBPath
+                         , QObject *parent = nullptr);
 
     bool volumeMuted() const;
     void setVolumeMuted(bool newVolumeMute);
@@ -100,6 +105,8 @@ signals:
     void showMainFileViewChanged();
 
 private:
+    PathHistoryDB m_pathHistory;
+
     QSettings m_setting;
     SettingEntry<bool> m_volumeMuted;
     SettingEntry<qreal> m_volume;
@@ -107,9 +114,6 @@ private:
     SettingEntry<bool> m_showMainFileView;
     SettingEntry<QStringList> m_recentUrls;
     SettingEntry<QString> m_lastSessionUrl;
-    SettingEntry<URLIdxList> m_urlLastIndexList;
     SettingEntry<int> m_videoRotation;
 };
-
-Q_DECLARE_METATYPE(Preferences::URLIdxList);
 

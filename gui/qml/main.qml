@@ -142,8 +142,6 @@ ApplicationWindow {
         }
 
         onCurrentChanged: function (current, previous) {
-            updateSeen(previous)
-
             if (root.previewRow === -1 || root.previewRow !== current.row) {
                 updateProgress(previous)
 

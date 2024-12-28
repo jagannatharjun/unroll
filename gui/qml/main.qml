@@ -73,6 +73,10 @@ ApplicationWindow {
         currentPreviewCompleted: root._previewCompleted
 
         nextIndex: root.nextIndex
+
+        onActiveChanged: {
+            mainView.showStatus("Auto Preview: %1".arg(active ? "ON" : "OFF"))
+        }
     }
 
     ViewController {

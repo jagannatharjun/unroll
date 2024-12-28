@@ -21,6 +21,8 @@ SplitView {
 
     property var progress
 
+    property var showStatus: previewView.showStatus
+
     signal actionAtIndex(int row, int column)
 
     signal previewCompleted

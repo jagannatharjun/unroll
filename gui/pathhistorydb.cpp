@@ -92,11 +92,14 @@ void PathHistoryDB::setRowAndColumn(const QString &url
                qUtf8Printable(q.lastError().text()));
     }
 
-    // update cache with new values
-    auto data = m_cache[url];
-    data.row = row;
-    data.col = col;
-    m_cache[url] = data;
+    // only update cache if we have full value in the cache otherwise we'll have incomplete field
+    if (auto itr = m_cache.find(url); itr != m_cache.end())
+    {
+        // update cache with new values
+        auto &data = m_cache[url];
+        data.row = row;
+        data.col = col;
+    }
 }
 
 void PathHistoryDB::setSortParams(const QString &url, int sortcolumn, int sortorder)
@@ -118,9 +121,12 @@ void PathHistoryDB::setSortParams(const QString &url, int sortcolumn, int sortor
                qUtf8Printable(q.lastError().text()));
     }
 
-    // update cache with new values
-    auto data = m_cache[url];
-    data.sortcolumn = sortcolumn;
-    data.sortorder = sortorder;
-    m_cache[url] = data;
+    // only update cache if we have full value in the cache otherwise we'll have incomplete field
+    if (auto itr = m_cache.find(url); itr != m_cache.end())
+    {
+        // update cache with new values
+        auto &data = m_cache[url];
+        data.sortcolumn = sortcolumn;
+        data.sortorder = sortorder;
+    }
 }

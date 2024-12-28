@@ -301,6 +301,18 @@ ApplicationWindow {
                         event.accepted = true;
                         break;
 
+                    case Qt.Key_BracketLeft:
+                    case Qt.Key_BracketRight:
+                        const rate = autoPreviewHandler.interval
+                        const jump = (event.modifiers & Qt.ControlModifier) ? 200 : 100
+                        const newRate = rate + ((event.key === Qt.Key_BracketLeft) ? - jump : jump)
+
+                        autoPreviewHandler.interval = Math.max(200, newRate)
+                        mainView.showStatus("Auto Preview Time: %1ms".arg(rate))
+
+                        event.accepted = true
+                        break;
+
                     case Qt.Key_Up:
                     case Qt.Key_Down:
                     case Qt.Key_PageDown:

@@ -30,7 +30,7 @@ public:
 private:
     std::unique_ptr<Directory> call(std::function<std::unique_ptr<Directory>(DirectorySystem *)> functor)
     {
-        for (auto source : qAsConst(m_systems))
+        for (auto source : std::as_const(m_systems))
         {
             auto r = functor(source);
             if (!r) continue;
@@ -61,7 +61,7 @@ private:
 
     std::unique_ptr<FileSystem> m_filesystem;
     std::unique_ptr<ArchiveSystem> m_archivesystem;
-    QVector<DirectorySystem *> m_systems;
+    std::array<DirectorySystem *, 2> m_systems;
 
     QReadWriteLock m_lock;
     QHash<Directory *, DirectorySystem *> m_sources;

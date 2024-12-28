@@ -336,7 +336,6 @@ FocusScope {
                     to: 100
                     stepSize: 5
                     focus: true
-                    value: root.volume
                     snapMode: Slider.SnapAlways
 
                     Layout.preferredWidth: 70
@@ -364,6 +363,14 @@ FocusScope {
                             volSlider.__showStatus = true
                             volSlider._updateSource = true
                         }
+                    }
+
+                    Component.onCompleted: {
+                        volSlider.__showStatus = false
+
+                        volSlider.value = Qt.binding(() => root.volume)
+
+                        volSlider.__showStatus = true
                     }
                 }
             }

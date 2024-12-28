@@ -81,6 +81,8 @@ FocusScope {
 
         player.source = previewdata.readUrl()
 
+        player.play()
+
         previewTimer.restart()
     }
 
@@ -498,8 +500,6 @@ FocusScope {
             break;
         }
     }
-
-    Component.onCompleted: player.play()
 
     component StatusLabel : Label {
         id: lbl

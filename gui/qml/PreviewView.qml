@@ -6,9 +6,18 @@ import "preview" as Preview
 Loader {
     id: root
 
+    enum LoadedComponent
+    {
+        None,
+        Image,
+        Player
+    }
+
     property PreviewData previewdata
 
     property var progress: item?.progress ?? null
+
+    property int _loadedComp: PreviewView.LoadedComponent.None
 
     signal previewCompleted()
 
@@ -16,22 +25,26 @@ Loader {
 
     asynchronous: true
 
-    onPreviewdataChanged:  {
-        const fileType = previewdata.fileType()
-        root.active = (fileType !== PreviewData.Unknown)
+    onPreviewdataChanged: {
+        const fileType = previewdata.fileType();
+        _setComponentFromPreviewType(fileType);
+    }
 
-        // reset state otherwise Player will crash with invalid inputs
-        sourceComponent = undefined
+    // Function to set the appropriate component based on preview type
+    function _setComponentFromPreviewType(previewType) {
+        root.active = (previewType !== PreviewData.Unknown);
 
-        if (!active)
-            return
+        const componentMap = {
+            [PreviewData.ImageFile]: { component: imageComponent, type: PreviewView.LoadedComponent.Image },
+            [PreviewData.VideoFile]: { component: playerComponent, type: PreviewView.LoadedComponent.Player },
+            [PreviewData.AudioFile]: { component: playerComponent, type: PreviewView.LoadedComponent.Player },
+        };
 
-        if (fileType === PreviewData.ImageFile) {
-            sourceComponent = imageComponent
-        } else if ((fileType === PreviewData.VideoFile)
-                   || (fileType === PreviewData.AudioFile)) {
+        const selected = componentMap[previewType] || { component: undefined, type: PreviewView.LoadedComponent.None };
 
-            sourceComponent = playerComponent
+        if (_loadedComp !== selected.type) {
+            sourceComponent = selected.component;
+            _loadedComp = selected.type;
         }
     }
 

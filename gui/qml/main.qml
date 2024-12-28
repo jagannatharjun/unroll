@@ -39,8 +39,7 @@ ApplicationWindow {
                 return
 
             const path = controller.model.data(idx, DirectorySystemModel.PathRole)
-            const isContainer = FileBrowser.isContainer(path)
-            if (isContainer)
+            if (FileBrowser.isContainer(path))
                 return
 
             _previewCompleted = true

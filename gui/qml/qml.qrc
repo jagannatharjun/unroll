@@ -8,8 +8,8 @@
         <file>AppMenuBar.qml</file>
         <file>PreviewView.qml</file>
         <file>MainView.qml</file>
-        <file>preview/widgets/VideoPreview.qml</file>
-        <file>AutoPreviewHandler.qml</file>
+        <file>widgets/VideoFrame.qml</file>
+        <file>widgets/AutoPreviewHandler.qml</file>
         <file>widgets/StatusLabel.qml</file>
     </qresource>
     <qresource prefix="/preview">

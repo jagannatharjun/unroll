@@ -5,6 +5,7 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 
 import filebrowser 0.1
+import "widgets"
 import "preview" as Preview
 
 ApplicationWindow {

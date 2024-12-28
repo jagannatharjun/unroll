@@ -4,8 +4,6 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtMultimedia
 
-
-import "./widgets"
 import "../widgets"
 
 FocusScope {
@@ -377,7 +375,7 @@ FocusScope {
         }
     }
 
-    VideoPreview {
+    VideoFrame {
         id: videoPreview
 
         source: player.source

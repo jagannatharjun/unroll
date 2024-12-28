@@ -10,6 +10,7 @@
         <file>MainView.qml</file>
         <file>preview/widgets/VideoPreview.qml</file>
         <file>AutoPreviewHandler.qml</file>
+        <file>widgets/StatusLabel.qml</file>
     </qresource>
     <qresource prefix="/preview">
         <file alias="ImagePreview.qml">preview/ImagePreview.qml</file>

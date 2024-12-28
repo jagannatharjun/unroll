@@ -1,4 +1,6 @@
 import QtQuick
+import QtQuick.Layouts
+import "./widgets"
 
 import filebrowser 0.1
 import "preview" as Preview
@@ -24,6 +26,13 @@ Loader {
     signal previewed()
 
     asynchronous: true
+
+    function showStatus(txt, statusType) {
+        if (statusType === StatusLabel.LabelType.FileName)
+            leftlabel.showStatus(txt)
+        else
+            rightLabel.showStatus(txt)
+    }
 
     onPreviewdataChanged: {
         const fileType = previewdata.fileType();
@@ -78,6 +87,8 @@ Loader {
             onPreviewCompleted: root.previewCompleted()
 
             onPreviewed: root.previewed()
+
+            onShowStatus: (txt, type) => root.showStatus(txt, type)
         }
     }
 
@@ -92,6 +103,38 @@ Loader {
 
                 root.previewed()
             }
+        }
+    }
+
+
+    RowLayout {
+        z: 10
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            margins: 10
+        }
+
+        StatusLabel {
+            id: leftlabel
+
+            sourceWidth: root.width
+            sourceHeight: root.height
+
+            Layout.fillWidth: true
+        }
+
+        Item {
+            Layout.fillWidth: true
+            Layout.minimumWidth: 32
+        }
+
+        StatusLabel {
+            id: rightLabel
+
+            sourceWidth: root.width
+            sourceHeight: root.height
         }
     }
 }

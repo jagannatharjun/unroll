@@ -6,6 +6,7 @@ import QtMultimedia
 
 
 import "./widgets"
+import "../widgets"
 
 FocusScope {
     id: root
@@ -26,6 +27,13 @@ FocusScope {
     signal previewCompleted()
 
     signal previewed()
+
+    signal showStatus(string txt, int type)
+
+    function _showStatus(txt, statusType) {
+        root.showStatus(txt, statusType || StatusLabel.LabelType.Other)
+    }
+
 
     function progress() {
         return player.position / player.duration
@@ -67,13 +75,13 @@ FocusScope {
     function _changeSubtitleTrack() {
         const result = _changeTrack(player.subtitleTracks, player.activeSubtitleTrack, "Subtitle")
         player.activeSubtitleTrack = result.newIndex
-        statusLabel.showStatus(result.status)
+        root._showStatus(result.status)
     }
 
     function _changeAudioTrack() {
         const result = _changeTrack(player.audioTracks, player.activeAudioTrack, "Audio")
         player.activeAudioTrack = result.newIndex
-        statusLabel.showStatus(result.status)
+        root._showStatus(result.status)
     }
 
     onPreviewdataChanged: {
@@ -165,7 +173,7 @@ FocusScope {
             const TitleIdx = 0
             const title = metaData.stringValue(TitleIdx)
             if (!!title)
-                fileLabel.showStatus(title)
+                root._showStatus(title, StatusLabel.LabelType.FileName)
         }
 
         onSubtitleTracksChanged: {
@@ -177,8 +185,8 @@ FocusScope {
                 const track = subtitles[i]
                 if (track.value(6) === Locale.English) {
                     activeSubtitleTrack = i
-                    statusLabel.showStatus("Subtitle track: %1"
-                                           .arg(track.stringValue(6)))
+                    root._showStatus("Subtitle track: %1"
+                                    .arg(track.stringValue(6)))
                 }
             }
         }
@@ -189,9 +197,9 @@ FocusScope {
         onClicked: {
             root.toogleState()
             if (player.playbackState === MediaPlayer.PlayingState)
-                statusLabel.showStatus("Playing")
+                root._showStatus("Playing")
             else if (player.playbackState === MediaPlayer.PausedState)
-                statusLabel.showStatus("Paused")
+                root._showStatus("Paused")
 
             root.forceActiveFocus(Qt.MouseFocusReason)
         }
@@ -224,30 +232,6 @@ FocusScope {
                 id: videooutput
 
                 anchors.fill: parent
-            }
-
-            RowLayout {
-                anchors {
-                    top: parent.top
-                    left: parent.left
-                    right: parent.right
-                    margins: 10
-                }
-
-                StatusLabel {
-                    id: fileLabel
-
-                    Layout.fillWidth: true
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 32
-                }
-
-                StatusLabel {
-                    id: statusLabel
-                }
             }
         }
 
@@ -318,7 +302,7 @@ FocusScope {
 
                             const p = root.millisecondsToReadable(player.position)
                             const d = root.millisecondsToReadable(player.duration)
-                            statusLabel.showStatus("%1 / %2".arg(p).arg(d))
+                            root._showStatus("%1 / %2".arg(p).arg(d))
                         }
 
                     }
@@ -345,7 +329,7 @@ FocusScope {
                 Slider {
                     id: volSlider
 
-                    property bool _showStatus: true
+                    property bool __showStatus: true
                     property bool _updateSource: true
 
                     from: 0
@@ -361,8 +345,8 @@ FocusScope {
                         if (_updateSource)
                             root.volume = value
 
-                        if (_showStatus)
-                            statusLabel.showStatus("Volume: %1%".arg(root.volume))
+                        if (__showStatus)
+                            root._showStatus("Volume: %1%".arg(root.volume))
                     }
 
                     Connections {
@@ -373,11 +357,11 @@ FocusScope {
                                  return
 
                             volSlider._updateSource = false
-                            volSlider._showStatus = false
+                            volSlider.__showStatus = false
 
                             volSlider.value = v
 
-                            volSlider._showStatus = true
+                            volSlider.__showStatus = true
                             volSlider._updateSource = true
                         }
                     }
@@ -445,7 +429,7 @@ FocusScope {
             event.accepted = true
 
             videoRotation = (videoRotation + 90) % 360
-            statusLabel.showStatus("Rotation %1°".arg(videoRotation))
+            root._showStatus("Rotation %1°".arg(videoRotation))
 
             break;
 
@@ -459,7 +443,7 @@ FocusScope {
                 break;
 
             player.playbackRate = rate
-            statusLabel.showStatus("Playback Speed: %1x".arg(player.playbackRate))
+            root._showStatus("Playback Speed: %1x".arg(player.playbackRate))
 
             event.accepted = true
             break;
@@ -467,9 +451,9 @@ FocusScope {
         case Qt.Key_M:
             root.muted = !root.muted
             if (root.muted)
-                statusLabel.showStatus("Volume: Muted")
+                root._showStatus("Volume: Muted")
             else
-                statusLabel.showStatus("Volume: %1%".arg(root.volume * 100))
+                root._showStatus("Volume: %1%".arg(root.volume * 100))
 
             event.accepted = true
             break;
@@ -498,64 +482,6 @@ FocusScope {
 
             event.accepted = true
             break;
-        }
-    }
-
-    component StatusLabel : Label {
-        id: lbl
-
-        font.pointSize: 18 * Math.max(root.width, root.height) / 1000
-
-        visible: opacity > 0
-
-        style: Text.Outline
-
-        color: "white"
-        styleColor: "black"
-
-        elide: Text.ElideRight
-
-        Label {
-            anchors {
-                top: parent.top
-                left: parent.left
-                topMargin: 3
-                leftMargin: 3
-            }
-
-            z: -1
-            width: parent.width
-            height: parent.width
-            color: "black"
-            opacity: .45
-            text: lbl.text
-            font: lbl.font
-            elide: lbl.elide
-        }
-
-        function showStatus(txt) {
-            lbl.text = txt
-
-            lbl.opacity = 1
-            visibleTimer.restart()
-        }
-
-        OpacityAnimator {
-            id: oAnim
-
-            target: lbl
-            duration: 400
-        }
-
-        Timer {
-            id: visibleTimer
-
-            interval: 1600
-
-            onTriggered: {
-                oAnim.to = 0
-                oAnim.start()
-            }
         }
     }
 }

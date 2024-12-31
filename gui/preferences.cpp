@@ -15,7 +15,7 @@ const QString LAST_SESSION_URL = "MainView/LAST_SESSION_URL";
 const QString PREVIEW_VIDEO_ROTATION = "MainView/PREVIEW_VIDEO_ROTATION";
 
 
-const int MAX_RECENT_PATH = 10;
+const int MAX_RECENT_URLS = 10;
 
 }
 
@@ -85,7 +85,7 @@ void Preferences::pushRecentUrl(const QString &path)
 
     recentUrls.removeOne(path);
     recentUrls.insert(0, path);
-    if (recentUrls.size() > MAX_RECENT_PATH)
+    if (recentUrls.size() > MAX_RECENT_URLS)
         recentUrls.pop_back();
 
     m_recentUrls.set(recentUrls, m_setting);

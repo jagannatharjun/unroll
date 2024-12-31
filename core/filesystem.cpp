@@ -6,7 +6,9 @@
 namespace
 {
 
-struct File
+const QString LEAN_URL_SCEHEME = u"lean_dir"_qs;
+
+struct EntryInfo
 {
     QString name;
     QString path;
@@ -17,53 +19,68 @@ struct File
 class RegularDirectory : public Directory
 {
 public:
-    QString path_;
-    QString name_;
-    QVector<File> files;
+    QString directoryPath;
+    QString directoryName;
+    QVector<EntryInfo> entries;
 
-    QString name() override { return name_; }
-    QString path() override { return path_; }
-    QUrl url() override { return QUrl::fromLocalFile(path_); }
+    QString name() override { return directoryName; }
+    QString path() override { return directoryPath; }
 
-    int fileCount() override { return files.size(); }
-    QString fileName(int i) override { return files[i].name; }
-    QString filePath(int i) override { return files[i].path; }
-    QUrl fileUrl(int i) override { return QUrl::fromLocalFile(files[i].path); }
-    qint64 fileSize(int i) override { return files[i].size; }
-    bool isDir(int i) override { return files[i].isdir; }
+    int fileCount() override { return entries.size(); }
+    QString fileName(int i) override { return entries[i].name; }
+    QString filePath(int i) override { return entries[i].path; }
+    QUrl fileUrl(int i) override { return QUrl::fromLocalFile(entries[i].path); }
+    qint64 fileSize(int i) override { return entries[i].size; }
+    bool isDir(int i) override { return entries[i].isdir; }
 
 
     QDateTime fileLastAccessTime(int i) override
     {
-        return QFileInfo(files[i].path).lastRead();
+        return QFileInfo(entries[i].path).lastRead();
     }
 
     QDateTime fileCreationTime(int i) override
     {
-        return QFileInfo(files[i].path).birthTime();
-
+        return QFileInfo(entries[i].path).birthTime();
     }
 
     QDateTime fileModifiedTime(int i) override
     {
-        return QFileInfo(files[i].path).lastModified();
+        return QFileInfo(entries[i].path).lastModified();
+    }
+};
+
+template<bool LeanMode>
+class AdaptiveDirectory : public RegularDirectory
+{
+public:
+    QUrl url() override
+    {
+        if constexpr (LeanMode)
+        {
+            auto u = QUrl::fromLocalFile(directoryPath);
+            u.setScheme(LEAN_URL_SCEHEME);
+            return u;
+        }
+
+        return QUrl::fromLocalFile(directoryPath);
     }
 };
 
 class RegularIOSource : public IOSource
 {
 public:
-    QString filePath_;
+    QString filePath;
 
-    RegularIOSource(const QString &filePath) : filePath_ {filePath} {}
+    RegularIOSource(const QString &filePath) : filePath {filePath} {}
 
     QString readPath() override
     {
-        return filePath_;
+        return filePath;
     }
 };
 
-void addFiles(const QString &path, bool flatMode, RegularDirectory  *dir)
+void addFiles(const QString &path, bool flatMode, RegularDirectory *dir)
 {
     QDir d(path);
     QFileInfoList list = d.entryInfoList();
@@ -73,12 +90,13 @@ void addFiles(const QString &path, bool flatMode, RegularDirectory  *dir)
         QFileInfo fileInfo = list.at(i);
         if (fileInfo.fileName() == "." || fileInfo.fileName() == "..") continue;
 
-        if (flatMode && fileInfo.isDir()) {
+        if (flatMode && fileInfo.isDir())
+        {
             addFiles(fileInfo.absoluteFilePath(), flatMode, dir);
             continue;
         }
 
-        File f
+        EntryInfo f
         {
            fileInfo.fileName()
             , fileInfo.absoluteFilePath()
@@ -86,7 +104,7 @@ void addFiles(const QString &path, bool flatMode, RegularDirectory  *dir)
             , fileInfo.isDir()
         };
 
-        dir->files.push_back(std::move(f));
+        dir->entries.push_back(std::move(f));
     }
 }
 
@@ -98,9 +116,14 @@ std::unique_ptr<Directory> openDir(const QString &path, const bool flatMode)
 
     QFileInfoList list = d.entryInfoList();
 
-    auto r = std::make_unique<RegularDirectory>();
-    r->path_ = d.absolutePath();
-    r->name_ = d.dirName();
+    std::unique_ptr<RegularDirectory> r;
+    if  (flatMode)
+        r = std::make_unique<AdaptiveDirectory<true>>();
+    else
+        r = std::make_unique<AdaptiveDirectory<false>>();
+
+    r->directoryPath = d.absolutePath();
+    r->directoryName = d.dirName();
 
     addFiles(path, flatMode, r.get());
 

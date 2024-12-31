@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QString>
 
+
 QString withoutTrallingBacklash(const QString &path)
 {
     if (path.endsWith('/'))
@@ -42,6 +43,8 @@ public:
             {"thirdfile2", 169}
         };
 
+    const QList<std::pair<QString, int>> level1
+        = QList{std::pair{testDirLevel2, 0}} + testFiles;
 
     void check(Directory *fd, const QList<std::pair<QString, int>> &files)
     {
@@ -79,8 +82,6 @@ public:
     void test(DirectorySystem &system)
     {
         QDir d(testDir);
-        auto level1 = testFiles;
-        level1.push_front(std::pair {testDirLevel2, 0}); // push directory
 
         const auto url = QUrl::fromLocalFile("./test-dir/");
         auto fd = system.open(url);
@@ -133,9 +134,24 @@ private slots:
         FileSystem s;
         s.setLeanMode(true);
 
+        const auto leanfiles = testFiles + testfilesLevel2;
+
         const auto url = QUrl::fromLocalFile("./test-dir/");
         auto fd = s.open(url);
-        check(fd.get(), testFiles + testfilesLevel2);
+        check(fd.get(), leanfiles);
+        QCOMPARE(fd->url().scheme(), LEAN_URL_SCEHEME);
+
+        {
+            auto fd2 = s.open(fd->url());
+            check(fd2.get(), leanfiles);
+        }
+
+        s.setLeanMode(false);
+        auto fd3 = s.open(fd->url());
+        check(fd3.get(), leanfiles);
+
+        auto fd4 = s.open(url);
+        check(fd4.get(), level1);
     }
 
     void testHybridSystem()

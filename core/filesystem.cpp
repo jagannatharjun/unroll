@@ -3,10 +3,10 @@
 #include <QUrl>
 #include <QDir>
 
+const QString LEAN_URL_SCEHEME = u"lean-dir"_qs;
+
 namespace
 {
-
-const QString LEAN_URL_SCEHEME = u"lean_dir"_qs;
 
 struct EntryInfo
 {
@@ -58,8 +58,9 @@ public:
     {
         if constexpr (LeanMode)
         {
-            auto u = QUrl::fromLocalFile(directoryPath);
+            QUrl u;
             u.setScheme(LEAN_URL_SCEHEME);
+            u.setPath(directoryPath);
             return u;
         }
 

@@ -6,6 +6,8 @@
 
 class QUrl;
 
+extern const QString LEAN_URL_SCEHEME;
+
 class FileSystem : public DirectorySystem
 {
 public:

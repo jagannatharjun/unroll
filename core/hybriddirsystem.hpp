@@ -27,6 +27,10 @@ public:
 
     std::unique_ptr<IOSource> iosource(Directory *dir, int child) override;
 
+    void setLeanModeForFileSystem(bool leanMode);
+
+    bool leanModeForFileSystem() const;
+
 private:
     std::unique_ptr<Directory> call(std::function<std::unique_ptr<Directory>(DirectorySystem *)> functor)
     {

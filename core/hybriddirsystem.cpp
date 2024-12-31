@@ -69,6 +69,16 @@ std::unique_ptr<IOSource> HybridDirSystem::iosource(Directory *dir, int child)
     return nullptr;
 }
 
+void HybridDirSystem::setLeanModeForFileSystem(bool leanMode)
+{
+    m_filesystem->setLeanMode(leanMode);
+}
+
+bool HybridDirSystem::leanModeForFileSystem() const
+{
+    return m_filesystem->leanMode();
+}
+
 void HybridDirSystem::updatesource(Directory *dir, DirectorySystem *source)
 {
     assert(dir);

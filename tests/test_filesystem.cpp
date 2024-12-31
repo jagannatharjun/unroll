@@ -139,7 +139,6 @@ private slots:
         const auto url = QUrl::fromLocalFile("./test-dir/");
         auto fd = s.open(url);
         check(fd.get(), leanfiles);
-        QCOMPARE(fd->url().scheme(), LEAN_URL_SCEHEME);
 
         {
             auto fd2 = s.open(fd->url());
@@ -148,10 +147,11 @@ private slots:
 
         s.setLeanMode(false);
         auto fd3 = s.open(fd->url());
-        check(fd3.get(), leanfiles);
+        check(fd3.get(), level1);
 
+        s.setLeanMode(true);
         auto fd4 = s.open(url);
-        check(fd4.get(), level1);
+        check(fd4.get(), leanfiles);
     }
 
     void testHybridSystem()

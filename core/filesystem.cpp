@@ -3,8 +3,6 @@
 #include <QUrl>
 #include <QDir>
 
-const QString LEAN_URL_SCEHEME = u"lean-dir"_qs;
-
 namespace
 {
 
@@ -25,6 +23,7 @@ public:
 
     QString name() override { return directoryName; }
     QString path() override { return directoryPath; }
+    QUrl url() override { return QUrl::fromLocalFile(directoryPath); }
 
     int fileCount() override { return entries.size(); }
     QString fileName(int i) override { return entries[i].name; }
@@ -32,7 +31,6 @@ public:
     QUrl fileUrl(int i) override { return QUrl::fromLocalFile(entries[i].path); }
     qint64 fileSize(int i) override { return entries[i].size; }
     bool isDir(int i) override { return entries[i].isdir; }
-
 
     QDateTime fileLastAccessTime(int i) override
     {
@@ -50,23 +48,6 @@ public:
     }
 };
 
-template<bool LeanMode>
-class AdaptiveDirectory : public RegularDirectory
-{
-public:
-    QUrl url() override
-    {
-        if constexpr (LeanMode)
-        {
-            QUrl u;
-            u.setScheme(LEAN_URL_SCEHEME);
-            u.setPath(directoryPath);
-            return u;
-        }
-
-        return QUrl::fromLocalFile(directoryPath);
-    }
-};
 
 class RegularIOSource : public IOSource
 {
@@ -118,11 +99,8 @@ std::unique_ptr<Directory> openDir(const QString &path, const bool flatMode)
 
     QFileInfoList list = d.entryInfoList();
 
-    std::unique_ptr<RegularDirectory> r;
-    if  (flatMode)
-        r = std::make_unique<AdaptiveDirectory<true>>();
-    else
-        r = std::make_unique<AdaptiveDirectory<false>>();
+    std::unique_ptr<RegularDirectory> r
+        = std::make_unique<RegularDirectory>();
 
     r->directoryPath = d.absolutePath();
     r->directoryName = d.dirName();
@@ -140,13 +118,6 @@ std::unique_ptr<Directory> FileSystem::open(const QString &path)
 
 std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
 {
-    if (url.scheme() == LEAN_URL_SCEHEME)
-    {
-        auto u = url;
-        u.setScheme("file");
-        return openDir(u.toLocalFile(), true);
-    }
-
     // check before otherwise toLocalFile returns empty path
     // and we search current directory
     if (!url.isLocalFile())

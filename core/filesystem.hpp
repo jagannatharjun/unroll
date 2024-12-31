@@ -16,6 +16,12 @@ public:
     std::unique_ptr<Directory> dirParent(Directory *dir) override;
 
     std::unique_ptr<IOSource> iosource(Directory *dir, int child) override;
+
+    bool leanMode() const;
+    void setLeanMode(bool newLeanMode);
+
+private:
+    bool m_leanMode = false;
 };
 
 #endif // FILESYSTEM_HPP

@@ -88,7 +88,8 @@ void addFiles(const QString &path, bool flatMode, RegularDirectory *dir)
     for (int i = 0; i < list.size(); ++i)
     {
         QFileInfo fileInfo = list.at(i);
-        if (fileInfo.fileName() == "." || fileInfo.fileName() == "..") continue;
+        if ((fileInfo.fileName() == ".")
+            || (fileInfo.fileName() == "..")) continue;
 
         if (flatMode && fileInfo.isDir())
         {
@@ -133,11 +134,18 @@ std::unique_ptr<Directory> openDir(const QString &path, const bool flatMode)
 
 std::unique_ptr<Directory> FileSystem::open(const QString &path)
 {
-    return openDir(path, false);
+    return openDir(path, m_leanMode);
 }
 
 std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
 {
+    if (url.scheme() == LEAN_URL_SCEHEME)
+    {
+        auto u = url;
+        u.setScheme("file");
+        return openDir(u.toLocalFile(), true);
+    }
+
     // check before otherwise toLocalFile returns empty path
     // and we search current directory
     if (!url.isLocalFile())
@@ -163,4 +171,14 @@ std::unique_ptr<Directory> FileSystem::dirParent(Directory *dir)
 std::unique_ptr<IOSource> FileSystem::iosource(Directory *dir, int child)
 {
     return std::make_unique<RegularIOSource>(dir->filePath(child));
+}
+
+bool FileSystem::leanMode() const
+{
+    return m_leanMode;
+}
+
+void FileSystem::setLeanMode(bool newLeanMode)
+{
+    m_leanMode = newLeanMode;
 }

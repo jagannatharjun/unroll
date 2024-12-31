@@ -7,8 +7,14 @@
 #include <QDir>
 
 #include <QFile>
-#include <array>
 #include <QString>
+
+QString withoutTrallingBacklash(const QString &path)
+{
+    if (path.endsWith('/'))
+        return path.chopped(1);
+    return path;
+}
 
 class TestFileSystem : public QObject
 {
@@ -16,18 +22,89 @@ class TestFileSystem : public QObject
 public:
     using QObject::QObject;
 
+    const QString testDir = "./test-dir/";
+    const QString testDirLevel2 = "level2/";
+
+    // following only contains files
+    const QList<std::pair<QString, int>> testFiles =
+        {
+            std::pair {"this is a file", 98},
+            {"this is a second file", 87},
+            {"thirdfile", 69}
+        };
+
+    // following only contains files
+    const QList<std::pair<QString, int>> testfilesLevel2 =
+        {
+            std::pair {"this is a file2", 198},
+            {"this is a second file123", 187},
+            {"thirdfileOfLevel2", 169},
+            {"thirdfile2", 169}
+        };
+
+
+    void check(Directory *fd, const QList<std::pair<QString, int>> &files)
+    {
+        QDir d(testDir);
+        QCOMPARE(fd->fileCount(), files.size());
+
+        QList<bool> v(files.size(), false);
+
+        for (int i = 0; i < fd->fileCount(); ++i) {
+            for (int j = 0; j < files.size(); ++j) {
+                const auto &f = files[j];
+                const bool isDir = f.first.endsWith('/');
+                const QString name = isDir ? f.first.chopped(1) : f.first;
+                if (fd->fileName(i) == name) {
+                    QCOMPARE(fd->isDir(i), isDir);
+                    QCOMPARE(fd->fileSize(i), f.second);
+                    QVERIFY(!v[j]);
+
+                    v[j] = true;
+
+                    // don't break, all files must be unique
+                }
+            }
+        }
+
+        for (int i = 0; i < v.size(); ++i) {
+            const QString msg =
+                QString("failed to find,i: %1, '%2'")
+                    .arg(QString::number(i), d.absoluteFilePath(files[i].first));
+
+            QVERIFY2(v[i] , qPrintable(msg));
+        }
+    };
+
     void test(DirectorySystem &system)
     {
-        QString testdir = "./test-dir/";
-        QDir d(testdir);
+        QDir d(testDir);
+        auto level1 = testFiles;
+        level1.push_front(std::pair {testDirLevel2, 0}); // push directory
+
+        const auto url = QUrl::fromLocalFile("./test-dir/");
+        auto fd = system.open(url);
+        check(fd.get(), level1);
+
+        QCOMPARE(fd->filePath(0), withoutTrallingBacklash(d.absoluteFilePath(testDirLevel2)));
+        auto fd2 = system.open(fd.get(), 0);
+        check(fd2.get(), testfilesLevel2);
+    }
+
+private slots:
+
+    void initTestCase()
+    {
+        QDir d(testDir);
         if (d.exists())
             d.removeRecursively();
 
         d.mkpath(d.absolutePath());
-
+        d.mkpath(d.absoluteFilePath(testDirLevel2));
 
         QByteArray buf;
-        const auto write = [&](const QString f, int s) {
+        const auto write = [&](const QString f, int s)
+        {
             QFile io(d.absoluteFilePath(f));
             QVERIFY(io.open(QIODevice::WriteOnly));
 
@@ -38,43 +115,27 @@ public:
             io.write(buf);
         };
 
-        std::array<std::pair<QString, int>, 3> testfiles =
-            {
-                std::pair {"this is a file", 98},
-                {"this is a second file", 87},
-                {"thirdfile", 69}
-            };
-
-        for (const auto &f : testfiles)
+        for (const auto &f : testFiles)
             write(f.first, f.second);
 
-        const auto url = QUrl::fromLocalFile("./test-dir/");
-        auto fd = system.open(url);
-        QVERIFY(fd);
-        QCOMPARE(fd->fileCount(), testfiles.size());
-
-        std::vector<bool> v(testfiles.size(), false);
-
-        for (int i = 0; i < fd->fileCount(); ++i) {
-            for (int j = 0; j < testfiles.size(); ++j) {
-                const auto &f = testfiles[j];
-                if (fd->fileName(i) == f.first) {
-                    QVERIFY(!fd->isDir(i));
-                    QCOMPARE(fd->fileSize(i), f.second);
-                    QVERIFY(!v[j]);
-
-                    v[j] = true;
-                }
-            }
-        }
-
+        for (const auto &f : testfilesLevel2)
+            write(testDirLevel2 + f.first, f.second);
     }
 
-private slots:
     void testFileSystem()
     {
         FileSystem s;
         test(s);
+    }
+
+    void testFileSystemLean()
+    {
+        FileSystem s;
+        s.setLeanMode(true);
+
+        const auto url = QUrl::fromLocalFile("./test-dir/");
+        auto fd = s.open(url);
+        check(fd.get(), testFiles + testfilesLevel2);
     }
 
     void testHybridSystem()
@@ -82,7 +143,6 @@ private slots:
         HybridDirSystem s;
         test(s);
     }
-
 
 };
 

@@ -37,6 +37,8 @@ signals:
     void windowChanged();
 
 private:
+    QString dbPath(const QString &fileName) const;
+
     QWindow *m_window;
 };
 

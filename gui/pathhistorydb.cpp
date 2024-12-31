@@ -96,9 +96,8 @@ void PathHistoryDB::setRowAndColumn(const QString &url
     if (auto itr = m_cache.find(url); itr != m_cache.end())
     {
         // update cache with new values
-        auto &data = m_cache[url];
-        data.row = row;
-        data.col = col;
+        itr->row = row;
+        itr->col = col;
     }
 }
 
@@ -125,8 +124,7 @@ void PathHistoryDB::setSortParams(const QString &url, int sortcolumn, int sortor
     if (auto itr = m_cache.find(url); itr != m_cache.end())
     {
         // update cache with new values
-        auto &data = m_cache[url];
-        data.sortcolumn = sortcolumn;
-        data.sortorder = sortorder;
+        itr->sortcolumn = sortcolumn;
+        itr->sortorder = sortorder;
     }
 }

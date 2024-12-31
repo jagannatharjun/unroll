@@ -63,9 +63,34 @@ public:
     }
 };
 
+void addFiles(const QString &path, bool flatMode, RegularDirectory  *dir)
+{
+    QDir d(path);
+    QFileInfoList list = d.entryInfoList();
+
+    for (int i = 0; i < list.size(); ++i)
+    {
+        QFileInfo fileInfo = list.at(i);
+        if (fileInfo.fileName() == "." || fileInfo.fileName() == "..") continue;
+
+        if (flatMode && fileInfo.isDir()) {
+            addFiles(fileInfo.absoluteFilePath(), flatMode, dir);
+            continue;
+        }
+
+        File f
+        {
+           fileInfo.fileName()
+            , fileInfo.absoluteFilePath()
+            , fileInfo.size()
+            , fileInfo.isDir()
+        };
+
+        dir->files.push_back(std::move(f));
+    }
 }
 
-std::unique_ptr<Directory> FileSystem::open(const QString &path)
+std::unique_ptr<Directory> openDir(const QString &path, const bool flatMode)
 {
     QDir d(path);
     if (!d.exists())
@@ -77,15 +102,15 @@ std::unique_ptr<Directory> FileSystem::open(const QString &path)
     r->path_ = d.absolutePath();
     r->name_ = d.dirName();
 
-    for (int i = 0; i < list.size(); ++i)
-    {
-        QFileInfo fileInfo = list.at(i);
-        if (fileInfo.fileName() == "." || fileInfo.fileName() == "..") continue;
-
-        r->files.push_back(File {fileInfo.fileName(), fileInfo.absoluteFilePath(), fileInfo.size(), fileInfo.isDir()});
-    }
+    addFiles(path, flatMode, r.get());
 
     return std::move(r);
+}
+}
+
+std::unique_ptr<Directory> FileSystem::open(const QString &path)
+{
+    return openDir(path, false);
 }
 
 std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
@@ -116,4 +141,3 @@ std::unique_ptr<IOSource> FileSystem::iosource(Directory *dir, int child)
 {
     return std::make_unique<RegularIOSource>(dir->filePath(child));
 }
-

@@ -194,14 +194,26 @@ QDir FileBrowser::appDataPath() const
 
 }
 
+QString FileBrowser::dbPath(const QString &fileName) const
+{
+    return cacheDir().absoluteFilePath(fileName);
+}
+
+//#define DB_TEST
+#if !defined(DB_TEST)
+#define DB_PATH(name) dbPath(name)
+#else
+#define DB_PATH(name) dbPath(name + u".test"_qs)
+#endif
+
 QString FileBrowser::fileHistoryDBPath() const
 {
-    return cacheDir().absoluteFilePath("filehistory.db");
+    return DB_PATH("filehistory.db");
 }
 
 QString FileBrowser::pathHistoryDBPath() const
 {
-    return cacheDir().absoluteFilePath("path_history.db");
+    return DB_PATH("path_history.db");
 }
 
 bool FileBrowser::isContainer(const QString &path) const

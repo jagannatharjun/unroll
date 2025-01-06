@@ -85,7 +85,6 @@ ApplicationWindow {
         fileBrowser: FileBrowser
 
         onShowPreview: (data) => root.previewdata = data
-
     }
 
     Connections {
@@ -188,11 +187,13 @@ ApplicationWindow {
 
     menuBar: AppMenuBar {
         enableBack: history.canMoveBack
+        enableLinearizeDirAction: controller.linearizeDirAvailable
 
         onBrowseFolder: folderDialog.open()
         onOpenUrl: url => controller.openUrl(url)
         onBack: root.back()
         onAppExit: root.close()
+        onLinearizeDir: controller.leanOpenPath(controller.path)
     }
 
     ColumnLayout {

@@ -111,9 +111,14 @@ std::unique_ptr<Directory> openDir(const QString &path, const bool flatMode)
 }
 }
 
+std::unique_ptr<Directory> FileSystem::leanOpen(const QString &path)
+{
+    return openDir(path, true);
+}
+
 std::unique_ptr<Directory> FileSystem::open(const QString &path)
 {
-    return openDir(path, m_leanMode);
+    return openDir(path, false);
 }
 
 std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
@@ -143,14 +148,4 @@ std::unique_ptr<Directory> FileSystem::dirParent(Directory *dir)
 std::unique_ptr<IOSource> FileSystem::iosource(Directory *dir, int child)
 {
     return std::make_unique<RegularIOSource>(dir->filePath(child));
-}
-
-bool FileSystem::leanMode() const
-{
-    return m_leanMode;
-}
-
-void FileSystem::setLeanMode(bool newLeanMode)
-{
-    m_leanMode = newLeanMode;
 }

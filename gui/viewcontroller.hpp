@@ -3,18 +3,18 @@
 #define VIEWCONTROLLER_HPP
 
 #include <memory>
-#include <stack>
 
 #include <QObject>
 #include <QFutureWatcher>
 #include <QAbstractItemModel>
 #include <QThreadPool>
 
-#include "../core/directorysystem.hpp"
+#include "../core/hybriddirsystem.hpp"
 #include "iconprovider.hpp"
 #include "filebrowser.hpp"
 
 class QAbstractItemModel;
+class HybridDirSystem;
 class DirectorySystemModel;
 class DirectorySortModel;
 class FileHistoryDB;
@@ -64,6 +64,8 @@ class ViewController : public QObject
 
     Q_PROPERTY(QString url READ url NOTIFY urlChanged)
     Q_PROPERTY(QString path READ path NOTIFY urlChanged)
+    Q_PROPERTY(bool linearizeDirAvailable READ linearizeDirAvailable NOTIFY urlChanged)
+    Q_PROPERTY(bool isLinearDir READ isLinearDir WRITE setIsLinearDir NOTIFY isLinearDirChanged FINAL)
 
     Q_PROPERTY(FileBrowser *fileBrowser READ fileBrowser WRITE setFileBrowser NOTIFY fileBrowserChanged)
 
@@ -83,9 +85,14 @@ public:
     FileBrowser *fileBrowser() const;
     void setFileBrowser(FileBrowser *newFileBrowser);
 
+    bool linearizeDirAvailable() const;
+
+    bool isLinearDir() const;
+
 public slots:
     void openUrl(const QUrl &url);
     void openPath(const QString &path);
+    void leanOpenPath(const QString &path);
     void openRow(const int row);
     void openParentPath();
 
@@ -97,11 +104,14 @@ signals:
 
     void fileBrowserChanged();
 
+    void isLinearDirChanged();
+
 private slots:
     void updateModel();
 
 private:
     int sourceRow(const int row);
+    void setIsLinearDir(bool newIsLinearDir);
 
     QString iconID(Directory *dir, int child);
 
@@ -118,13 +128,14 @@ private:
     std::unique_ptr<DirectorySystemModel> m_dirModel;
     std::unique_ptr<DirectorySortModel> m_sortModel;
 
-    std::shared_ptr<DirectorySystem> m_system;
+    std::shared_ptr<HybridDirSystem> m_system;
     QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;
 
     size_t m_previewRequest = 0;
 
     std::shared_ptr<FileHistoryDB> m_historyDB;
     FileBrowser *m_fileBrowser = nullptr;
+    bool m_isLinearDir;
 };
 
 

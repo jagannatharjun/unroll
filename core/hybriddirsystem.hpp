@@ -19,6 +19,9 @@ public:
 
     // DirectorySystem interface
 public:
+    bool canLinearizeDir(const QString &path);
+    std::unique_ptr<Directory> leanOpenDir(const QString &path);
+
     std::unique_ptr<Directory> open(const QString &path) override;
     std::unique_ptr<Directory> open(const QUrl &url) override;
     std::unique_ptr<Directory> open(Directory *dir, int child) override;
@@ -26,10 +29,6 @@ public:
     std::unique_ptr<Directory> dirParent(Directory *dir) override;
 
     std::unique_ptr<IOSource> iosource(Directory *dir, int child) override;
-
-    void setLeanModeForFileSystem(bool leanMode);
-
-    bool leanModeForFileSystem() const;
 
 private:
     std::unique_ptr<Directory> call(std::function<std::unique_ptr<Directory>(DirectorySystem *)> functor)

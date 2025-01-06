@@ -8,6 +8,9 @@ MenuBar {
 
     property alias enableBack: back.enabled
 
+    property alias enableLinearizeDirAction: linearizeDir.enabled
+
+    signal linearizeDir()
     signal browseFolder()
     signal openUrl(string url)
     signal back()
@@ -54,6 +57,19 @@ MenuBar {
             text: qsTr("&Exit")
             shortcut: StandardKey.Quit
             onTriggered: root.appExit()
+        }
+    }
+
+    Menu {
+        id: viewMenu
+
+        title: qsTr("View")
+
+        Action {
+            id: linearizeDir
+
+            text: qsTr("Linearize Directory")
+            onTriggered: root.linearizeDir()
         }
     }
 }

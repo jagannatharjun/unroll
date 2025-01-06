@@ -67,6 +67,7 @@ private:
         int col;
         int sortcolumn;
         int sortorder;
+        bool linearizedDir;
     };
 
     Point &current();

@@ -70,8 +70,11 @@ void HistoryController::urlUpdated()
         m_preferences->setLastSessionUrl(m_view->url());
     }
 
-    if (m_history.empty() || current().url != m_view->url())
+    if (m_history.empty()
+        || (current().url != m_view->url())
+        || (current().linearizedDir != m_view->isLinearDir()))
     {
+        qDebug("adding new dir");
         // new history point
         if (m_index + 1 != m_history.size())
             m_history.erase(m_history.begin() + m_index + 1, m_history.end());
@@ -86,7 +89,14 @@ void HistoryController::urlUpdated()
         const auto [sortCol, sortOrder] = lastSortParams(m_view->url());
 
         ++m_index;
-        m_history.push_back(Point {m_view->url(), row, col, sortCol, sortOrder});
+        m_history.push_back(
+            Point {
+              m_view->url()
+            , row
+            , col
+            , sortCol
+            , sortOrder
+            , m_view->isLinearDir()});
 
         emit depthChanged();
         emit resetFocus(row, col, sortCol, sortOrder);
@@ -128,7 +138,10 @@ void HistoryController::setIndex(int index)
     emit depthChanged();
 
     // TODO: handle if load fail here
-    m_view->openUrl(current().url);
+    if (current().linearizedDir)
+        m_view->openUrl(current().url);
+    else
+        m_view->leanOpenPath(current().url.toLocalFile());
 }
 
 std::pair<int, int> HistoryController::lastRowAndColumn(const QString &url)

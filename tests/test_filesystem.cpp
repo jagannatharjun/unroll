@@ -132,25 +132,22 @@ private slots:
     void testFileSystemLean()
     {
         FileSystem s;
-        s.setLeanMode(true);
 
         const auto leanfiles = testFiles + testfilesLevel2;
 
-        const auto url = QUrl::fromLocalFile("./test-dir/");
-        auto fd = s.open(url);
+        const auto dir = u"./test-dir/"_qs;
+        auto fd = s.leanOpen(dir);
         check(fd.get(), leanfiles);
 
         {
-            auto fd2 = s.open(fd->url());
+            auto fd2 = s.leanOpen(fd->path());
             check(fd2.get(), leanfiles);
         }
 
-        s.setLeanMode(false);
         auto fd3 = s.open(fd->url());
         check(fd3.get(), level1);
 
-        s.setLeanMode(true);
-        auto fd4 = s.open(url);
+        auto fd4 = s.leanOpen(dir);
         check(fd4.get(), leanfiles);
     }
 

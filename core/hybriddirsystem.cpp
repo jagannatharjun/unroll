@@ -11,9 +11,20 @@ HybridDirSystem::HybridDirSystem()
 {
 }
 
-HybridDirSystem::~HybridDirSystem()
+bool HybridDirSystem::canLinearizeDir(const QString &path)
 {
+    return QDir(path).exists();
+}
 
+HybridDirSystem::~HybridDirSystem() = default;
+
+std::unique_ptr<Directory> HybridDirSystem::leanOpenDir(const QString &path)
+{
+    auto r = m_filesystem->leanOpen(path);
+    if (!r) return nullptr;
+
+    updatesource(r.get(), m_filesystem.get());
+    return r;
 }
 
 std::unique_ptr<Directory> HybridDirSystem::open(const QString &path)
@@ -67,16 +78,6 @@ std::unique_ptr<IOSource> HybridDirSystem::iosource(Directory *dir, int child)
     }
 
     return nullptr;
-}
-
-void HybridDirSystem::setLeanModeForFileSystem(bool leanMode)
-{
-    m_filesystem->setLeanMode(leanMode);
-}
-
-bool HybridDirSystem::leanModeForFileSystem() const
-{
-    return m_filesystem->leanMode();
 }
 
 void HybridDirSystem::updatesource(Directory *dir, DirectorySystem *source)

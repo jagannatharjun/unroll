@@ -14,6 +14,7 @@
 
 static const QString ICON_PROVIDER_ID = "fileicon";
 
+
 ViewController::ViewController(QObject *parent)
     : QObject {parent}
     , m_dirModel {std::make_unique<DirectorySystemModel>()}
@@ -85,6 +86,23 @@ void ViewController::openPath(const QString &path)
 
     m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, path));
 
+}
+
+void ViewController::leanOpenPath(const QString &path)
+{
+    const auto open = [](
+                          std::shared_ptr<HybridDirSystem> system,
+                          const QString &path) -> std::shared_ptr<Directory>
+    {
+        return system->leanOpenDir(path);
+    };
+
+    auto f = QtConcurrent::run(&m_pool, open, m_system, path);
+    m_urlWatcher.setFuture(f);
+    f.then(this, [this](const std::shared_ptr<Directory> &d)
+    {
+        setIsLinearDir(d == m_dirModel->directory());
+    });
 }
 
 void ViewController::openRow(const int row)
@@ -238,6 +256,8 @@ QString ViewController::iconID(Directory *dir, int child)
 
 void ViewController::updateModel()
 {
+    setIsLinearDir(false);
+
     auto s = dynamic_cast<decltype (m_urlWatcher) *>(sender());
     if (s && s->result())
     {
@@ -263,4 +283,26 @@ void ViewController::setFileBrowser(FileBrowser *newFileBrowser)
 
     m_historyDB.reset( new FileHistoryDB(m_fileBrowser->fileHistoryDBPath()) );
     m_dirModel->setFileHistoryDB(m_historyDB);
+}
+
+bool ViewController::linearizeDirAvailable() const
+{
+    if (auto dir = m_dirModel->directory(); dir)
+        return m_system->canLinearizeDir(dir->path());
+
+    return false;
+}
+
+bool ViewController::isLinearDir() const
+{
+    return m_isLinearDir;
+}
+
+void ViewController::setIsLinearDir(bool newIsLinearDir)
+{
+    if (m_isLinearDir == newIsLinearDir)
+        return;
+
+    m_isLinearDir = newIsLinearDir;
+    emit isLinearDirChanged();
 }

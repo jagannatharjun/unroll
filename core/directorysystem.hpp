@@ -34,6 +34,8 @@ public:
     virtual QDateTime fileLastAccessTime(int i) = 0;
     virtual QDateTime fileCreationTime(int i) = 0;
     virtual QDateTime fileModifiedTime(int i) = 0;
+
+    virtual bool isLinearDir() const { return false; }
 };
 
 

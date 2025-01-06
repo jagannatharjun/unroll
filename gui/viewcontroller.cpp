@@ -97,12 +97,8 @@ void ViewController::leanOpenPath(const QString &path)
         return system->leanOpenDir(path);
     };
 
-    auto f = QtConcurrent::run(&m_pool, open, m_system, path);
+    const auto f = QtConcurrent::run(&m_pool, open, m_system, path);
     m_urlWatcher.setFuture(f);
-    f.then(this, [this](const std::shared_ptr<Directory> &d)
-    {
-        setIsLinearDir(d == m_dirModel->directory());
-    });
 }
 
 void ViewController::openRow(const int row)
@@ -256,8 +252,6 @@ QString ViewController::iconID(Directory *dir, int child)
 
 void ViewController::updateModel()
 {
-    setIsLinearDir(false);
-
     auto s = dynamic_cast<decltype (m_urlWatcher) *>(sender());
     if (s && s->result())
     {
@@ -295,14 +289,9 @@ bool ViewController::linearizeDirAvailable() const
 
 bool ViewController::isLinearDir() const
 {
-    return m_isLinearDir;
+    if (auto dir = m_dirModel->directory(); dir)
+        return dir->isLinearDir();
+
+    return false;
 }
 
-void ViewController::setIsLinearDir(bool newIsLinearDir)
-{
-    if (m_isLinearDir == newIsLinearDir)
-        return;
-
-    m_isLinearDir = newIsLinearDir;
-    emit isLinearDirChanged();
-}

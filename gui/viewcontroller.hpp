@@ -65,7 +65,7 @@ class ViewController : public QObject
     Q_PROPERTY(QString url READ url NOTIFY urlChanged)
     Q_PROPERTY(QString path READ path NOTIFY urlChanged)
     Q_PROPERTY(bool linearizeDirAvailable READ linearizeDirAvailable NOTIFY urlChanged)
-    Q_PROPERTY(bool isLinearDir READ isLinearDir WRITE setIsLinearDir NOTIFY isLinearDirChanged FINAL)
+    Q_PROPERTY(bool isLinearDir READ isLinearDir NOTIFY urlChanged FINAL)
 
     Q_PROPERTY(FileBrowser *fileBrowser READ fileBrowser WRITE setFileBrowser NOTIFY fileBrowserChanged)
 
@@ -111,7 +111,6 @@ private slots:
 
 private:
     int sourceRow(const int row);
-    void setIsLinearDir(bool newIsLinearDir);
 
     QString iconID(Directory *dir, int child);
 
@@ -135,8 +134,6 @@ private:
 
     std::shared_ptr<FileHistoryDB> m_historyDB;
     FileBrowser *m_fileBrowser = nullptr;
-    bool m_isLinearDir;
 };
-
 
 #endif // VIEWCONTROLLER_HPP

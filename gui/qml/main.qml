@@ -187,13 +187,21 @@ ApplicationWindow {
 
     menuBar: AppMenuBar {
         enableBack: history.canMoveBack
+
         enableLinearizeDirAction: controller.linearizeDirAvailable
+
+        isLinearizeChecked: controller.isLinearDir
 
         onBrowseFolder: folderDialog.open()
         onOpenUrl: url => controller.openUrl(url)
         onBack: root.back()
         onAppExit: root.close()
-        onLinearizeDir: controller.leanOpenPath(controller.path)
+        onLinearizeDir: (checked) => {
+            if (checked)
+                controller.leanOpenPath(controller.path)
+            else
+                controller.openPath(controller.path)
+        }
     }
 
     ColumnLayout {

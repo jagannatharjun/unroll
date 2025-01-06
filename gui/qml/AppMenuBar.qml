@@ -10,7 +10,9 @@ MenuBar {
 
     property alias enableLinearizeDirAction: linearizeDir.enabled
 
-    signal linearizeDir()
+    property alias isLinearizeChecked: linearizeDir.checked
+
+    signal linearizeDir(bool checked)
     signal browseFolder()
     signal openUrl(string url)
     signal back()
@@ -69,7 +71,9 @@ MenuBar {
             id: linearizeDir
 
             text: qsTr("Linearize Directory")
-            onTriggered: root.linearizeDir()
+            onCheckedChanged: root.linearizeDir(this.checked)
+
+            checkable: true
         }
     }
 }

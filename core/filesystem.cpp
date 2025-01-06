@@ -65,6 +65,8 @@ public:
 
         return QUrl::fromLocalFile(directoryPath);
     }
+
+    bool isLinearDir() const override { return LeanMode; }
 };
 
 

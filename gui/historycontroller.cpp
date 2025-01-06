@@ -71,10 +71,9 @@ void HistoryController::urlUpdated()
     }
 
     if (m_history.empty()
-        || (current().url != m_view->url())
-        || (current().linearizedDir != m_view->isLinearDir()))
+        || (current().url != m_view->url()))
     {
-        qDebug("adding new dir");
+        qDebug("adding new dir, '%s'", qPrintable(m_view->url()));
         // new history point
         if (m_index + 1 != m_history.size())
             m_history.erase(m_history.begin() + m_index + 1, m_history.end());
@@ -95,8 +94,7 @@ void HistoryController::urlUpdated()
             , row
             , col
             , sortCol
-            , sortOrder
-            , m_view->isLinearDir()});
+            , sortOrder});
 
         emit depthChanged();
         emit resetFocus(row, col, sortCol, sortOrder);
@@ -138,10 +136,7 @@ void HistoryController::setIndex(int index)
     emit depthChanged();
 
     // TODO: handle if load fail here
-    if (current().linearizedDir)
-        m_view->openUrl(current().url);
-    else
-        m_view->leanOpenPath(current().url.toLocalFile());
+    m_view->openUrl(current().url);
 }
 
 std::pair<int, int> HistoryController::lastRowAndColumn(const QString &url)

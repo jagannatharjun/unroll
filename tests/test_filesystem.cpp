@@ -137,6 +137,8 @@ private slots:
 
         const auto dir = u"./test-dir/"_qs;
         auto fd = s.leanOpen(dir);
+        QVERIFY(fd->path() == QDir(dir).absolutePath());
+
         check(fd.get(), leanfiles);
 
         {
@@ -145,7 +147,7 @@ private slots:
         }
 
         auto fd3 = s.open(fd->url());
-        check(fd3.get(), level1);
+        check(fd3.get(), leanfiles);
 
         auto fd4 = s.leanOpen(dir);
         check(fd4.get(), leanfiles);

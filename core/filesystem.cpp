@@ -3,6 +3,8 @@
 #include <QUrl>
 #include <QDir>
 
+const QString LEAN_URL_SCEHEME = u"lean-dir"_qs;
+
 namespace
 {
 
@@ -23,7 +25,6 @@ public:
 
     QString name() override { return directoryName; }
     QString path() override { return directoryPath; }
-    QUrl url() override { return QUrl::fromLocalFile(directoryPath); }
 
     int fileCount() override { return entries.size(); }
     QString fileName(int i) override { return entries[i].name; }
@@ -47,6 +48,25 @@ public:
         return QFileInfo(entries[i].path).lastModified();
     }
 };
+
+template<bool LeanMode>
+class AdaptiveDirectory : public RegularDirectory
+{
+public:
+    QUrl url() override
+    {
+        if constexpr (LeanMode)
+        {
+            QUrl u;
+            u.setScheme(LEAN_URL_SCEHEME);
+            u.setPath(directoryPath);
+            return u;
+        }
+
+        return QUrl::fromLocalFile(directoryPath);
+    }
+};
+
 
 
 class RegularIOSource : public IOSource
@@ -98,17 +118,19 @@ std::unique_ptr<Directory> openDir(const QString &path, const bool flatMode)
         return {};
 
     QFileInfoList list = d.entryInfoList();
-
-    std::unique_ptr<RegularDirectory> r
-        = std::make_unique<RegularDirectory>();
+    std::unique_ptr<RegularDirectory> r;
+    if  (flatMode)
+        r = std::make_unique<AdaptiveDirectory<true>>();
+    else
+        r = std::make_unique<AdaptiveDirectory<false>>();
 
     r->directoryPath = d.absolutePath();
     r->directoryName = d.dirName();
 
     addFiles(path, flatMode, r.get());
-
     return std::move(r);
 }
+
 }
 
 std::unique_ptr<Directory> FileSystem::leanOpen(const QString &path)
@@ -123,6 +145,9 @@ std::unique_ptr<Directory> FileSystem::open(const QString &path)
 
 std::unique_ptr<Directory> FileSystem::open(const QUrl &url)
 {
+    if (url.scheme() == LEAN_URL_SCEHEME)
+        return openDir(url.path(), true);
+
     // check before otherwise toLocalFile returns empty path
     // and we search current directory
     if (!url.isLocalFile())

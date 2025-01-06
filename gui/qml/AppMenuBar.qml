@@ -12,6 +12,7 @@ MenuBar {
 
     property alias isLinearizeChecked: linearizeDir.checked
 
+    signal randomSort()
     signal linearizeDir(bool checked)
     signal browseFolder()
     signal openUrl(string url)
@@ -74,6 +75,13 @@ MenuBar {
             onCheckedChanged: root.linearizeDir(this.checked)
 
             checkable: true
+        }
+
+        Action {
+            id: randomSort
+
+            text: qsTr("Randomly sort")
+            onTriggered: root.randomSort()
         }
     }
 }

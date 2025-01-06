@@ -14,12 +14,23 @@ public:
 
     void sort(int column, Qt::SortOrder order) override;
 
+    Q_INVOKABLE bool randomlySorting() const { return m_randomSort; }
+
+public slots:
+    void randomSort();
+
 signals:
     void sortParametersChanged();
 
     // QSortFilterProxyModel interface
 protected:
     bool lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const;
+
+private:
+    void resetRandomValues() const;
+
+    mutable bool m_randomSort = false;
+    mutable QVector<int> m_randomValues;
 };
 
 #endif // DIRECTORYSORTMODEL_HPP

@@ -93,7 +93,8 @@ ApplicationWindow {
         function onSortParametersChanged() {
             const model = controller.model
 
-            history.updateSortParams(model.sortColumn, model.sortOrder)
+            if (!model.randomlySorting)
+                history.updateSortParams(model.sortColumn, model.sortOrder)
         }
     }
 
@@ -148,7 +149,8 @@ ApplicationWindow {
                 root.previewRow = current.row
             }
 
-            history.updateCurrentIndex(current.row, current.column)
+            if (!controller.model.randomlySorting)
+                history.updateCurrentIndex(current.row, current.column)
 
             root._previewCompleted = false
         }
@@ -192,6 +194,7 @@ ApplicationWindow {
 
         isLinearizeChecked: controller.isLinearDir
 
+        onRandomSort: controller.model.randomSort()
         onBrowseFolder: folderDialog.open()
         onOpenUrl: url => controller.openUrl(url)
         onBack: root.back()

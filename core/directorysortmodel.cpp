@@ -6,19 +6,20 @@ DirectorySortModel::DirectorySortModel(QObject *parent)
     : QSortFilterProxyModel{parent}
 {
     setFilterCaseSensitivity(Qt::CaseInsensitive);
+
+    connect(this, &QSortFilterProxyModel::sourceModelChanged, this, [this]()
+    {
+        connect(sourceModel(), &QAbstractItemModel::modelReset
+                , this, &DirectorySortModel::handleRandomValuesOnModelChange);
+    });
 }
 
 void DirectorySortModel::sort(int column, Qt::SortOrder order)
 {
-    m_randomSort = false;
+    setRandomSort(false);
+
     QSortFilterProxyModel::sort(column, order);
     emit sortParametersChanged();
-}
-
-void DirectorySortModel::randomSort()
-{
-    m_randomSort = true;
-    resetRandomValues();
 }
 
 bool DirectorySortModel::lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const
@@ -52,6 +53,15 @@ bool DirectorySortModel::lessThan(const QModelIndex &source_left, const QModelIn
     return QSortFilterProxyModel::lessThan(source_left, source_right);
 }
 
+void DirectorySortModel::handleRandomValuesOnModelChange()
+{
+    if (sender() != sourceModel())
+        return;
+
+    if (m_randomSort)
+        resetRandomValues();
+}
+
 void DirectorySortModel::resetRandomValues() const
 {
     m_randomValues.resize(sourceModel()->rowCount());
@@ -60,4 +70,16 @@ void DirectorySortModel::resetRandomValues() const
     QMetaObject::invokeMethod(const_cast<DirectorySortModel *> (this)
                               , &DirectorySortModel::invalidate
                               , Qt::QueuedConnection);
+}
+
+void DirectorySortModel::setRandomSort(bool newRandomSort)
+{
+    if (m_randomSort == newRandomSort)
+        return;
+
+    m_randomSort = newRandomSort;
+    emit randomSortChanged();
+
+    if (m_randomSort)
+        resetRandomValues();
 }

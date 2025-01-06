@@ -256,6 +256,7 @@ void ViewController::updateModel()
     if (s && s->result())
     {
         m_url = s->result()->url();
+        m_sortModel->setRandomSort(false);
         m_dirModel->setDirectory(s->result());
 
         emit urlChanged();

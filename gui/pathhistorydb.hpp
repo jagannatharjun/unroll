@@ -14,6 +14,8 @@ public:
     {
         std::optional<int> row, col;
         std::optional<int> sortcolumn, sortorder;
+        std::optional<bool> randomSort;
+        std::optional<int> randomSeed;
     };
 
     explicit PathHistoryDB(const QString &dbPath
@@ -27,9 +29,13 @@ public:
 
     void setSortParams(const QString &url, int sortcolumn, int sortorder);
 
+    void setRandomParams(const QString &url, bool randomSort, int randomSeed);
+
 signals:
 
 private:
+    void updateColumns(const QString &url, const QMap<QString, QVariant> &columns);
+
     std::unique_ptr<QSqlDatabase> m_db;
     mutable QHash<QString, HistoryData> m_cache;
 };

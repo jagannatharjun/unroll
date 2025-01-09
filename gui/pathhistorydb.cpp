@@ -25,7 +25,9 @@ PathHistoryDB::PathHistoryDB(const QString &dbPath, QObject *parent)
                 "   ROW INT,"
                 "   COL INT,"
                 "   SORTCOLUMN INT,"
-                "   SORTORDER INT"
+                "   SORTORDER INT,"
+                "   RANDOMSORT BOOL,"
+                "   RANDOMSEED INT"
                 ")", *m_db);
 
     if (!q.exec())
@@ -45,15 +47,15 @@ PathHistoryDB::HistoryData PathHistoryDB::read(const QString &url) const
         return itr.value();
 
     QSqlQuery q(*m_db);
-    q.prepare(u"SELECT ROW, COL, SORTCOLUMN, SORTORDER "
+    q.prepare(u"SELECT ROW, COL, SORTCOLUMN, SORTORDER, RANDOMSORT, RANDOMSEED "
               u"FROM path_history WHERE URL = :url"_qs);
     q.bindValue(u":url"_qs, url);
 
     if (!q.exec())
     {
         qFatal("PathHistoryDB::read, failed to read for '%s', error: '%s'"
-                    , qUtf8Printable(url)
-                    , qUtf8Printable(q.lastError().text()));
+               , qUtf8Printable(url)
+               , qUtf8Printable(q.lastError().text()));
 
         return {};
     }
@@ -65,66 +67,79 @@ PathHistoryDB::HistoryData PathHistoryDB::read(const QString &url) const
         r.col = get<int>(q, 1);
         r.sortcolumn = get<int>(q, 2);
         r.sortorder = get<int>(q, 3);
+        r.randomSort = get<bool>(q, 4);
+        r.randomSeed = get<int>(q, 5);
     }
 
     m_cache[url] = r;
     return r;
 }
 
-void PathHistoryDB::setRowAndColumn(const QString &url
-                                    , const int row
-                                    , const int col)
+void PathHistoryDB::updateColumns(const QString &url, const QMap<QString, QVariant> &columns)
 {
-    QSqlQuery q(*m_db);
-    q.prepare(u"INSERT INTO path_history (URL, ROW, COL) "
-              u"VALUES (:url, :row, :col) "
-              u"ON CONFLICT(URL) DO UPDATE SET "
-              u"ROW = excluded.ROW, COL = excluded.COL"_qs);
+    QStringList columnAssignments;
+    for (auto it = columns.begin(); it != columns.end(); ++it)
+    {
+        columnAssignments.append(QStringLiteral("%1 = excluded.%1").arg(it.key()));
+    }
 
-    q.bindValue(u":url"_qs, url);
-    q.bindValue(u":row"_qs, row);
-    q.bindValue(u":col"_qs, col);
+    QString queryStr = QStringLiteral(
+                           "INSERT INTO path_history (URL, %1) "
+                           "VALUES (:url, %2) "
+                           "ON CONFLICT(URL) DO UPDATE SET %3")
+                           .arg(columns.keys().join(", "))
+                           .arg(":" + columns.keys().join(", :"))
+                           .arg(columnAssignments.join(", "));
+
+    QSqlQuery q(*m_db);
+    q.prepare(queryStr);
+    q.bindValue(":url", url);
+    for (auto it = columns.begin(); it != columns.end(); ++it)
+    {
+        q.bindValue(":" + it.key(), it.value());
+    }
 
     if (!q.exec())
     {
-        qFatal("failed to update ROW and COL for '%s', error: '%s'",
+        qFatal("failed to update columns for '%s', error: '%s'",
                qUtf8Printable(url),
                qUtf8Printable(q.lastError().text()));
     }
 
-    // only update cache if we have full value in the cache otherwise we'll have incomplete field
+    // never update if there is no 'url' in existing cache
+    // otherwise we will have incomplete values
     if (auto itr = m_cache.find(url); itr != m_cache.end())
     {
-        // update cache with new values
-        itr->row = row;
-        itr->col = col;
+        for (auto it = columns.begin(); it != columns.end(); ++it)
+        {
+            if (it.key() == "ROW")
+                itr->row = it.value().toInt();
+            else if (it.key() == "COL")
+                itr->col = it.value().toInt();
+            else if (it.key() == "SORTCOLUMN")
+                itr->sortcolumn = it.value().toInt();
+            else if (it.key() == "SORTORDER")
+                itr->sortorder = it.value().toInt();
+            else if (it.key() == "RANDOMSORT")
+                itr->randomSort = it.value().toBool();
+            else if (it.key() == "RANDOMSEED")
+                itr->randomSeed = it.value().toInt();
+        }
     }
+}
+
+void PathHistoryDB::setRowAndColumn(const QString &url, int row, int col)
+{
+    updateColumns(url, { {"ROW", row}, {"COL", col} });
 }
 
 void PathHistoryDB::setSortParams(const QString &url, int sortcolumn, int sortorder)
 {
-    QSqlQuery q(*m_db);
-    q.prepare(u"INSERT INTO path_history (URL, SORTCOLUMN, SORTORDER) "
-              u"VALUES (:url, :sortcolumn, :sortorder) "
-              u"ON CONFLICT(URL) DO UPDATE SET "
-              u"SORTCOLUMN = excluded.SORTCOLUMN, SORTORDER = excluded.SORTORDER"_qs);
-
-    q.bindValue(u":url"_qs, url);
-    q.bindValue(u":sortcolumn"_qs, sortcolumn);
-    q.bindValue(u":sortorder"_qs, sortorder);
-
-    if (!q.exec())
-    {
-        qFatal("failed to update SORTCOLUMN and SORTORDER for '%s', error: '%s'",
-               qUtf8Printable(url),
-               qUtf8Printable(q.lastError().text()));
-    }
-
-    // only update cache if we have full value in the cache otherwise we'll have incomplete field
-    if (auto itr = m_cache.find(url); itr != m_cache.end())
-    {
-        // update cache with new values
-        itr->sortcolumn = sortcolumn;
-        itr->sortorder = sortorder;
-    }
+    updateColumns(url, { {"SORTCOLUMN", sortcolumn}, {"SORTORDER", sortorder} });
 }
+
+void PathHistoryDB::setRandomParams(const QString &url, bool randomSort, int randomSeed)
+{
+    updateColumns(url, { {"RANDOMSORT", randomSort}, {"RANDOMSEED", randomSeed} });
+}
+

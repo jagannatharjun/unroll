@@ -33,10 +33,8 @@ bool DirectorySortModel::lessThan(const QModelIndex &source_left, const QModelIn
             return false;
         }
 
-        auto &leftRandom = m_randomValues[source_left.row()];
-        auto &rightRandom = m_randomValues[source_right.row()];
-        if (leftRandom == -1) leftRandom = rand();
-        if (rightRandom == -1) rightRandom = rand();
+        const auto leftRandom = m_randomValues[source_left.row()];
+        const auto rightRandom = m_randomValues[source_right.row()];
         return leftRandom < rightRandom;
     }
 
@@ -65,7 +63,10 @@ void DirectorySortModel::handleRandomValuesOnModelChange()
 void DirectorySortModel::resetRandomValues() const
 {
     m_randomValues.resize(sourceModel()->rowCount());
-    m_randomValues.fill(-1);
+
+    srand(time(NULL));
+    for (int &r: m_randomValues)
+        r = rand();
 
     QMetaObject::invokeMethod(const_cast<DirectorySortModel *> (this)
                               , &DirectorySortModel::invalidate

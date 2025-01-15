@@ -9,8 +9,18 @@ DirectorySortModel::DirectorySortModel(QObject *parent)
 
     connect(this, &QSortFilterProxyModel::sourceModelChanged, this, [this]()
     {
-        connect(sourceModel(), &QAbstractItemModel::modelReset
-                , this, &DirectorySortModel::handleRandomValuesOnModelChange);
+        const auto src = sourceModel();
+        const auto triggerOn = [&](auto signal)
+        {
+            connect(src, signal
+                    , this, &DirectorySortModel::handleRandomValuesOnModelChange);
+        };
+
+        triggerOn(&QAbstractItemModel::modelReset);
+        triggerOn(&QAbstractItemModel::layoutChanged);
+        triggerOn(&QAbstractItemModel::rowsInserted);
+        triggerOn(&QAbstractItemModel::rowsMoved);
+        triggerOn(&QAbstractItemModel::rowsRemoved);
     });
 }
 
@@ -26,15 +36,8 @@ bool DirectorySortModel::lessThan(const QModelIndex &source_left, const QModelIn
 {
     if (m_randomSort)
     {
-        const auto rowCount = sourceModel()->rowCount();
-        if (m_randomValues.size() != rowCount)
-        {
-            resetRandomValues();
-            return false;
-        }
-
-        const auto leftRandom = m_randomValues[source_left.row()];
-        const auto rightRandom = m_randomValues[source_right.row()];
+        const auto leftRandom = m_randomValues.value(source_left.row(), -1);
+        const auto rightRandom = m_randomValues.value(source_right.row(), -1);
         return leftRandom < rightRandom;
     }
 
@@ -56,11 +59,12 @@ void DirectorySortModel::handleRandomValuesOnModelChange()
     if (sender() != sourceModel())
         return;
 
-    if (m_randomSort)
+    if (m_randomSort
+        && (m_randomValues.size() != sourceModel()->rowCount()))
         resetRandomValues();
 }
 
-void DirectorySortModel::resetRandomValues() const
+void DirectorySortModel::resetRandomValues()
 {
     m_randomValues.resize(sourceModel()->rowCount());
 
@@ -68,7 +72,7 @@ void DirectorySortModel::resetRandomValues() const
     for (int &r: m_randomValues)
         r = rand();
 
-    QMetaObject::invokeMethod(const_cast<DirectorySortModel *> (this)
+    QMetaObject::invokeMethod(this
                               , &DirectorySortModel::invalidate
                               , Qt::QueuedConnection);
 }

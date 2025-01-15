@@ -22,7 +22,7 @@ public:
     void setRandomSort(bool newRandomSort);
     bool randomSort() const { return m_randomSort; }
 
-    Q_INVOKABLE void resetRandomValues() const;
+    Q_INVOKABLE void resetRandomValues();
 
 signals:
     void sortParametersChanged();
@@ -35,8 +35,8 @@ protected:
 private:
     void handleRandomValuesOnModelChange();
 
-    mutable bool m_randomSort = false;
-    mutable QVector<int> m_randomValues;
+    bool m_randomSort = false;
+    QVector<int> m_randomValues;
 };
 
 #endif // DIRECTORYSORTMODEL_HPP

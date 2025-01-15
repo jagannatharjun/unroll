@@ -2,6 +2,8 @@
 
 #include "directorysystemmodel.hpp"
 
+#include <QDateTime>
+
 DirectorySortModel::DirectorySortModel(QObject *parent)
     : QSortFilterProxyModel{parent}
 {
@@ -36,8 +38,10 @@ bool DirectorySortModel::lessThan(const QModelIndex &source_left, const QModelIn
 {
     if (m_randomSort)
     {
-        const auto leftRandom = m_randomValues.value(source_left.row(), -1);
-        const auto rightRandom = m_randomValues.value(source_right.row(), -1);
+        // Combine seed with the row number to generate a random value
+        const auto leftRandom = qHash(m_randomSeed ^ source_left.row());
+        const auto rightRandom = qHash(m_randomSeed ^ source_right.row());
+
         return leftRandom < rightRandom;
     }
 
@@ -59,18 +63,13 @@ void DirectorySortModel::handleRandomValuesOnModelChange()
     if (sender() != sourceModel())
         return;
 
-    if (m_randomSort
-        && (m_randomValues.size() != sourceModel()->rowCount()))
-        resetRandomValues();
+    if (m_randomSort)
+        resetRandomSeed();
 }
 
-void DirectorySortModel::resetRandomValues()
+void DirectorySortModel::resetRandomSeed()
 {
-    m_randomValues.resize(sourceModel()->rowCount());
-
-    srand(time(NULL));
-    for (int &r: m_randomValues)
-        r = rand();
+    m_randomSeed = static_cast<quint32>(QDateTime::currentMSecsSinceEpoch() & 0xFFFFFFFF /* convert number to int32*/);
 
     QMetaObject::invokeMethod(this
                               , &DirectorySortModel::invalidate
@@ -86,5 +85,5 @@ void DirectorySortModel::setRandomSort(bool newRandomSort)
     emit randomSortChanged();
 
     if (m_randomSort)
-        resetRandomValues();
+        resetRandomSeed();
 }

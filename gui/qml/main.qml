@@ -199,7 +199,7 @@ ApplicationWindow {
             if (!model.randomSort)
                 model.randomSort = true;
             else
-                model.resetRandomValues()
+                model.resetRandomSeed()
         }
 
         onBrowseFolder: folderDialog.open()

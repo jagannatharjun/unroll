@@ -37,6 +37,10 @@ private:
 
     bool m_randomSort = false;
     quint32 m_randomSeed = 0; // Single seed value
+
+    // QSortFilterProxyModel interface
+protected:
+    bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const;
 };
 
 #endif // DIRECTORYSORTMODEL_HPP

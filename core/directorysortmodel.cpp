@@ -67,6 +67,15 @@ void DirectorySortModel::handleRandomValuesOnModelChange()
         resetRandomSeed();
 }
 
+bool DirectorySortModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
+{
+    const auto src = sourceModel();
+    if (src->data(src->index(source_row, 0), DirectorySystemModel::PathRole).toString().endsWith(".!qB"))
+        return false;
+
+    return true;
+}
+
 void DirectorySortModel::resetRandomSeed()
 {
     m_randomSeed = static_cast<quint32>(QDateTime::currentMSecsSinceEpoch() & 0xFFFFFFFF /* convert number to int32*/);

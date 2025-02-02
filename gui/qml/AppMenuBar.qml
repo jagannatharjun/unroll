@@ -12,6 +12,8 @@ MenuBar {
 
     property alias isLinearizeChecked: linearizeDir.checked
 
+    property alias onlyShowVideoFile: onlyShowVideoFileAction.checked
+
     signal randomSort()
     signal linearizeDir(bool checked)
     signal browseFolder()
@@ -75,6 +77,13 @@ MenuBar {
             onCheckedChanged: root.linearizeDir(this.checked)
 
             checkable: true
+        }
+
+        Action {
+            id: onlyShowVideoFileAction
+
+            text: qsTr("Only show video files")
+            checkable:  true
         }
 
         Action {

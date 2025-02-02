@@ -9,6 +9,8 @@ class DirectorySortModel : public QSortFilterProxyModel
     Q_PROPERTY(int sortOrder READ sortOrder NOTIFY sortParametersChanged)
     Q_PROPERTY(int sortColumn READ sortColumn NOTIFY sortParametersChanged)
 
+    Q_PROPERTY(bool onlyShowVideoFile READ onlyShowVideoFile WRITE setOnlyShowVideoFile NOTIFY onlyShowVideoFileChanged FINAL)
+
     Q_PROPERTY(bool randomSort
                    READ randomSort
                        WRITE setRandomSort
@@ -24,11 +26,16 @@ public:
 
     Q_INVOKABLE void resetRandomSeed();
 
+    bool onlyShowVideoFile() const;
+    void setOnlyShowVideoFile(bool newOnlyShowVideoFile);
+
 signals:
     void sortParametersChanged();
     void randomSortChanged();
 
     // QSortFilterProxyModel interface
+    void onlyShowVideoFileChanged();
+
 protected:
     bool lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const;
 
@@ -37,8 +44,9 @@ private:
 
     bool m_randomSort = false;
     quint32 m_randomSeed = 0; // Single seed value
+    bool m_onlyShowVideoFile = false;
 
-    // QSortFilterProxyModel interface
+
 protected:
     bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const;
 };

@@ -14,5 +14,5 @@ public:
         OtherFile
     };
 
-    Type findType(const QString &path);
+    static Type findType(const QString &path);
 };

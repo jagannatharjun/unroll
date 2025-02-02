@@ -1,7 +1,7 @@
 #include "directorysortmodel.hpp"
 
 #include "directorysystemmodel.hpp"
-
+#include "filetype.hpp"
 #include <QDateTime>
 
 DirectorySortModel::DirectorySortModel(QObject *parent)
@@ -67,13 +67,32 @@ void DirectorySortModel::handleRandomValuesOnModelChange()
         resetRandomSeed();
 }
 
+bool DirectorySortModel::onlyShowVideoFile() const
+{
+    return m_onlyShowVideoFile;
+}
+
+void DirectorySortModel::setOnlyShowVideoFile(bool newOnlyShowVideoFile)
+{
+    if (m_onlyShowVideoFile == newOnlyShowVideoFile)
+        return;
+    m_onlyShowVideoFile = newOnlyShowVideoFile;
+    invalidate();
+    emit onlyShowVideoFileChanged();
+}
+
 bool DirectorySortModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
 {
     const auto src = sourceModel();
-    if (src->data(src->index(source_row, 0), DirectorySystemModel::PathRole).toString().endsWith(".!qB"))
+    const auto path = src->data(src->index(source_row, 0), DirectorySystemModel::PathRole).toString();
+    if (path.endsWith(".!qB"))
         return false;
 
-    return true;
+    if (m_onlyShowVideoFile
+        && (FileType::findType(path) != FileType::VideoFile))
+        return false;
+
+    return QSortFilterProxyModel::filterAcceptsRow(source_row, source_parent);
 }
 
 void DirectorySortModel::resetRandomSeed()

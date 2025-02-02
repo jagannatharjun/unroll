@@ -194,6 +194,10 @@ ApplicationWindow {
 
         isLinearizeChecked: controller.isLinearDir
 
+        onlyShowVideoFile: controller.model.onlyShowVideoFile
+
+        onOnlyShowVideoFileChanged: controller.model.onlyShowVideoFile = onlyShowVideoFile
+
         onRandomSort: {
             const model = controller.model
             if (!model.randomSort)

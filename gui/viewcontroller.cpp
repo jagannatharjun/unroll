@@ -8,7 +8,6 @@
 
 #include <filesystem>
 
-#include <QtConcurrent/QtConcurrent>
 #include <QMimeData>
 #include <QDir>
 
@@ -29,8 +28,6 @@ ViewController::ViewController(QObject *parent)
     m_sortModel->setSortRole(DirectorySystemModel::DataRole);
     m_sortModel->sort(DirectorySystemModel::NameColumn, Qt::AscendingOrder);
     m_sortModel->setSourceModel(m_dirModel.get());
-
-    connect(&m_urlWatcher, &QFutureWatcherBase::finished, this, &ViewController::updateModel);
 }
 
 ViewController::~ViewController()
@@ -40,6 +37,16 @@ ViewController::~ViewController()
 QAbstractItemModel *ViewController::model()
 {
     return m_sortModel.get();
+}
+
+DirectorySortModel *ViewController::sortModel()
+{
+    return m_sortModel.get();
+}
+
+QUrl ViewController::urlEx() const
+{
+    return m_dirModel->directory() ? m_dirModel->directory()->url() : QUrl {};
 }
 
 QString ViewController::url() const
@@ -65,6 +72,7 @@ PreviewData ViewController::invalidPreviewData()
 
 void ViewController::openUrl(const QUrl &url)
 {
+    qDebug() << "openUrl" << url;
     const auto open = [](
             std::shared_ptr<DirectorySystem> system,
             const QUrl &url) -> std::shared_ptr<Directory>
@@ -72,7 +80,19 @@ void ViewController::openUrl(const QUrl &url)
         return system->open(url);
     };
 
-    m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, url));
+    requestUrlUpdate(open, m_system, url);
+}
+
+void ViewController::openUrlWithRandomSort(const QUrl &url, int randomSeed)
+{
+    const auto open = [](
+                          std::shared_ptr<DirectorySystem> system,
+                          const QUrl &url) -> std::shared_ptr<Directory>
+    {
+        return system->open(url);
+    };
+
+    requestUrlEx(true, randomSeed, open, m_system, url);
 }
 
 void ViewController::openPath(const QString &path)
@@ -84,8 +104,7 @@ void ViewController::openPath(const QString &path)
         return system->open(path);
     };
 
-    m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, path));
-
+    requestUrlUpdate(open, m_system, path);
 }
 
 void ViewController::leanOpenPath(const QString &path)
@@ -97,8 +116,7 @@ void ViewController::leanOpenPath(const QString &path)
         return system->leanOpenDir(path);
     };
 
-    const auto f = QtConcurrent::run(&m_pool, open, m_system, path);
-    m_urlWatcher.setFuture(f);
+    requestUrlEx(true, m_sortModel->randomSeed(), open, m_system, path);
 }
 
 void ViewController::openRow(const int row)
@@ -120,7 +138,7 @@ void ViewController::openRow(const int row)
 
     if (auto parent = m_dirModel->directory())
     {
-        m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, parent, directoryRow));
+        requestUrlUpdate(open, m_system, parent, directoryRow);
     }
 }
 
@@ -248,19 +266,6 @@ QString ViewController::iconID(Directory *dir, int child)
     }
 
     return m_iconProvider ? m_iconProvider->url(dir, child) : QString {};
-}
-
-void ViewController::updateModel()
-{
-    auto s = dynamic_cast<decltype (m_urlWatcher) *>(sender());
-    if (s && s->result())
-    {
-        m_url = s->result()->url();
-        m_sortModel->setRandomSort(false);
-        m_dirModel->setDirectory(s->result());
-
-        emit urlChanged();
-    }
 }
 
 FileBrowser *ViewController::fileBrowser() const

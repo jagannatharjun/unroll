@@ -20,23 +20,25 @@ public:
     void sort(int column, Qt::SortOrder order) override;
 
     void setRandomSort(bool newRandomSort);
+    void setRandomSortEx(bool newRandomSort, int randomSeed);
     bool randomSort() const { return m_randomSort; }
 
     Q_INVOKABLE void resetRandomSeed();
+    Q_INVOKABLE int randomSeed() const { return m_randomSeed; }
 
 signals:
     void sortParametersChanged();
     void randomSortChanged();
+    void randomSeedChanged();
 
     // QSortFilterProxyModel interface
 protected:
     bool lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const;
 
 private:
-    void handleRandomValuesOnModelChange();
 
     bool m_randomSort = false;
-    quint32 m_randomSeed = 0; // Single seed value
+    int32_t m_randomSeed = 0; // Single seed value
 
     // QSortFilterProxyModel interface
 protected:

@@ -77,6 +77,9 @@ public:
     QString lastSessionUrl() const;
     void setLastSessionUrl(const QString &newLastSessionUrl);
 
+    bool lastSessionRandomSort() const;
+    void setLastSessionRandomSort(const bool lastSessionRandomSort);
+
     int videoRotation() const;
     void setVideoRotation(int newVideoRotation);
 
@@ -94,6 +97,8 @@ signals:
 
     void lastSessionUrlChanged();
 
+    void lastSessionRandomSortChanged();
+
     void videoRotationChanged();
 
     void showMainFileViewChanged();
@@ -106,6 +111,7 @@ private:
     SettingEntry<bool> m_showMainFileView;
     SettingEntry<QStringList> m_recentUrls;
     SettingEntry<QString> m_lastSessionUrl;
+    SettingEntry<bool> m_lastSessionRandomSort;
     SettingEntry<int> m_videoRotation;
 };
 

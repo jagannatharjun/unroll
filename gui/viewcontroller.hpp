@@ -8,15 +8,16 @@
 #include <QFutureWatcher>
 #include <QAbstractItemModel>
 #include <QThreadPool>
+#include <QtConcurrent/QtConcurrent>
 
+#include "../core/directorysystemmodel.hpp"
+#include "../core/directorysortmodel.hpp"
 #include "../core/hybriddirsystem.hpp"
 #include "iconprovider.hpp"
 #include "filebrowser.hpp"
 
 class QAbstractItemModel;
 class HybridDirSystem;
-class DirectorySystemModel;
-class DirectorySortModel;
 class FileHistoryDB;
 
 class PreviewData
@@ -74,7 +75,9 @@ public:
     ~ViewController();
 
     QAbstractItemModel *model();
+    DirectorySortModel *sortModel();
 
+    QUrl urlEx() const;
     QString url() const;
     QString path() const;
 
@@ -91,6 +94,7 @@ public:
 
 public slots:
     void openUrl(const QUrl &url);
+    void openUrlWithRandomSort(const QUrl &url, int randomSeed);
     void openPath(const QString &path);
     void leanOpenPath(const QString &path);
     void openRow(const int row);
@@ -106,10 +110,34 @@ signals:
 
     void isLinearDirChanged();
 
-private slots:
-    void updateModel();
-
 private:
+    template <typename Func, typename... Args>
+    void requestUrlUpdate(Func&& func, Args&&... args)
+    {
+        requestUrlEx(false, -1, std::forward<Func>(func), std::forward<Args>(args)...);
+    }
+
+    template <typename Func, typename... Args>
+    void requestUrlEx(bool randomSort, int randomSeed, Func&& func, Args&&... args)
+    {
+        auto request = ++m_urlRequest;
+        qDebug() << "requestUrlEx" << randomSort << randomSeed;
+        const auto handleUpdate = [this, request, randomSort, randomSeed](std::shared_ptr<Directory> dir)
+        {
+            if (request != m_urlRequest || !dir)
+                return;
+
+            m_sortModel->setRandomSortEx(randomSort, randomSeed);
+
+            m_dirModel->setDirectory(dir);
+
+            emit urlChanged();
+        };
+
+        auto f = QtConcurrent::run(&m_pool, std::forward<Func>(func), std::forward<Args>(args)...);
+        f.then(this, handleUpdate);
+    }
+
     int sourceRow(const int row);
 
     QString iconID(Directory *dir, int child);
@@ -120,15 +148,11 @@ private:
 
     IconProvider *m_iconProvider {};
 
-    // store current url of m_model, store it seperately so
-    // that url() and model updates are always in sync
-    QUrl m_url;
-
     std::unique_ptr<DirectorySystemModel> m_dirModel;
     std::unique_ptr<DirectorySortModel> m_sortModel;
 
     std::shared_ptr<HybridDirSystem> m_system;
-    QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;
+    intmax_t m_urlRequest = 0;
 
     size_t m_previewRequest = 0;
 

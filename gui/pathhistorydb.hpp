@@ -14,7 +14,11 @@ public:
     {
         std::optional<int> row, col;
         std::optional<int> sortcolumn, sortorder;
-        std::optional<bool> randomSort;
+    };
+
+    struct HistoryDataForRandomSort
+    {
+        std::optional<int> row, col;
         std::optional<int> randomSeed;
     };
 
@@ -29,7 +33,10 @@ public:
 
     void setSortParams(const QString &url, int sortcolumn, int sortorder);
 
-    void setRandomParams(const QString &url, bool randomSort, int randomSeed);
+
+    HistoryDataForRandomSort readForRandomSort(const QString &url) const;
+
+    void setRandomSortParams(const QString &url, int row, int col, int randomSeed);
 
 signals:
 
@@ -38,6 +45,7 @@ private:
 
     std::unique_ptr<QSqlDatabase> m_db;
     mutable QHash<QString, HistoryData> m_cache;
+    mutable QHash<QString, HistoryDataForRandomSort> m_cacheRandomSort;
 };
 
 #endif // PATHHISTORYDB_HPP

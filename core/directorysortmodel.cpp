@@ -8,27 +8,12 @@ DirectorySortModel::DirectorySortModel(QObject *parent)
     : QSortFilterProxyModel{parent}
 {
     setFilterCaseSensitivity(Qt::CaseInsensitive);
-
-    connect(this, &QSortFilterProxyModel::sourceModelChanged, this, [this]()
-    {
-        const auto src = sourceModel();
-        const auto triggerOn = [&](auto signal)
-        {
-            connect(src, signal
-                    , this, &DirectorySortModel::handleRandomValuesOnModelChange);
-        };
-
-        triggerOn(&QAbstractItemModel::modelReset);
-        triggerOn(&QAbstractItemModel::layoutChanged);
-        triggerOn(&QAbstractItemModel::rowsInserted);
-        triggerOn(&QAbstractItemModel::rowsMoved);
-        triggerOn(&QAbstractItemModel::rowsRemoved);
-    });
 }
 
 void DirectorySortModel::sort(int column, Qt::SortOrder order)
 {
-    setRandomSort(false);
+    if (m_randomSort)
+        return;
 
     QSortFilterProxyModel::sort(column, order);
     emit sortParametersChanged();
@@ -58,15 +43,6 @@ bool DirectorySortModel::lessThan(const QModelIndex &source_left, const QModelIn
     return QSortFilterProxyModel::lessThan(source_left, source_right);
 }
 
-void DirectorySortModel::handleRandomValuesOnModelChange()
-{
-    if (sender() != sourceModel())
-        return;
-
-    if (m_randomSort)
-        resetRandomSeed();
-}
-
 bool DirectorySortModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
 {
     const auto src = sourceModel();
@@ -80,13 +56,15 @@ void DirectorySortModel::resetRandomSeed()
 {
     m_randomSeed = static_cast<quint32>(QDateTime::currentMSecsSinceEpoch() & 0xFFFFFFFF /* convert number to int32*/);
 
-    QMetaObject::invokeMethod(this
-                              , &DirectorySortModel::invalidate
-                              , Qt::QueuedConnection);
+    qDebug() << "resetRandomSeed randomSedd" << m_randomSeed;
+    emit randomSeedChanged();
+
+    invalidate();
 }
 
 void DirectorySortModel::setRandomSort(bool newRandomSort)
 {
+    qDebug() << "setRandomSort";
     if (m_randomSort == newRandomSort)
         return;
 
@@ -95,4 +73,23 @@ void DirectorySortModel::setRandomSort(bool newRandomSort)
 
     if (m_randomSort)
         resetRandomSeed();
+}
+
+void DirectorySortModel::setRandomSortEx(bool newRandomSort, int randomSeed)
+{
+    qDebug() << "setRandomSortEx" << randomSeed;
+    if (m_randomSort == newRandomSort)
+        return;
+
+    m_randomSort = newRandomSort;
+    emit randomSortChanged();
+
+    if (m_randomSort)
+    {
+        m_randomSeed = randomSeed;
+        emit randomSeedChanged();
+
+        invalidate();
+    }
+
 }

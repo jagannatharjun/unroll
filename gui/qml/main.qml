@@ -51,8 +51,10 @@ ApplicationWindow {
     }
 
     function back() {
-        // history.pop()
-        controller.openParentPath()
+        if (history.canMoveBack)
+            history.pop()
+        else
+            controller.openParentPath()
     }
 
     function nextIndex(up) {
@@ -95,6 +97,22 @@ ApplicationWindow {
 
             if (!model.randomSort)
                 history.updateSortParams(model.sortColumn, model.sortOrder)
+        }
+
+        function onRandomSeedChanged() {
+            const model = controller.model
+            const idx = selectionModel.currentIndex
+
+            if (model.randomSort)
+                history.updateRandomSortParams(idx.row, idx.column, model.randomSeed())
+        }
+
+        function onRandomSortChanged() {
+            const model = controller.model
+            const idx = selectionModel.currentIndex
+
+            if (model.randomSort)
+                history.updateRandomSortParams(idx.row, idx.column, model.randomSeed())
         }
     }
 
@@ -151,6 +169,8 @@ ApplicationWindow {
 
             if (!controller.model.randomSort)
                 history.updateCurrentIndex(current.row, current.column)
+            else
+                history.updateRandomSortParams(current.row, current.column, controller.model.randomSeed())
 
             root._previewCompleted = false
         }
@@ -367,7 +387,7 @@ ApplicationWindow {
         acceptedButtons: Qt.BackButton | Qt.ForwardButton
         onClicked: function (mouse) {
             if (mouse.button & Qt.BackButton)
-                history.pop()
+                root.back()
             else if (mouse.button & Qt.ForwardButton)
                 history.forward()
         }

@@ -12,6 +12,7 @@ const QString SHOW_MAIN_FILEVIEW = "MainView/ShowFileView";
 const QString RECENT_URLS = "RECENT_URLS";
 const QString LAST_SESSION_INDEX = "MainView/LAST_SESSION_INDEX";
 const QString LAST_SESSION_URL = "MainView/LAST_SESSION_URL";
+const QString LAST_SESSION_RANDOM_SORT = "MainView/LAST_SESSION_RANDOM_SORT";
 const QString PREVIEW_VIDEO_ROTATION = "MainView/PREVIEW_VIDEO_ROTATION";
 
 
@@ -30,6 +31,7 @@ Preferences::Preferences(const QDir &appDataDir
     , m_showMainFileView (SHOW_MAIN_FILEVIEW, {}, m_setting)
     , m_recentUrls(RECENT_URLS, {}, m_setting)
     , m_lastSessionUrl(LAST_SESSION_URL, {}, m_setting)
+    , m_lastSessionRandomSort(LAST_SESSION_RANDOM_SORT, {}, m_setting)
     , m_videoRotation(PREVIEW_VIDEO_ROTATION, {}, m_setting)
 {
 }
@@ -104,6 +106,20 @@ void Preferences::setLastSessionUrl(const QString &newLastSessionUrl)
 
     m_lastSessionUrl.set(newLastSessionUrl, m_setting);
     emit lastSessionUrlChanged();
+}
+
+bool Preferences::lastSessionRandomSort() const
+{
+    return m_lastSessionRandomSort;
+}
+
+void Preferences::setLastSessionRandomSort(const bool lastSessionRandomSort)
+{
+    if (lastSessionRandomSort == m_lastSessionRandomSort)
+        return;
+
+    m_lastSessionRandomSort.set(lastSessionRandomSort, m_setting);
+    emit lastSessionRandomSortChanged();
 }
 
 int Preferences::videoRotation() const

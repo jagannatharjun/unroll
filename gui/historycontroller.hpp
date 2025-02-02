@@ -44,6 +44,8 @@ public slots:
 
     Q_INVOKABLE void updateSortParams(int sortColumn, int sortOrder);
 
+    Q_INVOKABLE void updateRandomSortParams(int row, int column, int randomSeed);
+
     void restorePreviousSession();
 
 signals:
@@ -69,15 +71,25 @@ private:
         int sortorder;
     };
 
-    Point &current();
-    const Point &current() const;
+    struct PointForRandomSort
+    {
+        QUrl url;
+        int row;
+        int col;
+        int randomSeed;
+    };
+
+    using PointVariant = std::variant<Point, PointForRandomSort>;
+
+    PointVariant &current();
+    const PointVariant &current() const;
 
     void setIndex(int index);
-    std::pair<int, int> lastRowAndColumn(const QString &url);
-    std::pair<int, int> lastSortParams(const QString &url);
+
+    void emitResetFocus(const PointVariant &var);
 
     std::unique_ptr<PathHistoryDB> m_pathHistory;
-    std::vector<Point> m_history;
+    QVector<std::variant<Point, PointForRandomSort>> m_history;
     int m_index = - 1;
 
     ViewController *m_view = nullptr;

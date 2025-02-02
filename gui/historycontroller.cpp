@@ -33,6 +33,14 @@ void HistoryController::setView(ViewController *newView)
     connect(m_view, &ViewController::urlChanged
             , this, &HistoryController::urlUpdated);
 
+    auto sortModel = m_view->sortModel();
+
+    connect(sortModel, &DirectorySortModel::randomSortChanged
+            , this, &HistoryController::urlUpdated);
+
+    connect(sortModel, &DirectorySortModel::randomSeedChanged
+            , this, &HistoryController::urlUpdated);
+
     restorePreviousSession();
 }
 
@@ -51,6 +59,7 @@ void HistoryController::pop()
     if (!canMoveBack())
         return;
 
+    qDebug() << "pop" << m_index << m_history.size();
     setIndex(m_index - 1);
 }
 
@@ -65,39 +74,56 @@ void HistoryController::forward()
 
 void HistoryController::urlUpdated()
 {
+    const auto viewUrl = m_view->url();
+    if (viewUrl.isEmpty())
+        return;
+
+    const auto sortModel = m_view->sortModel();
     if (m_preferences)
     {
-        m_preferences->setLastSessionUrl(m_view->url());
+        m_preferences->setLastSessionUrl(viewUrl);
+        m_preferences->setLastSessionRandomSort(sortModel->randomSort());
     }
 
-    if (m_history.empty()
-        || (current().url != m_view->url()))
+    QUrl currentUrl;
+
+    const auto stateMatches = [this, sortModel]()
     {
-        qDebug("adding new dir, '%s'", qPrintable(m_view->url()));
+        const auto &cur = current();
+        if ((cur.index() == 1) != sortModel->randomSort())
+            return false;
+
+        const bool sameUrl = std::visit([this](auto &&v) { return m_view->urlEx() == v.url; }, current());
+        return sameUrl;
+    };
+
+    if (m_history.empty() || !stateMatches())
+    {
+        qDebug("adding new dir, '%s', randomSort: %d", qPrintable(viewUrl), sortModel->randomSort());
+        if (!m_history.empty())
+            qDebug("current dir, '%s', randomSort: %d", qPrintable(std::visit([](auto &&v) { return v.url.toString();}, current())), sortModel->randomSort());
+
+        PointVariant var;
+        if (sortModel->randomSort())
+        {
+            const auto h =  m_pathHistory->readForRandomSort(viewUrl);
+            var = PointForRandomSort {viewUrl, h.row.value_or(0), h.col.value_or(0), h.randomSeed.value_or(-1)};
+        }
+        else
+        {
+            const auto h = m_pathHistory->read(viewUrl);
+            var = Point {viewUrl, h.row.value_or(0), h.col.value_or(0), h.sortcolumn.value_or(-1), h.sortorder.value_or(-1)};
+        }
+
         // new history point
         if (m_index + 1 != m_history.size())
             m_history.erase(m_history.begin() + m_index + 1, m_history.end());
 
-        auto [row, col] = lastRowAndColumn(m_view->url());
-        if (row == -1)
-            row = 0;
-
-        if (col == -1)
-            col = 0;
-
-        const auto [sortCol, sortOrder] = lastSortParams(m_view->url());
-
         ++m_index;
-        m_history.push_back(
-            Point {
-              m_view->url()
-            , row
-            , col
-            , sortCol
-            , sortOrder});
+        m_history.push_back(var);
 
         emit depthChanged();
-        emit resetFocus(row, col, sortCol, sortOrder);
+        emitResetFocus(var);
 
         return;
     }
@@ -106,7 +132,7 @@ void HistoryController::urlUpdated()
     const auto top = current();
 
     auto model = m_view->model();
-    const auto index = model->index(top.row, top.col);
+    const auto index = std::visit([model](auto &&p){ return model->index(p.row, p.col);}, top);
 
     if (!model->checkIndex(index
                            , QAbstractItemModel::CheckIndexOption::IndexIsValid))
@@ -115,17 +141,16 @@ void HistoryController::urlUpdated()
     }
     else
     {
-        emit resetFocus(index.row(), index.column()
-                        , top.sortcolumn, top.sortorder);
+        emitResetFocus(top);
     }
 }
 
-HistoryController::Point &HistoryController::current()
+HistoryController::PointVariant &HistoryController::current()
 {
     return m_history[m_index];
 }
 
-const HistoryController::Point &HistoryController::current() const
+const HistoryController::PointVariant &HistoryController::current() const
 {
     return m_history[m_index];
 }
@@ -136,23 +161,25 @@ void HistoryController::setIndex(int index)
     emit depthChanged();
 
     // TODO: handle if load fail here
-    m_view->openUrl(current().url);
+    const auto &cur = current();
+    if (cur.index() == 0)
+        m_view->openUrl(std::get<0>(cur).url);
+    else
+        m_view->openUrlWithRandomSort(std::get<1>(cur).url, std::get<1>(cur).randomSeed);
 }
 
-std::pair<int, int> HistoryController::lastRowAndColumn(const QString &url)
+void HistoryController::emitResetFocus(const PointVariant &var)
 {
-    auto historyData = m_pathHistory->read(url);
-    const int lastRow = historyData.row.value_or(-1);
-    const int lastCol = historyData.col.value_or(-1);
-    return {lastRow, lastCol};
-}
-
-std::pair<int, int> HistoryController::lastSortParams(const QString &url)
-{
-    auto historyData = m_pathHistory->read(url);
-    const int lastSortCol = historyData.sortcolumn.value_or(-1);
-    const int lastSortOrder = historyData.sortorder.value_or(-1);
-    return {lastSortCol, lastSortOrder};
+    if (var.index() == 0)
+    {
+        const auto p = std::get<0>(var);
+        emit resetFocus(p.row, p.col, p.sortcolumn, p.sortorder);
+    }
+    else
+    {
+        const auto p = std::get<1>(var);
+        emit resetFocus(p.row, p.col, -1, -1);
+    }
 }
 
 void HistoryController::updateCurrentIndex(int row, int column)
@@ -173,9 +200,12 @@ void HistoryController::updateCurrentIndex(int row, int column)
     }
 
     // update values of top
-    auto &top = current();
-    top.row =  index.row();
-    top.col = index.column();
+    if (current().index() == 0)
+    {
+        auto &top = std::get<0>(current());
+        top.row =  index.row();
+        top.col = index.column();
+    }
 }
 
 void HistoryController::updateSortParams(int sortColumn, int sortOrder)
@@ -190,9 +220,33 @@ void HistoryController::updateSortParams(int sortColumn, int sortOrder)
     }
 
     // update values of top
-    auto &top = current();
-    top.sortcolumn = sortColumn;
-    top.sortorder = sortOrder;
+
+    if (current().index() == 0)
+    {
+        auto &top = std::get<0>(current());
+        top.sortcolumn = sortColumn;
+        top.sortorder = sortOrder;
+    }
+}
+
+void HistoryController::updateRandomSortParams(int row, int column, int randomSeed)
+{
+    qDebug() << "updateRandomSortParams" << row << column << randomSeed;
+    if (m_history.empty())
+        return; // no url has been pushed yet, why currentUpated is called then?
+
+    if (m_pathHistory)
+    {
+        m_pathHistory->setRandomSortParams(m_view->url(), row, column, randomSeed);
+    }
+
+    if (current().index() == 1)
+    {
+        auto &top = std::get<1>(current());
+        top.row = row;
+        top.col = column;
+        top.randomSeed = randomSeed;
+    }
 }
 
 void HistoryController::restorePreviousSession()
@@ -201,8 +255,6 @@ void HistoryController::restorePreviousSession()
             || !m_view
             || !m_preferences)
         return;
-
-    ++m_index;
 
     auto url = m_preferences->lastSessionUrl();
     if (url.isEmpty())
@@ -214,13 +266,11 @@ void HistoryController::restorePreviousSession()
             url = home.first();
     }
 
-    const auto [row, col] = lastRowAndColumn(url);
-    const auto [sortcol, sortorder] = lastSortParams(url);
-
-    m_history.push_back(Point {url, row, col, sortcol, sortorder});
-    m_view->openUrl(url);
-
-    emit depthChanged();
+    if (m_preferences->lastSessionRandomSort())
+        m_view->openUrlWithRandomSort(url
+                                      , m_pathHistory->readForRandomSort(url).randomSeed.value_or(0));
+    else
+        m_view->openUrl(url);
 }
 
 bool HistoryController::canMoveBack() const

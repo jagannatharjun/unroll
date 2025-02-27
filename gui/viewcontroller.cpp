@@ -259,6 +259,9 @@ void ViewController::updateModel()
         m_sortModel->setRandomSort(false);
         m_dirModel->setDirectory(s->result());
 
+        if (m_historyDB)
+            m_historyDB->setPreviewed(m_dirModel->directory()->path(), true);
+
         emit urlChanged();
     }
 }

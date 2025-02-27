@@ -1,5 +1,5 @@
 SET SRC=E:\Projects\Gui\file-browser
-SET QTDIR=C:\Qt\6.7.3\msvc2019_64
+SET QTDIR=C:\Qt\6.8.2\msvc2022_64
 set LIBARCHIVE=C:\local\libarchive
 
 call  "E:\Libraries\VisualStudio\IDE\Community\VC\Auxiliary\Build\vcvars64.bat" x64

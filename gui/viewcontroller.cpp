@@ -72,7 +72,7 @@ void ViewController::openUrl(const QUrl &url)
         return system->open(url);
     };
 
-    m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, url));
+    nextUrl(QtConcurrent::run(&m_pool, open, m_system, url));
 }
 
 void ViewController::openPath(const QString &path)
@@ -84,8 +84,7 @@ void ViewController::openPath(const QString &path)
         return system->open(path);
     };
 
-    m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, path));
-
+    nextUrl(QtConcurrent::run(&m_pool, open, m_system, path));
 }
 
 void ViewController::leanOpenPath(const QString &path)
@@ -97,8 +96,7 @@ void ViewController::leanOpenPath(const QString &path)
         return system->leanOpenDir(path);
     };
 
-    const auto f = QtConcurrent::run(&m_pool, open, m_system, path);
-    m_urlWatcher.setFuture(f);
+    nextUrl(QtConcurrent::run(&m_pool, open, m_system, path));
 }
 
 void ViewController::openRow(const int row)
@@ -120,7 +118,7 @@ void ViewController::openRow(const int row)
 
     if (auto parent = m_dirModel->directory())
     {
-        m_urlWatcher.setFuture(QtConcurrent::run(&m_pool, open, m_system, parent, directoryRow));
+        nextUrl(QtConcurrent::run(&m_pool, open, m_system, parent, directoryRow));
     }
 }
 
@@ -262,6 +260,7 @@ void ViewController::updateModel()
         if (m_historyDB)
             m_historyDB->setPreviewed(m_dirModel->directory()->path(), true);
 
+        setLoading(false);
         emit urlChanged();
     }
 }
@@ -299,3 +298,22 @@ bool ViewController::isLinearDir() const
     return false;
 }
 
+
+bool ViewController::loading() const
+{
+    return m_loading;
+}
+
+void ViewController::setLoading(bool newLoading)
+{
+    if (m_loading == newLoading)
+        return;
+    m_loading = newLoading;
+    emit loadingChanged();
+}
+
+void ViewController::nextUrl(QFuture<std::shared_ptr<Directory> > &&future)
+{
+    setLoading(true);
+    m_urlWatcher.setFuture(future);
+}

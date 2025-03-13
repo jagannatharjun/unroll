@@ -68,6 +68,7 @@ class ViewController : public QObject
     Q_PROPERTY(bool isLinearDir READ isLinearDir NOTIFY urlChanged FINAL)
 
     Q_PROPERTY(FileBrowser *fileBrowser READ fileBrowser WRITE setFileBrowser NOTIFY fileBrowserChanged)
+    Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged FINAL)
 
 public:
     ViewController(QObject *parent = nullptr);
@@ -89,6 +90,8 @@ public:
 
     bool isLinearDir() const;
 
+    bool loading() const;
+
 public slots:
     void openUrl(const QUrl &url);
     void openPath(const QString &path);
@@ -106,8 +109,14 @@ signals:
 
     void isLinearDirChanged();
 
+    void loadingChanged();
+
 private slots:
     void updateModel();
+
+    void setLoading(bool newLoading);
+
+    void nextUrl(QFuture<std::shared_ptr<Directory>> &&future);
 
 private:
     int sourceRow(const int row);
@@ -134,6 +143,7 @@ private:
 
     std::shared_ptr<FileHistoryDB> m_historyDB;
     FileBrowser *m_fileBrowser = nullptr;
+    bool m_loading;
 };
 
 #endif // VIEWCONTROLLER_HPP

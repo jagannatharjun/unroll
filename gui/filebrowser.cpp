@@ -199,7 +199,7 @@ QString FileBrowser::dbPath(const QString &fileName) const
     return cacheDir().absoluteFilePath(fileName);
 }
 
-// #define DB_TEST
+ #define DB_TEST
 #if !defined(DB_TEST)
 #define DB_PATH(name) dbPath(name)
 #else

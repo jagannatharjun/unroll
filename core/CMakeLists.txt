@@ -9,7 +9,8 @@ add_library(core directorysystem.hpp
     filehistorydb.hpp filehistorydb.cpp
     filehistorydb_p.hpp
     asyncdirectorysystem.hpp asyncdirectorysystem.cpp
-    dbutil.hpp)
+    dbutil.hpp
+    persistenthash.hpp persistenthash.cpp)
 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent Sql)
 

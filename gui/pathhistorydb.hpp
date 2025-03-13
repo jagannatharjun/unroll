@@ -4,40 +4,33 @@
 #include <QObject>
 #include <QHash>
 
-class QSqlDatabase;
+#include "../core/persistenthash.hpp"
 
-class PathHistoryDB : public QObject
+class QDataStream;
+
+struct HistoryData
 {
-    Q_OBJECT
+    std::optional<int> row, col;
+    std::optional<int> sortcolumn, sortorder;
+
+    // if in history, random sort was true
+    std::optional<bool> randomsort;
+
+    // maybe split
+    std::optional<int> randomseed;
+    std::optional<int> random_row, random_col;
+    std::optional<int> random_sortcolumn, random_sortorder;
+};
+
+QDataStream &operator <<(QDataStream &s, const HistoryData &data);
+
+
+QDataStream &operator>>(QDataStream &s, HistoryData &data);
+
+class PathHistoryDB : public PersistentHash<HistoryData>
+{
 public:
-    struct HistoryData
-    {
-        std::optional<int> row, col;
-        std::optional<int> sortcolumn, sortorder;
-        std::optional<bool> randomSort;
-        std::optional<int> randomSeed;
-    };
-
-    explicit PathHistoryDB(const QString &dbPath
-                           , QObject *parent = nullptr);
-
-    ~PathHistoryDB();
-
-    HistoryData read(const QString &url) const;
-
-    void setRowAndColumn(const QString &url, int row, int col);
-
-    void setSortParams(const QString &url, int sortcolumn, int sortorder);
-
-    void setRandomParams(const QString &url, bool randomSort, int randomSeed);
-
-signals:
-
-private:
-    void updateColumns(const QString &url, const QMap<QString, QVariant> &columns);
-
-    std::unique_ptr<QSqlDatabase> m_db;
-    mutable QHash<QString, HistoryData> m_cache;
+    PathHistoryDB(const QString &dbPath) : PersistentHash (dbPath) {}
 };
 
 #endif // PATHHISTORYDB_HPP

@@ -18,6 +18,7 @@ class HybridDirSystem;
 class DirectorySystemModel;
 class DirectorySortModel;
 class FileHistoryDB;
+class PathHistoryDB;
 
 class PreviewData
 {
@@ -114,12 +115,12 @@ signals:
 private slots:
     void updateModel();
 
+private:
+    int sourceRow(const int row);
+
     void setLoading(bool newLoading);
 
     void nextUrl(QFuture<std::shared_ptr<Directory>> &&future);
-
-private:
-    int sourceRow(const int row);
 
     QString iconID(Directory *dir, int child);
 

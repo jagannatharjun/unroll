@@ -30,8 +30,8 @@ void HistoryController::setView(ViewController *newView)
 
     emit viewChanged();
 
-    connect(m_view, &ViewController::urlChanged
-            , this, &HistoryController::urlUpdated);
+    connect(m_view, &ViewController::loadingChanged
+            , this, &HistoryController::onViewLoadingChanged);
 
     restorePreviousSession();
 }
@@ -63,8 +63,11 @@ void HistoryController::forward()
 }
 
 
-void HistoryController::urlUpdated()
+void HistoryController::onViewLoadingChanged()
 {
+    if (m_view->loading())
+        return;
+
     if (m_preferences)
     {
         m_preferences->setLastSessionUrl(m_view->url());
@@ -141,7 +144,7 @@ void HistoryController::setIndex(int index)
 
 std::pair<int, int> HistoryController::lastRowAndColumn(const QString &url)
 {
-    auto historyData = m_pathHistory->read(url);
+    auto historyData = m_pathHistory->value(url);
     const int lastRow = historyData.row.value_or(-1);
     const int lastCol = historyData.col.value_or(-1);
     return {lastRow, lastCol};
@@ -149,7 +152,7 @@ std::pair<int, int> HistoryController::lastRowAndColumn(const QString &url)
 
 std::pair<int, int> HistoryController::lastSortParams(const QString &url)
 {
-    auto historyData = m_pathHistory->read(url);
+    auto historyData = m_pathHistory->value(url);
     const int lastSortCol = historyData.sortcolumn.value_or(-1);
     const int lastSortOrder = historyData.sortorder.value_or(-1);
     return {lastSortCol, lastSortOrder};
@@ -169,7 +172,11 @@ void HistoryController::updateCurrentIndex(int row, int column)
 
     if (m_pathHistory)
     {
-        m_pathHistory->setRowAndColumn(m_view->url(), row, column);
+        auto url = m_view->url();
+        auto historyData = m_pathHistory->value(url);
+        historyData.row = row;
+        historyData.col = column;
+        m_pathHistory->insert(url, historyData);
     }
 
     // update values of top
@@ -186,7 +193,11 @@ void HistoryController::updateSortParams(int sortColumn, int sortOrder)
 
     if (m_pathHistory)
     {
-        m_pathHistory->setSortParams(m_view->url(), sortColumn, sortOrder);
+        auto url = m_view->url();
+        auto historyData = m_pathHistory->value(url);
+        historyData.sortcolumn = sortColumn;
+        historyData.sortorder = sortOrder;
+        m_pathHistory->insert(url, historyData);
     }
 
     // update values of top

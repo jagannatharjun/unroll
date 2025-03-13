@@ -52,14 +52,17 @@ signals:
     void resetFocus(int row, int column
                     , int sortOder, int sortColumn);
 
+    void resetFocusRandomSort(int row, int column
+                                , int sortOder, int sortColumn);
+
     void fileBrowserChanged();
 
     void preferencesChanged();
 
 private slots:
-    void urlUpdated();
+    void onViewLoadingChanged();
 
-private:    
+private:
     struct Point
     {
         QUrl url;

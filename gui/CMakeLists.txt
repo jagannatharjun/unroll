@@ -16,6 +16,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 	${SOURCES}
 	preferences.hpp preferences.cpp
         pathhistorydb.hpp pathhistorydb.cpp
+        directoryopener.hpp directoryopener.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET file-browser APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

@@ -5,8 +5,9 @@
 #include "../core/directorysortmodel.hpp"
 #include "../core/hybriddirsystem.hpp"
 #include "../core/filehistorydb.hpp"
+#include "directoryopener.hpp"
 
-#include <filesystem>
+#include <QThreadPool>
 
 #include <QtConcurrent/QtConcurrent>
 #include <QMimeData>
@@ -17,9 +18,11 @@ static const QString ICON_PROVIDER_ID = "fileicon";
 
 ViewController::ViewController(QObject *parent)
     : QObject {parent}
+    , m_pool {std::make_unique<QThreadPool>()}
     , m_dirModel {std::make_unique<DirectorySystemModel>()}
     , m_sortModel { std::make_unique<DirectorySortModel>() }
     , m_system {std::make_unique<HybridDirSystem>()}
+    , m_dirOpener {std::make_unique<DirectoryOpener>(m_pool, m_system)}
 {
     m_selectionModel.setModel(model());
 
@@ -32,7 +35,7 @@ ViewController::ViewController(QObject *parent)
     m_sortModel->sort(DirectorySystemModel::NameColumn, Qt::AscendingOrder);
     m_sortModel->setSourceModel(m_dirModel.get());
 
-    connect(&m_urlWatcher, &QFutureWatcherBase::finished
+    connect(m_dirOpener.get(), &DirectoryOpener::directoryChanged
             , this, &ViewController::updateModel);
 
     connect(&m_history, &HistoryController::depthChanged
@@ -87,61 +90,29 @@ PreviewData ViewController::invalidPreviewData()
 
 void ViewController::openUrl(const QUrl &url)
 {
-    const auto open = [](
-            std::shared_ptr<DirectorySystem> system,
-            const QUrl &url) -> std::shared_ptr<Directory>
-    {
-        return system->open(url);
-    };
-
-    nextUrl(QtConcurrent::run(&m_pool, open, m_system, url));
+    m_dirOpener->openUrl(url);
 }
 
 void ViewController::openPath(const QString &path)
 {
-    const auto open = [](
-            std::shared_ptr<DirectorySystem> system,
-            const QString &path) -> std::shared_ptr<Directory>
-    {
-        return system->open(path);
-    };
-
-    nextUrl(QtConcurrent::run(&m_pool, open, m_system, path));
+    m_dirOpener->openPath(path);
 }
 
 void ViewController::leanOpenPath(const QString &path)
 {
-    const auto open = [](
-                          std::shared_ptr<HybridDirSystem> system,
-                          const QString &path) -> std::shared_ptr<Directory>
-    {
-        return system->leanOpenDir(path);
-    };
-
-    nextUrl(QtConcurrent::run(&m_pool, open, m_system, path));
+    m_dirOpener->leanOpenPath(path);
 }
 
 void ViewController::openRow(const int row)
 {
-    const auto directoryRow = sourceRow(row);
-    if (directoryRow == -1)
+    const auto directoryChild = sourceRow(row);
+    if (directoryChild == -1)
     {
         qDebug("invalid openRow call with row - %d", row);
         return;
     }
 
-    const auto open = [](
-            std::shared_ptr<DirectorySystem> system,
-            std::shared_ptr<Directory> dir,
-            int child) -> std::shared_ptr<Directory>
-    {
-        return system->open(dir.get(), child);
-    };
-
-    if (auto parent = m_dirModel->directory())
-    {
-        nextUrl(QtConcurrent::run(&m_pool, open, m_system, parent, directoryRow));
-    }
+    m_dirOpener->openChild(directoryChild);
 }
 
 void ViewController::openParentPath()
@@ -219,7 +190,7 @@ void ViewController::setPreview(int row)
     using FutureVariant = std::variant<QFuture<PreviewData>, QFuture<FileHistoryDB::Data>>;
 
     QFuture<PreviewData> preview = QtConcurrent::run(
-                &m_pool, getPreviewData, m_system, root, directoryRow);
+                m_pool.get(), getPreviewData, m_system, root, directoryRow);
 
     QFuture<FileHistoryDB::Data> data = m_historyDB->read(root->filePath(directoryRow));
 
@@ -272,54 +243,52 @@ QString ViewController::iconID(Directory *dir, int child)
 
 void ViewController::updateModel()
 {
-    auto s = dynamic_cast<decltype (m_urlWatcher) *>(sender());
-    if (s && s->result())
+    auto dir = m_dirOpener->dir();
+    if (!dir) return; // openening failed???
+
+    setLoading(true);
+    m_url = dir->url();
+
+    auto history = m_pathHistoryDB->value(m_url.toString());
+    m_dirModel->setDirectory(dir);
+
+    if (history.onlyShowVideoFiles.has_value())
+        m_sortModel->setOnlyShowVideoFile(history.onlyShowVideoFiles.value());
+
+    if (history.randomsort.value_or(false))
     {
-        setLoading(true);
+        m_sortModel->setRandomSortEx(true, history.randomseed.value_or(0));
 
-        m_url = s->result()->url();
+        auto current = m_sortModel->index(history.random_row.value_or(0)
+                                          , history.random_col.value_or(0));
 
-        auto history = m_pathHistoryDB->value(m_url.toString());
-        m_dirModel->setDirectory(s->result());
+        m_selectionModel.setCurrentIndex(current, QItemSelectionModel::ClearAndSelect);
+    }
+    else
+    {
 
-        if (history.onlyShowVideoFiles.has_value())
-            m_sortModel->setOnlyShowVideoFile(history.onlyShowVideoFiles.value());
-
-        if (history.randomsort.value_or(false))
+        if (history.sortcolumn.has_value())
         {
-            m_sortModel->setRandomSortEx(true, history.randomseed.value_or(0));
-
-            auto current = m_sortModel->index(history.random_row.value_or(0)
-                                              , history.random_col.value_or(0));
-
-            m_selectionModel.setCurrentIndex(current, QItemSelectionModel::ClearAndSelect);
+            const auto sortorder = (Qt::SortOrder)history.sortorder.value_or(Qt::AscendingOrder);
+            m_sortModel->sort(history.sortcolumn.value()
+                              , sortorder);
         }
         else
         {
-
-            if (history.sortcolumn.has_value())
-            {
-                const auto sortorder = (Qt::SortOrder)history.sortorder.value_or(Qt::AscendingOrder);
-                m_sortModel->sort(history.sortcolumn.value()
-                                  , sortorder);
-            }
-            else
-            {
-                m_sortModel->setRandomSort(false);
-            }
-
-            auto current = m_sortModel->index(history.row.value_or(0)
-                                              , history.col.value_or(0));
-
-            m_selectionModel.setCurrentIndex(current, QItemSelectionModel::ClearAndSelect);
+            m_sortModel->setRandomSort(false);
         }
 
-        if (m_historyDB)
-            m_historyDB->setPreviewed(m_dirModel->directory()->path(), true);
+        auto current = m_sortModel->index(history.row.value_or(0)
+                                          , history.col.value_or(0));
 
-        setLoading(false);
-        emit urlChanged();
+        m_selectionModel.setCurrentIndex(current, QItemSelectionModel::ClearAndSelect);
     }
+
+    if (m_historyDB)
+        m_historyDB->setPreviewed(m_dirModel->directory()->path(), true);
+
+    setLoading(false);
+    emit urlChanged();
 }
 
 void ViewController::updatePathHistory()
@@ -420,10 +389,6 @@ void ViewController::setLoading(bool newLoading)
     emit loadingChanged();
 }
 
-void ViewController::nextUrl(QFuture<std::shared_ptr<Directory> > &&future)
-{
-    m_urlWatcher.setFuture(future);
-}
 
 HistoryController *ViewController::history()
 {

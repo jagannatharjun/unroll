@@ -7,7 +7,6 @@
 #include <QObject>
 #include <QFutureWatcher>
 #include <QAbstractItemModel>
-#include <QThreadPool>
 #include <QItemSelectionModel>
 
 #include "../core/hybriddirsystem.hpp"
@@ -22,6 +21,8 @@ class DirectorySystemModel;
 class DirectorySortModel;
 class FileHistoryDB;
 class PathHistoryDB;
+class DirectoryOpener;
+class QThreadPool;
 
 class PreviewData
 {
@@ -136,13 +137,11 @@ private:
 
     void setLoading(bool newLoading);
 
-    void nextUrl(QFuture<std::shared_ptr<Directory>> &&future);
-
     QString iconID(Directory *dir, int child);
 
     // place this at start so it get destroyed last, this
     // make sure any pending operation don't use invalid resource
-    QThreadPool m_pool;
+    std::shared_ptr<QThreadPool> m_pool;
 
     IconProvider *m_iconProvider {};
 
@@ -154,7 +153,7 @@ private:
     std::unique_ptr<DirectorySortModel> m_sortModel;
 
     std::shared_ptr<HybridDirSystem> m_system;
-    QFutureWatcher<std::shared_ptr<Directory>> m_urlWatcher;
+    std::unique_ptr<DirectoryOpener> m_dirOpener;
 
     size_t m_previewRequest = 0;
 

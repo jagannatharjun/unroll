@@ -310,7 +310,7 @@ Pane {
             }
         }
 
-        ScrollBar.vertical: ScrollBar {
+        ScrollBar.vertical: MyScrollBar {
             id: vscrollbar
 
             policy: ScrollBar.AsNeeded
@@ -323,7 +323,7 @@ Pane {
             anchors.bottom: hscrollbar.bottom
         }
 
-        ScrollBar.horizontal: ScrollBar {
+        ScrollBar.horizontal: MyScrollBar {
             id: hscrollbar
 
             policy: ScrollBar.AsNeeded
@@ -381,6 +381,42 @@ Pane {
             scale : 1.414
 
             radius: 3
+        }
+    }
+
+    component MyScrollBar: ScrollBar {
+        id: control
+
+        implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
+                                implicitContentWidth + leftPadding + rightPadding)
+        implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
+                                 implicitContentHeight + topPadding + bottomPadding)
+
+        padding: 2
+        visible: control.policy !== ScrollBar.AlwaysOff
+        minimumSize: orientation === Qt.Horizontal ? height / width : width / height
+
+        contentItem: Rectangle {
+            implicitWidth: control.interactive ? 6 : 2
+            implicitHeight: control.interactive ? 6 : 2
+
+            radius: width / 2
+            color: control.pressed ? control.palette.highlight : control.palette.dark
+            opacity: 0.0
+
+            states: State {
+                name: "active"
+                when: control.policy === ScrollBar.AlwaysOn || (control.active && control.size < 1.0)
+                PropertyChanges { control.contentItem.opacity: .7 }
+            }
+
+            transitions: Transition {
+                from: "active"
+                SequentialAnimation {
+                    PauseAnimation { duration: 450 }
+                    NumberAnimation { target: control.contentItem; duration: 200; property: "opacity"; to: 0.0 }
+                }
+            }
         }
     }
 }

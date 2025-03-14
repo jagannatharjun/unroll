@@ -46,6 +46,12 @@ SplitView {
         color: SplitHandle.pressed ? palette.highlight
                : (SplitHandle.hovered ? palette.button : palette.base)
 
+        HoverHandler {
+            onHoveredChanged: {
+                if (hovered) FileBrowser.setCursor(Qt.SplitHCursor)
+                else FileBrowser.setCursor(Qt.ArrowCursor)
+            }
+        }
     }
 
     TableViewExt {

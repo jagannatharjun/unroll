@@ -9,6 +9,7 @@ DirectorySortModel::DirectorySortModel(QObject *parent)
     : QSortFilterProxyModel{parent}
 {
     setFilterCaseSensitivity(Qt::CaseInsensitive);
+    setSortCaseSensitivity(Qt::CaseInsensitive);
 
     connect(this, &QSortFilterProxyModel::sourceModelChanged, this, [this]()
     {

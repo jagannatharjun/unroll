@@ -17,7 +17,11 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Test)
 #    BUNDLE DESTINATION .
 #    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
+option(DB_TEST "use test database" ON)
 
+if (DB_TEST)
+    add_compile_definitions(-DDB_TEST)
+endif(DB_TEST)
 
 add_subdirectory(core)
 add_subdirectory(tests)

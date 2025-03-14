@@ -18,6 +18,10 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     QQuickStyle::setStyle("Fusion");
 
+#ifdef DB_TEST
+    qDebug("DB_TEST defined, test databases will be used");
+#endif
+
     qRegisterMetaType<QAbstractItemModel *>();
     qmlRegisterType<DirectorySystemModel>("filebrowser", 0, 1, "DirectorySystemModel");
     qmlRegisterType<ViewController>("filebrowser", 0, 1, "ViewController");

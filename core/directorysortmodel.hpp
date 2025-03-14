@@ -22,7 +22,9 @@ public:
     void sort(int column, Qt::SortOrder order) override;
 
     void setRandomSort(bool newRandomSort);
+    void setRandomSortEx(bool newRandomSort, int32_t randomSeed);
     bool randomSort() const { return m_randomSort; }
+    int32_t randomSeed() const { return m_randomSeed; }
 
     Q_INVOKABLE void resetRandomSeed();
 
@@ -43,7 +45,7 @@ private:
     void handleRandomValuesOnModelChange();
 
     bool m_randomSort = false;
-    quint32 m_randomSeed = 0; // Single seed value
+    int32_t m_randomSeed = 0x1234; // Single seed value
     bool m_onlyShowVideoFile = false;
 
 

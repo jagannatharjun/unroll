@@ -19,7 +19,8 @@ struct HistoryData
     // maybe split
     std::optional<int> randomseed;
     std::optional<int> random_row, random_col;
-    std::optional<int> random_sortcolumn, random_sortorder;
+
+    std::optional<bool> onlyShowVideoFiles;
 };
 
 QDataStream &operator <<(QDataStream &s, const HistoryData &data);

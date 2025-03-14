@@ -24,6 +24,10 @@ ApplicationWindow {
 
     property bool _previewCompleted: false
 
+    property alias selectionModel: controller.selectionModel
+
+    property alias history: controller.history
+
     Component.onCompleted: FileBrowser.window = root
     Component.onDestruction: FileBrowser.window = null
 
@@ -47,7 +51,7 @@ ApplicationWindow {
     }
 
     on_PreviewCompletedChanged: {
-        selectionModel.updateSeen(selectionModel.currentIndex)
+        root.updateSeen(selectionModel.currentIndex)
     }
 
     function back() {
@@ -67,6 +71,19 @@ ApplicationWindow {
         return true
     }
 
+    function updateProgress(idx) {
+        const previewProgress = mainView?.previewProgress()
+        if (!!previewProgress) {
+            controller.model.setData(idx, previewProgress, DirectorySystemModel.ProgressRole)
+        }
+    }
+
+    function updateSeen(idx) {
+        if (root._previewCompleted)
+            controller.model.setData(idx, true, DirectorySystemModel.SeenRole)
+    }
+
+
     AutoPreviewHandler {
         id: autoPreviewHandler
 
@@ -85,79 +102,29 @@ ApplicationWindow {
         fileBrowser: FileBrowser
 
         onShowPreview: (data) => root.previewdata = data
+
+        onUrlChanged: Preferences.lastSessionUrl = controller.url
+
+        Component.onCompleted: controller.openUrl(Preferences.lastSessionUrl)
     }
 
     Connections {
-        target: controller.model
+        target: selectionModel
 
-        function onSortParametersChanged() {
-            const model = controller.model
-
-            if (!model.randomSort)
-                history.updateSortParams(model.sortColumn, model.sortOrder)
-        }
-    }
-
-    HistoryController {
-        id: history
-
-        view: controller
-
-        preferences: Preferences
-
-        onResetFocus: function (row, column, sortcolumn, sortorder) {
-            // reset current preview
-            previewRow = -1
-            root.previewdata = controller.invalidPreviewData()
-            _previewCompleted = false
-
-            const model = controller.model
-
-            if (sortcolumn !== -1)
-                model.sort(sortcolumn, sortorder)
-
-            // start from beginning if already at the end of view
-            if (row + 1 >= model.rowCount())
-                row = 0
-
-            var index = model.index(row, column)
-            selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect)
-        }
-    }
-
-    ItemSelectionModel {
-        id: selectionModel
-
-
-        function updateProgress(idx) {
-            const previewProgress = mainView?.previewProgress()
-            if (!!previewProgress) {
-                controller.model.setData(idx, previewProgress, DirectorySystemModel.ProgressRole)
-            }
-        }
-
-        function updateSeen(idx) {
-            if (root._previewCompleted)
-                controller.model.setData(idx, true, DirectorySystemModel.SeenRole)
-        }
-
-        onCurrentChanged: function (current, previous) {
+        function onCurrentChanged(current, previous) {
             if (root.previewRow === -1 || root.previewRow !== current.row) {
-                updateProgress(previous)
+                root.updateProgress(previous)
 
                 controller.setPreview(current.row)
                 root.previewRow = current.row
             }
-
-            if (!controller.model.randomSort)
-                history.updateCurrentIndex(current.row, current.column)
 
             root._previewCompleted = false
         }
 
         Component.onDestruction: {
             const idx = selectionModel.currentIndex
-            updateProgress(idx)
+            root.updateProgress(idx)
         }
     }
 
@@ -293,7 +260,7 @@ ApplicationWindow {
 
             previewdata: root.previewdata
 
-            selectionModel: selectionModel
+            selectionModel: root.selectionModel
 
             onActionAtIndex: (row) => controller.openRow(row)
 

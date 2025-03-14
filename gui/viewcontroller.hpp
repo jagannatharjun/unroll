@@ -8,10 +8,13 @@
 #include <QFutureWatcher>
 #include <QAbstractItemModel>
 #include <QThreadPool>
+#include <QItemSelectionModel>
 
 #include "../core/hybriddirsystem.hpp"
 #include "iconprovider.hpp"
 #include "filebrowser.hpp"
+#include "historycontroller.hpp"
+#include "pathhistorydb.hpp"
 
 class QAbstractItemModel;
 class HybridDirSystem;
@@ -62,6 +65,9 @@ class ViewController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QAbstractItemModel* model READ model CONSTANT)
+    Q_PROPERTY(QItemSelectionModel *selectionModel READ selectionModel CONSTANT)
+
+    Q_PROPERTY(HistoryController* history READ history CONSTANT)
 
     Q_PROPERTY(QString url READ url NOTIFY urlChanged)
     Q_PROPERTY(QString path READ path NOTIFY urlChanged)
@@ -93,6 +99,10 @@ public:
 
     bool loading() const;
 
+    HistoryController *history();
+
+    QItemSelectionModel *selectionModel();
+
 public slots:
     void openUrl(const QUrl &url);
     void openPath(const QString &path);
@@ -114,6 +124,12 @@ signals:
 
 private slots:
     void updateModel();
+
+    void updatePathHistory();
+
+    void syncUrl();
+
+    void updateHistoryStack();
 
 private:
     int sourceRow(const int row);
@@ -142,9 +158,14 @@ private:
 
     size_t m_previewRequest = 0;
 
-    std::shared_ptr<FileHistoryDB> m_historyDB;
     FileBrowser *m_fileBrowser = nullptr;
     bool m_loading;
+    HistoryController m_history;
+
+    std::shared_ptr<FileHistoryDB> m_historyDB;
+    std::shared_ptr<PathHistoryDB> m_pathHistoryDB;
+
+    QItemSelectionModel m_selectionModel;
 };
 
 #endif // VIEWCONTROLLER_HPP

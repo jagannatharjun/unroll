@@ -46,8 +46,7 @@ QDataStream &operator <<(QDataStream &s, const HistoryData &data)
     s << data.randomseed;
     s << data.random_row;
     s << data.random_col;
-    s << data.random_sortcolumn;
-    s << data.random_sortorder;
+    s << data.onlyShowVideoFiles;
 
     return s;
 }
@@ -57,6 +56,8 @@ QDataStream &operator>>(QDataStream &s, HistoryData &data)
     int version;
 
     s >> version;
+    assert(version == 0x1);
+
     s >> data.row;
     s >> data.col;
     s >> data.sortcolumn;
@@ -65,8 +66,7 @@ QDataStream &operator>>(QDataStream &s, HistoryData &data)
     s >> data.randomseed;
     s >> data.random_row;
     s >> data.random_col;
-    s >> data.random_sortcolumn;
-    s >> data.random_sortorder;
+    s >> data.onlyShowVideoFiles;
 
     return s;
 }

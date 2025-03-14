@@ -21,6 +21,8 @@ ViewController::ViewController(QObject *parent)
     , m_sortModel { std::make_unique<DirectorySortModel>() }
     , m_system {std::make_unique<HybridDirSystem>()}
 {
+    m_selectionModel.setModel(model());
+
     m_dirModel->setIconProvider([this](Directory *dir, int child) -> QString
     {
         return iconID(dir, child);
@@ -30,7 +32,27 @@ ViewController::ViewController(QObject *parent)
     m_sortModel->sort(DirectorySystemModel::NameColumn, Qt::AscendingOrder);
     m_sortModel->setSourceModel(m_dirModel.get());
 
-    connect(&m_urlWatcher, &QFutureWatcherBase::finished, this, &ViewController::updateModel);
+    connect(&m_urlWatcher, &QFutureWatcherBase::finished
+            , this, &ViewController::updateModel);
+
+    connect(&m_history, &HistoryController::depthChanged
+            , this, &ViewController::syncUrl);
+
+    connect(this, &ViewController::loadingChanged
+            , this, &ViewController::updateHistoryStack);
+
+    connect(m_sortModel.get(), &DirectorySortModel::sortParametersChanged
+            , this, &ViewController::updatePathHistory);
+
+    connect(m_sortModel.get(), &DirectorySortModel::randomSortChanged
+            , this, &ViewController::updatePathHistory);
+
+    connect(m_sortModel.get(), &DirectorySortModel::onlyShowVideoFileChanged
+            , this, &ViewController::updatePathHistory);
+
+
+    connect(&m_selectionModel, &QItemSelectionModel::currentChanged
+            , this, &ViewController::updatePathHistory);
 }
 
 ViewController::~ViewController()
@@ -253,9 +275,44 @@ void ViewController::updateModel()
     auto s = dynamic_cast<decltype (m_urlWatcher) *>(sender());
     if (s && s->result())
     {
+        setLoading(true);
+
         m_url = s->result()->url();
-        m_sortModel->setRandomSort(false);
+
+        auto history = m_pathHistoryDB->value(m_url.toString());
         m_dirModel->setDirectory(s->result());
+
+        if (history.onlyShowVideoFiles.has_value())
+            m_sortModel->setOnlyShowVideoFile(history.onlyShowVideoFiles.value());
+
+        if (history.randomsort.value_or(false))
+        {
+            m_sortModel->setRandomSortEx(true, history.randomseed.value_or(0));
+
+            auto current = m_sortModel->index(history.random_row.value_or(0)
+                                              , history.random_col.value_or(0));
+
+            m_selectionModel.setCurrentIndex(current, QItemSelectionModel::ClearAndSelect);
+        }
+        else
+        {
+
+            if (history.sortcolumn.has_value())
+            {
+                const auto sortorder = (Qt::SortOrder)history.sortorder.value_or(Qt::AscendingOrder);
+                m_sortModel->sort(history.sortcolumn.value()
+                                  , sortorder);
+            }
+            else
+            {
+                m_sortModel->setRandomSort(false);
+            }
+
+            auto current = m_sortModel->index(history.row.value_or(0)
+                                              , history.col.value_or(0));
+
+            m_selectionModel.setCurrentIndex(current, QItemSelectionModel::ClearAndSelect);
+        }
 
         if (m_historyDB)
             m_historyDB->setPreviewed(m_dirModel->directory()->path(), true);
@@ -263,6 +320,55 @@ void ViewController::updateModel()
         setLoading(false);
         emit urlChanged();
     }
+}
+
+void ViewController::updatePathHistory()
+{
+    if (loading()) return;
+
+    auto current = m_selectionModel.currentIndex();
+    if (!current.isValid())
+        current = m_sortModel->index(0, 0);
+
+    auto url = m_url.toString();
+    auto history = m_pathHistoryDB->value(url);
+    if (m_sortModel->randomSort())
+    {
+        history.randomsort = m_sortModel->randomSort();
+        history.randomseed = m_sortModel->randomSeed();
+
+        history.random_row = current.row();
+        history.random_col = current.column();
+    }
+    else
+    {
+        history.randomsort = false;
+        history.row = current.row();
+        history.col = current.column();
+        history.sortcolumn = m_sortModel->sortColumn();
+        history.sortorder = m_sortModel->sortOrder();
+    }
+
+    history.onlyShowVideoFiles = m_sortModel->onlyShowVideoFile();
+
+    qDebug() << "new history" << url << history.row << history.col;
+    m_pathHistoryDB->insert(url, history);
+}
+
+void ViewController::syncUrl()
+{
+    if (loading() || (m_history.size() > 0 && m_url == m_history.currentUrl()))
+        return;
+
+    openUrl(m_history.currentUrl());
+}
+
+void ViewController::updateHistoryStack()
+{
+    if (loading() || (m_history.size() > 0 && m_url == m_history.currentUrl()))
+        return;
+
+    m_history.pushUrl(m_url);
 }
 
 FileBrowser *ViewController::fileBrowser() const
@@ -280,6 +386,8 @@ void ViewController::setFileBrowser(FileBrowser *newFileBrowser)
 
     m_historyDB.reset( new FileHistoryDB(m_fileBrowser->fileHistoryDBPath()) );
     m_dirModel->setFileHistoryDB(m_historyDB);
+
+    m_pathHistoryDB.reset( new PathHistoryDB(m_fileBrowser->pathHistoryDBPath()) );
 }
 
 bool ViewController::linearizeDirAvailable() const
@@ -314,6 +422,15 @@ void ViewController::setLoading(bool newLoading)
 
 void ViewController::nextUrl(QFuture<std::shared_ptr<Directory> > &&future)
 {
-    setLoading(true);
     m_urlWatcher.setFuture(future);
+}
+
+HistoryController *ViewController::history()
+{
+    return &m_history;
+}
+
+QItemSelectionModel *ViewController::selectionModel()
+{
+    return &m_selectionModel;
 }

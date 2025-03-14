@@ -69,6 +69,7 @@ public:
             stream << value;
         }
 
+        qDebug() << "insert" << key << value.row << value.col;
         // Use the base class method to store the data
         return storeData(key, byteArray);
     }
@@ -89,6 +90,7 @@ public:
         QDataStream stream(&byteArray, QIODevice::ReadOnly);
         stream >> result;
 
+        qDebug() << "value" << key << result.row << result.col;
         return stream.status() == QDataStream::Ok;
     }
 

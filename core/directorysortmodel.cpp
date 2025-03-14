@@ -4,6 +4,7 @@
 #include "filetype.hpp"
 #include <QDateTime>
 
+
 DirectorySortModel::DirectorySortModel(QObject *parent)
     : QSortFilterProxyModel{parent}
 {
@@ -97,11 +98,10 @@ bool DirectorySortModel::filterAcceptsRow(int source_row, const QModelIndex &sou
 
 void DirectorySortModel::resetRandomSeed()
 {
-    m_randomSeed = static_cast<quint32>(QDateTime::currentMSecsSinceEpoch() & 0xFFFFFFFF /* convert number to int32*/);
+    m_randomSeed = static_cast<int32_t>(QDateTime::currentMSecsSinceEpoch() & 0xFFFFFFFF /* convert number to int32*/);
+    emit randomSortChanged();
 
-    QMetaObject::invokeMethod(this
-                              , &DirectorySortModel::invalidate
-                              , Qt::QueuedConnection);
+    invalidate();
 }
 
 void DirectorySortModel::setRandomSort(bool newRandomSort)
@@ -112,6 +112,18 @@ void DirectorySortModel::setRandomSort(bool newRandomSort)
     m_randomSort = newRandomSort;
     emit randomSortChanged();
 
-    if (m_randomSort)
-        resetRandomSeed();
+    invalidate();
+}
+
+void DirectorySortModel::setRandomSortEx(bool newRandomSort, int32_t randomSeed)
+{
+    if (m_randomSort == newRandomSort
+        && (m_randomSeed == randomSeed))
+        return;
+
+    m_randomSort = newRandomSort;
+    m_randomSeed = randomSeed;
+    emit randomSortChanged();
+
+    invalidate();
 }

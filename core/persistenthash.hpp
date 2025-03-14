@@ -4,13 +4,13 @@
 #include <QString>
 #include <QVariant>
 #include <QStringList>
-#include <QSqlDatabase>
 #include <QDataStream>
 #include <QByteArray>
 #include <QIODevice>
 
 // Forward declarations
 class QSqlError;
+class QSqlDatabase;
 
 // Non-template base class that can be implemented in a .cpp file
 class PersistentHashBase
@@ -34,7 +34,7 @@ protected:
     bool isOpen() const;
 
 private:
-    QSqlDatabase m_db;
+    std::unique_ptr<QSqlDatabase> m_db;
     QString m_lastError;
     QString m_connectionName;
 

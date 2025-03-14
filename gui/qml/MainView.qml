@@ -45,6 +45,7 @@ SplitView {
 
         color: SplitHandle.pressed ? palette.highlight
                : (SplitHandle.hovered ? palette.button : palette.base)
+
     }
 
     TableViewExt {

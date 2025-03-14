@@ -45,7 +45,7 @@ Container {
     hoverEnabled: false
 
     background: Rectangle {
-        color: palette.dark
+        color: palette.mid
         border.color: root.visualFocus || contentItem.activeFocus ? palette.highlight : palette.light
         border.width: 1
 

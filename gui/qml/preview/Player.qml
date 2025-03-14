@@ -37,8 +37,8 @@ FocusScope {
         return player.position / player.duration
     }
 
-    function _restoreProgress() {
-        if (_progressRestored)
+    function _restoreProgress(checkFlag = true) {
+        if (_progressRestored && checkFlag)
             return;
 
         let position = (previewdata?.progress() ?? 0)
@@ -47,7 +47,8 @@ FocusScope {
         if (position !== player.duration)
             player.position = position
 
-        _progressRestored = true
+        if (checkFlag)
+            _progressRestored = true
     }
 
     function _changeTrack(tracks, activeTrackIndex, type) {
@@ -85,9 +86,13 @@ FocusScope {
     onPreviewdataChanged: {
         _progressRestored = false
 
+        player.pause()
+
         player.source = previewdata.readUrl()
 
         player.play()
+
+        root._restoreProgress()
 
         previewTimer.restart()
     }
@@ -162,8 +167,9 @@ FocusScope {
                 break;
 
             case MediaPlayer.LoadedMedia:
-                root._restoreProgress()
-                break;
+                // try to load media at certain position, this saves jump, but doesn't work all the time
+                root._restoreProgress(false)
+                break
             }
         }
 

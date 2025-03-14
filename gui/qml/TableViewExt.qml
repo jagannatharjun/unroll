@@ -98,7 +98,11 @@ Pane {
 
                         font: headerDelegate.font
                         visible: root.modelSortColumn === index
-                        text: root.modelSortOrder === Qt.DescendingOrder ? "↓" : "↑"
+                        text: {
+                            if (root.modelSortOrder === Qt.DescendingOrder) return "↓"
+                            if (root.modelSortOrder === Qt.AscendingOrder)  return "↑"
+                            return ""
+                        }
                         scale: 1.1
                         rightPadding: headerDelegate.rightPadding + 10
                     }

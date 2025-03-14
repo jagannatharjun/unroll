@@ -255,7 +255,7 @@ ApplicationWindow {
             z : 1
 
             model: controller.model // FIXME: on qt 5.15.2, app crashes whenever content of model changes
-            modelSortOrder: controller.model.sortOrder
+            modelSortOrder: controller.model.randomSort ? -1 : controller.model.sortOrder
             modelSortColumn: controller.model.sortColumn
 
             previewdata: root.previewdata

@@ -5,7 +5,7 @@
 #include <QQmlEngine>
 
 
-class HistoryController : public QObject
+class HistoryStack : public QObject
 {
     Q_OBJECT
 
@@ -13,7 +13,7 @@ class HistoryController : public QObject
     Q_PROPERTY(bool canMoveForward READ canMoveForward NOTIFY depthChanged FINAL)
 
 public:
-    explicit HistoryController(QObject *parent = nullptr);
+    explicit HistoryStack(QObject *parent = nullptr);
 
     int depth() const;
 
@@ -23,7 +23,7 @@ public:
 
     QUrl currentUrl() const;
 
-    int size() const { return m_history.size(); }
+    size_t size() const { return m_history.size(); }
 
 public slots:
     void pop();

@@ -1,24 +1,24 @@
-#include "historycontroller.hpp"
+#include "historystack.hpp"
 
 #include <QStandardPaths>
 #include <QDir>
 
-HistoryController::HistoryController(QObject *parent)
+HistoryStack::HistoryStack(QObject *parent)
     : QObject{parent}
 {
 }
 
-int HistoryController::depth() const
+int HistoryStack::depth() const
 {
     return m_index + 1;
 }
 
-bool HistoryController::canMoveForward() const
+bool HistoryStack::canMoveForward() const
 {
     return m_index + 1 < m_history.size();
 }
 
-void HistoryController::pop()
+void HistoryStack::pop()
 {
     if (!canMoveBack())
         return;
@@ -26,7 +26,7 @@ void HistoryController::pop()
     setIndex(m_index - 1);
 }
 
-void HistoryController::forward()
+void HistoryStack::forward()
 {
     if (!canMoveForward())
         return;
@@ -34,7 +34,7 @@ void HistoryController::forward()
     setIndex(m_index + 1);
 }
 
-void HistoryController::pushUrl(const QUrl &url)
+void HistoryStack::pushUrl(const QUrl &url)
 {
     if (m_index + 1 != m_history.size())
         m_history.erase(m_history.begin() + m_index + 1, m_history.end());
@@ -43,28 +43,28 @@ void HistoryController::pushUrl(const QUrl &url)
     setIndex(m_index + 1);
 }
 
-HistoryController::Point &HistoryController::current()
+HistoryStack::Point &HistoryStack::current()
 {
     return m_history[m_index];
 }
 
-const HistoryController::Point &HistoryController::current() const
+const HistoryStack::Point &HistoryStack::current() const
 {
     return m_history[m_index];
 }
 
-void HistoryController::setIndex(int index)
+void HistoryStack::setIndex(int index)
 {
     m_index = index;
     emit depthChanged();
 }
 
-bool HistoryController::canMoveBack() const
+bool HistoryStack::canMoveBack() const
 {
     return m_index > 0;
 }
 
-QUrl HistoryController::currentUrl() const
+QUrl HistoryStack::currentUrl() const
 {
     return current().url;
 }

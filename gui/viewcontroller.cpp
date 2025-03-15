@@ -38,7 +38,7 @@ ViewController::ViewController(QObject *parent)
     connect(m_dirOpener.get(), &DirectoryOpener::directoryChanged
             , this, &ViewController::updateModel);
 
-    connect(&m_history, &HistoryController::depthChanged
+    connect(&m_history, &HistoryStack::depthChanged
             , this, &ViewController::syncUrl);
 
     connect(this, &ViewController::loadingChanged
@@ -389,8 +389,7 @@ void ViewController::setLoading(bool newLoading)
     emit loadingChanged();
 }
 
-
-HistoryController *ViewController::history()
+HistoryStack *ViewController::history()
 {
     return &m_history;
 }

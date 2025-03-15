@@ -1,7 +1,7 @@
 
 set(SOURCES
         viewcontroller.hpp viewcontroller.cpp
-	historycontroller.hpp historycontroller.cpp
+        historystack.hpp historystack.cpp
 	filebrowser.hpp filebrowser.cpp
 	iconprovider.hpp iconprovider.cpp
         main.cpp

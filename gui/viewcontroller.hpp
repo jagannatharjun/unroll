@@ -12,7 +12,7 @@
 #include "../core/hybriddirsystem.hpp"
 #include "iconprovider.hpp"
 #include "filebrowser.hpp"
-#include "historycontroller.hpp"
+#include "historystack.hpp"
 #include "pathhistorydb.hpp"
 
 class QAbstractItemModel;
@@ -68,7 +68,7 @@ class ViewController : public QObject
     Q_PROPERTY(QAbstractItemModel* model READ model CONSTANT)
     Q_PROPERTY(QItemSelectionModel *selectionModel READ selectionModel CONSTANT)
 
-    Q_PROPERTY(HistoryController* history READ history CONSTANT)
+    Q_PROPERTY(HistoryStack* history READ history CONSTANT)
 
     Q_PROPERTY(QString url READ url NOTIFY urlChanged)
     Q_PROPERTY(QString path READ path NOTIFY urlChanged)
@@ -100,7 +100,7 @@ public:
 
     bool loading() const;
 
-    HistoryController *history();
+    HistoryStack *history();
 
     QItemSelectionModel *selectionModel();
 
@@ -159,7 +159,7 @@ private:
 
     FileBrowser *m_fileBrowser = nullptr;
     bool m_loading;
-    HistoryController m_history;
+    HistoryStack m_history;
 
     std::shared_ptr<FileHistoryDB> m_historyDB;
     std::shared_ptr<PathHistoryDB> m_pathHistoryDB;

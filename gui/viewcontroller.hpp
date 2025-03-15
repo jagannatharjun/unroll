@@ -143,6 +143,7 @@ private:
     // make sure any pending operation don't use invalid resource
     std::shared_ptr<QThreadPool> m_pool;
 
+    // owned by qqmlengine
     IconProvider *m_iconProvider {};
 
     // store current url of m_model, store it seperately so

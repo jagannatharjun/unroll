@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtMultimedia
+import QtQml.StateMachine as DSM
 
 import "../widgets"
 
@@ -28,27 +29,14 @@ FocusScope {
 
     signal showStatus(string txt, int type)
 
+    focus: true
+
     function _showStatus(txt, statusType) {
         root.showStatus(txt, statusType || StatusLabel.LabelType.Other)
     }
 
-
     function progress() {
         return player.position / player.duration
-    }
-
-    function _restoreProgress(checkFlag = true) {
-        if (_progressRestored && checkFlag)
-            return;
-
-        let position = (previewdata?.progress() ?? 0)
-        if (position > 0 && position < 1)
-            position = player.duration * position
-        if (position !== player.duration)
-            player.position = position
-
-        if (checkFlag)
-            _progressRestored = true
     }
 
     function _changeTrack(tracks, activeTrackIndex, type) {
@@ -83,21 +71,6 @@ FocusScope {
         root._showStatus(result.status)
     }
 
-    onPreviewdataChanged: {
-        _progressRestored = false
-
-        player.pause()
-
-        player.source = previewdata.readUrl()
-
-        player.play()
-
-        root._restoreProgress()
-
-        previewTimer.restart()
-    }
-
-    focus: true
 
     function toogleState() {
         var playbackState = player.playbackState
@@ -133,6 +106,97 @@ FocusScope {
         return formattedTime
     }
 
+    onPreviewdataChanged: {
+        playbackStateMachine.startLoading()
+
+        previewTimer.restart()
+    }
+
+    DSM.StateMachine {
+        id: playbackStateMachine
+
+        signal loadingCompleted()
+
+        signal startLoading()
+
+        running: true
+
+        initialState: loadingState
+
+        onLoadingCompleted: print("loading completed")
+
+        DSM.State {
+            id: loadingState
+
+            function _calcInitialPosition() {
+                if (player.duration === 0) return undefined
+
+                let progress = (previewdata?.progress() ?? 0)
+                if (progress > 0 && progress < 1)
+                    return player.duration * progress
+                return 0
+            }
+
+            function _init() {
+                player.stop()
+
+                if (!previewdata)
+                    return
+
+                player.source = previewdata.readUrl()
+
+                player.play()
+            }
+
+            onEntered: {
+                // state machine can only handle state change after onEntered signal handling
+                Qt.callLater(_init)
+            }
+
+            Connections {
+                target: player
+
+                enabled: loadingState.active
+
+                function onMediaStatusChanged() {
+                    const initialPosition = loadingState._calcInitialPosition()
+                    if (initialPosition === undefined) return
+                    if (player.position < initialPosition)
+                        player.position = initialPosition
+                }
+
+                function onPositionChanged() {
+                    const initialPosition = loadingState._calcInitialPosition()
+                    if (initialPosition === undefined) return
+                    if (player.position > initialPosition) {
+                        playbackStateMachine.loadingCompleted()
+                    }
+                }
+            }
+
+            DSM.SignalTransition {
+                targetState: runningState
+                signal: playbackStateMachine.loadingCompleted
+            }
+
+            DSM.SignalTransition {
+                targetState: loadingState
+                signal: playbackStateMachine.startLoading
+            }
+        }
+
+        DSM.State {
+            id: runningState
+
+            onEntered: previewTimer.restart()
+
+            DSM.SignalTransition {
+                targetState: loadingState
+                signal: playbackStateMachine.startLoading
+            }
+        }
+    }
+
     Timer {
         id: previewTimer
 
@@ -147,8 +211,6 @@ FocusScope {
 
     MediaPlayer {
         id: player
-
-        source: previewdata.readUrl()
 
         videoOutput: videooutput
 
@@ -166,10 +228,6 @@ FocusScope {
                 root.previewCompleted()
                 break;
 
-            case MediaPlayer.LoadedMedia:
-                // try to load media at certain position, this saves jump, but doesn't work all the time
-                root._restoreProgress(false)
-                break
             }
         }
 
@@ -248,6 +306,8 @@ FocusScope {
             RowLayout {
                 anchors.fill: parent
 
+                enabled: runningState.active
+
                 ToolButton {
                     icon.source: player.playbackState === MediaPlayer.PlayingState ? "qrc:/resources/pause.svg" : "qrc:/resources/play.svg"
                     icon.color: palette.buttonText
@@ -269,6 +329,7 @@ FocusScope {
                     stepSize: 5000 // 5 sec
 
                     focus: true
+
 
                     Binding {
                         target: slider

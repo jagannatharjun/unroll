@@ -202,7 +202,7 @@ FocusScope {
 
         interval: 5000
 
-        onTriggered: root.previewed()
+        onTriggered: if (runningState.active) root.previewed()
     }
 
     MediaDevices {
@@ -294,6 +294,7 @@ FocusScope {
                 id: videooutput
 
                 anchors.fill: parent
+
             }
         }
 

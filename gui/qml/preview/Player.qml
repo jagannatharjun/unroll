@@ -555,6 +555,18 @@ FocusScope {
 
             event.accepted = true
             break;
+
+        case Qt.Key_Home:
+            player.position = 0;
+
+            event.accepted = true
+            break;
+        case Qt.Key_End:
+            player.position = player.duration;
+
+            event.accepted = true
+            break;
         }
+
     }
 }

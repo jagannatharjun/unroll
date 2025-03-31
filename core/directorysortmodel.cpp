@@ -38,11 +38,16 @@ void DirectorySortModel::sort(int column, Qt::SortOrder order)
 
 bool DirectorySortModel::lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const
 {
+    const auto identifier = [](const QModelIndex &index)
+    {
+        return qHash(index.data(DirectorySystemModel::NameRole).toString());
+    };
+
     if (m_randomSort)
     {
         // Combine seed with the row number to generate a random value
-        const auto leftRandom = qHash(m_randomSeed ^ source_left.row());
-        const auto rightRandom = qHash(m_randomSeed ^ source_right.row());
+        const auto leftRandom = qHash(m_randomSeed ^ identifier(source_left));
+        const auto rightRandom = qHash(m_randomSeed ^ identifier(source_right));
 
         return leftRandom < rightRandom;
     }

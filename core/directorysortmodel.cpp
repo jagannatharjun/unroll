@@ -46,22 +46,20 @@ bool DirectorySortModel::lessThan(const QModelIndex &source_left, const QModelIn
     if (m_randomSort)
     {
         // Combine seed with the row number to generate a random value
-        const auto leftRandom = qHash(m_randomSeed ^ identifier(source_left));
-        const auto rightRandom = qHash(m_randomSeed ^ identifier(source_right));
+        const auto leftRandom = qHash(m_randomSeed ^ identifier(source_left)) % 1728383223844;
+        const auto rightRandom = qHash(m_randomSeed ^ identifier(source_right)) % 1728383223844;
 
         // Bias using creation time
-        QDateTime leftCreated = source_left.data(DirectorySystemModel::LastAccessTimeColumn).toDateTime();
-        QDateTime rightCreated = source_right.data(DirectorySystemModel::LastAccessTimeColumn).toDateTime();
+        QDateTime leftCreated = source_left.siblingAtColumn(DirectorySystemModel::CreationTimeColumn).data(DirectorySystemModel::DataRole).toDateTime();
+        QDateTime rightCreated = source_right.siblingAtColumn(DirectorySystemModel::CreationTimeColumn).data(DirectorySystemModel::DataRole).toDateTime();
 
+        qint64 biasWeight = 2;
         qint64 leftBias = leftCreated.isValid() ? leftCreated.toMSecsSinceEpoch() : 0;
         qint64 rightBias = rightCreated.isValid() ? rightCreated.toMSecsSinceEpoch() : 0;
 
-        // Normalize bias (e.g., reduce the impact to a manageable range)
-        leftBias /= 100000;  // tweak this divisor for stronger or weaker bias
-        rightBias /= 100000;
-
-        // Subtract bias so newer files (higher timestamp) appear earlier
-        return (leftRandom - leftBias) < (rightRandom - rightBias);
+        // qDebug() << "bias" << leftBias << rightBias;
+        const bool result = (leftRandom - (leftBias * biasWeight)) < (rightRandom - (rightBias * biasWeight));
+        return sortOrder() == Qt::AscendingOrder ? result : !result;
     }
 
     if (sortColumn() == DirectorySystemModel::NameColumn)

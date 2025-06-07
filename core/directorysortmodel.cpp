@@ -50,8 +50,8 @@ bool DirectorySortModel::lessThan(const QModelIndex &source_left, const QModelIn
         const auto rightRandom = qHash(m_randomSeed ^ identifier(source_right));
 
         // Bias using creation time
-        QDateTime leftCreated = source_left.data(DirectorySystemModel::CreationTimeColumn).toDateTime();
-        QDateTime rightCreated = source_right.data(DirectorySystemModel::CreationTimeColumn).toDateTime();
+        QDateTime leftCreated = source_left.data(DirectorySystemModel::LastAccessTimeColumn).toDateTime();
+        QDateTime rightCreated = source_right.data(DirectorySystemModel::LastAccessTimeColumn).toDateTime();
 
         qint64 leftBias = leftCreated.isValid() ? leftCreated.toMSecsSinceEpoch() : 0;
         qint64 rightBias = rightCreated.isValid() ? rightCreated.toMSecsSinceEpoch() : 0;

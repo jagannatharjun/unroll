@@ -38,27 +38,26 @@ void DirectorySortModel::sort(int column, Qt::SortOrder order)
 
 bool DirectorySortModel::lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const
 {
-    const auto identifier = [](const QModelIndex &index)
+    const auto identifier = [](const auto seed, const QModelIndex &index) -> double
     {
-        return qHash(index.data(DirectorySystemModel::NameRole).toString());
+        double biasWeight = .6f;
+        const auto random = qHash(seed ^ qHash(index.data(DirectorySystemModel::NameRole).toString()));
+
+        // Bias using creation time
+        const auto creationTime = index.siblingAtColumn(DirectorySystemModel::CreationTimeColumn).data(DirectorySystemModel::DataRole).toDateTime();
+        const auto bias = creationTime.isValid() ? creationTime.toMSecsSinceEpoch() : 0;
+
+        return (random * (1.0 - biasWeight)) + (bias * biasWeight);
     };
 
     if (m_randomSort)
     {
         // Combine seed with the row number to generate a random value
-        const auto leftRandom = qHash(m_randomSeed ^ identifier(source_left)) % 1728383223844;
-        const auto rightRandom = qHash(m_randomSeed ^ identifier(source_right)) % 1728383223844;
+        const auto leftRandom = identifier(m_randomSeed, source_left);
+        const auto rightRandom = identifier(m_randomSeed, source_right);
 
-        // Bias using creation time
-        QDateTime leftCreated = source_left.siblingAtColumn(DirectorySystemModel::CreationTimeColumn).data(DirectorySystemModel::DataRole).toDateTime();
-        QDateTime rightCreated = source_right.siblingAtColumn(DirectorySystemModel::CreationTimeColumn).data(DirectorySystemModel::DataRole).toDateTime();
-
-        qint64 biasWeight = 2;
-        qint64 leftBias = leftCreated.isValid() ? leftCreated.toMSecsSinceEpoch() : 0;
-        qint64 rightBias = rightCreated.isValid() ? rightCreated.toMSecsSinceEpoch() : 0;
-
-        // qDebug() << "bias" << leftBias << rightBias;
-        const bool result = (leftRandom - (leftBias * biasWeight)) < (rightRandom - (rightBias * biasWeight));
+        // qDebug() << "random" << leftRandom << rightRandom;
+        const bool result = leftRandom > rightRandom;
         return sortOrder() == Qt::AscendingOrder ? result : !result;
     }
 

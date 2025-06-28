@@ -20,6 +20,7 @@ mkdir release
 cd release
 
 copy ..\build\gui\file-browser.exe file-browser.exe 
+copy ..\build\gui\file-browser.pdb file-browser.pdb 
 
 %QTDIR%\bin\windeployqt.exe  --qmldir %SRC%\gui\qml file-browser.exe
 

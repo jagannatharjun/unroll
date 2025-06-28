@@ -3,7 +3,7 @@
 #include <QWindow>
 #include <QStorageInfo>
 #include <QStandardPaths>
-
+#include <QPointer>
 
 #include <windows.h>
 #include <shlobj.h>
@@ -81,7 +81,8 @@ public:
 };
 
 // Function to show context menu for a file path
-void showContextMenu(HWND hwnd, const QPoint &p, const std::wstring& filePath) {
+void showContextMenu(HWND hwnd, const QPoint &p, const std::wstring& filePath
+                     , std::function<void(const QString &path)> openFolderCB) {
     try {
         COMInitializer com;
 
@@ -111,7 +112,10 @@ void showContextMenu(HWND hwnd, const QPoint &p, const std::wstring& filePath) {
         const int OPEN_EXPLORER = 0x8000;
         InsertMenu(com.hMenu, 2, MF_BYPOSITION, OPEN_EXPLORER, L"Show in Explorer");
 
-        InsertMenu(com.hMenu, 3, MF_BYPOSITION | MF_SEPARATOR, 0, nullptr);
+        const int OPEN_CONTAINING = 0x8001;
+        InsertMenu(com.hMenu, 3, MF_BYPOSITION, OPEN_CONTAINING, L"Reveal containing folder");
+
+        InsertMenu(com.hMenu, 4, MF_BYPOSITION | MF_SEPARATOR, 0, nullptr);
 
         int cmd = TrackPopupMenu(com.hMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, p.x(), p.y(), 0, hwnd, nullptr);
         if (cmd > 0) {
@@ -123,7 +127,11 @@ void showContextMenu(HWND hwnd, const QPoint &p, const std::wstring& filePath) {
                     SHOpenFolderAndSelectItems(pidlFull, 0, nullptr, 0);
                     ILFree(pidlFull);
                 }
-            } else {
+            }
+            else if (cmd == OPEN_CONTAINING) {
+                openFolderCB(QString::fromStdWString(filePath));
+            }
+            else {
                 CMINVOKECOMMANDINFOEX cmi = { sizeof(cmi) };
                 cmi.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE;
                 cmi.hwnd = hwnd;
@@ -235,6 +243,14 @@ void FileBrowser::showFileContextMenu(const QPoint &p
     const QString nativePath = QDir::toNativeSeparators(filePath);
     auto id = (HWND)m_window->winId();
 
-    showContextMenu(id, p, nativePath.toStdWString());
+    const auto openFolderCB = [p = QPointer<FileBrowser>(this)](const QString &file)
+    {
+        if (p)
+        {
+            p->openFolder(QFileInfo(file).dir().absolutePath());
+        }
+    };
+
+    showContextMenu(id, p, nativePath.toStdWString(), openFolderCB);
 }
 

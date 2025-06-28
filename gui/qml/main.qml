@@ -128,6 +128,14 @@ ApplicationWindow {
         }
     }
 
+    Connections {
+        target: FileBrowser
+
+        function onOpenFolder(folder) {
+            controller.openPath(folder)
+        }
+    }
+
     FolderDialog {
         id: folderDialog
 

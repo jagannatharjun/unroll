@@ -36,6 +36,8 @@ public:
 signals:
     void windowChanged();
 
+    void openFolder(const QString &folder);
+
 private:
     QString dbPath(const QString &fileName) const;
 

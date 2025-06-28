@@ -43,6 +43,7 @@ target_link_libraries(file-browser
   Qt${QT_VERSION_MAJOR}::Quick
   Qt${QT_VERSION_MAJOR}::QuickControls2
   Qt${QT_VERSION_MAJOR}::Sql
+  Qt${QT_VERSION_MAJOR}::StateMachine
 )
 
 target_link_libraries(file-browser

@@ -25,15 +25,18 @@ void AsyncArchiveIODevice::resetReader()
         m_reader = nullptr;
     }
 
+    m_buf.clear();
+    m_bufferPos = 0;
+
     m_reader = new AsyncArchiveFileReader;
     connect(m_reader, &AsyncArchiveFileReader::dataAvailable, this, &QIODevice::readyRead);
-    connect(m_reader, &AsyncArchiveFileReader::dataAvailable, this, [this]() {
+    connect(m_reader, &AsyncArchiveFileReader::dataAvailable, this, []() {
         qInfo("dataAvailable QIODEvice");
     });
     connect(this, &QIODevice::readyRead, []() { qInfo("QIODevice::readyread"); });
     connect(m_reader, &AsyncArchiveFileReader::finished, this, [this]() {
         // Emit readyRead one last time in case there's remaining data
-        if (!m_buf.isEmpty()) {
+        if (m_buf.size() - m_bufferPos > 0) {
             emit readyRead();
         }
 
@@ -58,37 +61,27 @@ qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
 
     while (totalRead < maxlen) {
         // First, try to read from our internal buffer
-        if (!m_buf.isEmpty()) {
-            qint64 toRead = qMin(maxlen - totalRead, (qint64) m_buf.size());
-            memcpy(data + totalRead, m_buf.constData(), toRead);
-            m_buf.remove(0, toRead);
+
+        qint64 toRead = qMin(maxlen - totalRead, (qint64) m_buf.size() - m_bufferPos);
+        if (toRead >= 0) {
+            memcpy(data + totalRead, m_buf.constData() + m_bufferPos, toRead);
             totalRead += toRead;
-            m_pos += toRead;
-            continue;
+            m_bufferPos += toRead;
         }
+
+        Q_ASSERT(m_bufferPos <= m_buf.size());
+        if (m_bufferPos != m_buf.size())
+            break;
 
         // If buffer is empty, get more data from reader
-        QByteArray newData = m_reader->getAvailableData();
-
-        if (newData.isEmpty()) {
-            // No more data available right now
-            if (m_reader->isFinished()) {
-                // Reader is finished, return what we have
-                break;
-            }
-
-            // Wait for more data if we haven't read anything yet
-            if (totalRead == 0) {
-                // This would block - in a real implementation, you might want
-                // to wait with a small timeout or return 0 to indicate no data
-                break;
-            } else {
-                break;
-            }
-        }
-
-        m_buf.append(newData);
+        m_buf = m_reader->getAvailableData();
+        m_bufferPos = 0;
+        if (m_buf.isEmpty())
+            break;
     }
+
+    if (totalRead == 0)
+        return m_reader && m_reader->isFinished() ? -1 : 0;
 
     return totalRead;
 }
@@ -120,17 +113,18 @@ qint64 AsyncArchiveIODevice::size() const
 
 bool AsyncArchiveIODevice::seek(qint64 newpos)
 {
-    if (pos() == newpos)
-        return true;
+    if (newpos >= m_fileSize)
+        return false;
 
+    const qint64 oldPos = pos();
     bool s = QIODevice::seek(newpos);
-    if (s)
+    if (s && oldPos != newpos)
         resetReader();
+
     return s;
 }
 
 qint64 AsyncArchiveIODevice::bytesAvailable() const
 {
-    qDebug() << "bytesAvailable" << m_buf.size() + ((m_reader) ? m_reader->bytesAvailable() : 0);
-    return m_buf.size() + ((m_reader) ? m_reader->bytesAvailable() : 0);
+    return (m_buf.size() - m_bufferPos) + ((m_reader) ? m_reader->bytesAvailable() : 0);
 }

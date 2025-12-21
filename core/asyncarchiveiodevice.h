@@ -34,7 +34,7 @@ private:
     QPointer<AsyncArchiveFileReader> m_reader;
 
     QByteArray m_buf;
-    qint64 m_pos;
+    qint64 m_bufferPos = 0;
 };
 
 #endif // ASYNCARCHIVEIODEVICE_H

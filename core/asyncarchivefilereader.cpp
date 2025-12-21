@@ -41,13 +41,12 @@ AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)
         &AsyncArchiveFileReaderImpl::read,
         this,
         [this](char *data, qint64 size) {
-            qInfo() << "-prince read" << size;
             {
                 QMutexLocker locker(&m_mutex);
                 m_buffer.append(data, size);
             }
 
-            qInfo() << "-prince emitting dataAvailable" << size;
+            m_bufferEmpty.notify_all();
             emit dataAvailable();
             // QMetaObject::invokeMethod(this, &AsyncArchiveFileReader::dataAvailable);
 
@@ -56,7 +55,6 @@ AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)
                 while (m_buffer.size() >= m_maxBufferSize && !m_aborted)
                     m_bufferNotFull.wait(&m_mutex);
             }
-            qInfo() << "-prince emitting done" << size;
         },
         Qt::DirectConnection);
 
@@ -70,6 +68,7 @@ AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)
                 m_isFinished = true;
             }
 
+            m_bufferEmpty.notify_all();
             m_sizeReady.notify_all();
             m_finishedCondition.notify_all();
             QMetaObject::invokeMethod(this, &AsyncArchiveFileReader::finished, Qt::QueuedConnection);
@@ -80,9 +79,6 @@ AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)
         qInfo() << "error while processing" << error;
     });
     connect(reader, &AsyncArchiveFileReaderImpl::error, this, &AsyncArchiveFileReader::error);
-    connect(this, &AsyncArchiveFileReader::dataAvailable, this, []() {
-        qInfo() << "data available";
-    });
 }
 
 AsyncArchiveFileReader::~AsyncArchiveFileReader()
@@ -119,22 +115,30 @@ qint64 AsyncArchiveFileReader::fileSize() const
 
 QByteArray AsyncArchiveFileReader::getAvailableData()
 {
-    QMutexLocker locker(&m_mutex);
+    QByteArray data;
 
-    if (m_buffer.isEmpty()) {
-        return QByteArray();
+    {
+        QMutexLocker locker(&m_mutex);
+
+        while (m_buffer.isEmpty() && !m_aborted && !m_isFinished) {
+            m_bufferEmpty.wait(&m_mutex);
+        }
+
+        data = std::move(m_buffer);
+        m_buffer.clear();
+        m_buffer.reserve(m_maxBufferSize); // Maintain capacity
     }
-
-    QByteArray data = std::move(m_buffer);
-    m_buffer.clear();
-    m_buffer.reserve(m_maxBufferSize); // Maintain capacity
 
     m_bufferNotFull.wakeOne();
     return data;
 }
 
-qint64 AsyncArchiveFileReader::bytesAvailable() const
+qint64 AsyncArchiveFileReader::bytesAvailable()
 {
+    QMutexLocker locker(&m_mutex);
+    while (m_buffer.isEmpty() && !m_aborted && !m_isFinished)
+        m_bufferEmpty.wait(&m_mutex);
+
     return m_buffer.size();
 }
 
@@ -171,12 +175,13 @@ bool seekToFile(struct archive *a,
     qInfo() << "-prince seekToFile" << pos << actualPos;
 
     if (actualPos < 0) {
+        qWarning("archive_seek_data failed, manual seek");
         // Seek not supported, fallback to read-and-discard
         qint64 toSkip = pos;
         char skipBuffer[8192];
 
         while (toSkip > 0 && !abort()) {
-            la_ssize_t toRead = qMin(toSkip, static_cast<qint64>(sizeof(skipBuffer)));
+            la_ssize_t toRead = qMin(toSkip, 8192);
             la_ssize_t bytesRead = archive_read_data(a, skipBuffer, toRead);
 
             if (bytesRead <= 0) {
@@ -238,7 +243,7 @@ void AsyncArchiveFileReaderImpl::start(const QString &archivePath,
             }
 
             // Read data in chunks
-            char chunk[READ_SIZE];
+            char chunk[READ_SIZE] = {};
             la_ssize_t bytesRead;
 
             while ((bytesRead = archive_read_data(a, chunk, READ_SIZE)) > 0 && !m_aborted) {

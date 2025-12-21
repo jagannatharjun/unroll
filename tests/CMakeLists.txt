@@ -10,6 +10,19 @@ add_test(NAME test_archivesystem COMMAND test_archivesystem)
 target_link_libraries(test_archivesystem PRIVATE core Qt${QT_VERSION_MAJOR}::Test)
 
 
+add_executable(test_AsyncArchiveIODevice
+    test_AsyncArchiveIODevice.cpp)
+add_test(NAME test_AsyncArchiveIODevice COMMAND test_archivesystem)
+target_link_libraries(test_AsyncArchiveIODevice PRIVATE core Qt${QT_VERSION_MAJOR}::Test)
+target_link_libraries(test_AsyncArchiveIODevice
+    PUBLIC
+        "C:/local/libarchive/lib/archive.lib"
+)
+
+target_include_directories(test_AsyncArchiveIODevice
+    PRIVATE
+        "C:/local/libarchive/include"
+)
 add_executable(test_asyncarchivefilereader test_asyncarchivefilereader.cpp)
 add_test(NAME test_asyncarchivefilereader COMMAND test_asyncarchivefilereader)
 target_link_libraries(test_asyncarchivefilereader PRIVATE core Qt${QT_VERSION_MAJOR}::Test)

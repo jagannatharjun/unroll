@@ -52,7 +52,7 @@ public:
 
     qint64 fileSize() const;
     QByteArray getAvailableData();
-    qint64 bytesAvailable() const;
+    qint64 bytesAvailable();
     bool waitForFileSize(int timeoutMs = 5000);
     void abort();
 
@@ -63,6 +63,7 @@ signals:
 
 private:
     mutable QMutex m_mutex;
+    QWaitCondition m_bufferEmpty;
     QWaitCondition m_bufferNotFull;
     QWaitCondition m_sizeReady;
     QWaitCondition m_finishedCondition;

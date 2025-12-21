@@ -30,6 +30,8 @@ public:
 
     std::unique_ptr<IOSource> iosource(Directory *dir, int child) override;
 
+    std::unique_ptr<IODevice> iodevice(Directory *dir, int child) override;
+
 private:
     std::unique_ptr<Directory> call(std::function<std::unique_ptr<Directory>(DirectorySystem *)> functor)
     {

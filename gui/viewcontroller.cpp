@@ -133,7 +133,7 @@ void ViewController::setPreview(int row)
             int child) -> PreviewData
     {
         if (dir->isDir(child))
-            return {nullptr, PreviewData::Unknown, 0};
+            return {nullptr, nullptr, PreviewData::Unknown, 0};
 
         // some directory system may have custom urls, so you can't directly use fileUrl here
         const QString path = dir->filePath(child);
@@ -162,14 +162,21 @@ void ViewController::setPreview(int row)
                 filetype = PreviewData::VideoFile;
         }
 
-        auto io = system->iosource(dir.get(), child);
-        if (!io)
-        {
+        std::unique_ptr<IODevice> device;
+        std::unique_ptr<IOSource> source;
+
+        if (filetype == PreviewData::VideoFile)
+            device = system->iodevice(dir.get(), child);
+
+        if (!device)
+            source = system->iosource(dir.get(), child);
+
+        if (!source && !device) {
             qDebug("failed to get iosource '%s'", qUtf8Printable(dir->fileUrl(child).toString()));
-            return {nullptr, PreviewData::Unknown, 1};
+            return {nullptr, nullptr, PreviewData::Unknown, 1};
         }
 
-        return PreviewData(std::move(io), filetype, 0);
+        return PreviewData(std::move(source), std::move(device), filetype, 0);
     };
 
 

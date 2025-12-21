@@ -1,11 +1,11 @@
 #ifndef DIRECTORYSYSTEM_HPP
 #define DIRECTORYSYSTEM_HPP
 
-#include <QString>
 #include <QDateTime>
-#include <memory>
+#include <QFile>
+#include <QString>
 #include <QUrl>
-
+#include <memory>
 
 // ALL functions must be thread-safe
 // ALL functions of interface can be called from any number of threads
@@ -49,7 +49,13 @@ public:
     virtual QString readPath() = 0;
 };
 
+class IODevice
+{
+public:
+    virtual ~IODevice() = default;
 
+    virtual std::unique_ptr<QIODevice> readDevice() = 0;
+};
 
 class DirectorySystem
 {
@@ -63,6 +69,8 @@ public:
     virtual std::unique_ptr<Directory> dirParent(Directory *dir) = 0;
 
     virtual std::unique_ptr<IOSource> iosource(Directory *dir, int child) = 0;
+
+    virtual std::unique_ptr<IODevice> iodevice(Directory *dir, int child) { return nullptr; }
 };
 
 

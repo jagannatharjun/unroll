@@ -52,6 +52,7 @@ public:
 
     qint64 fileSize() const;
     QByteArray getAvailableData();
+    qint64 bytesAvailable() const;
     bool waitForFileSize(int timeoutMs = 5000);
     void abort();
 

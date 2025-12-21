@@ -39,28 +39,38 @@ public:
     Q_ENUM(FileType)
 
     PreviewData() = default; // construct invalid PreviewData
-    PreviewData(std::shared_ptr<IOSource> source, FileType type, double progress)
-        : source {source}
-        , m_progress {progress}
-        , m_type {type} {}
+    PreviewData(std::shared_ptr<IOSource> source,
+                std::shared_ptr<IODevice> iodevice,
+                FileType type,
+                double progress)
+        : source{source}
+        , iodevice{iodevice}
+        , m_progress{progress}
+        , m_type{type}
+    {}
 
     Q_INVOKABLE QString readPath() const { return source ? source->readPath() : QString {}; }
+    Q_INVOKABLE std::unique_ptr<QIODevice> readDevice() const
+    {
+        return iodevice ? iodevice->readDevice() : nullptr;
+    }
+
     Q_INVOKABLE QUrl readUrl() const { return QUrl::fromLocalFile(readPath()); }
 
     Q_INVOKABLE FileType fileType() const { return m_type; }
 
     Q_INVOKABLE double progress() const { return m_progress; }
 
-    bool valid() const { return !!source; }
+    bool valid() const { return !!source || !iodevice; }
 
 private:
     std::shared_ptr<IOSource> source;
+    std::shared_ptr<IODevice> iodevice;
     double m_progress = 0;
     FileType m_type;
 
     friend class ViewController;
 };
-
 
 class ViewController : public QObject
 {

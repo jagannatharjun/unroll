@@ -1,4 +1,5 @@
 #include "archivesystem.hpp"
+#include "asyncarchiveiodevice.h"
 
 #include <QDir>
 #include <QVector>
@@ -309,7 +310,6 @@ public:
 
 };
 
-
 QString pathName(const QString &filePath)
 {
     QDir d(filePath);
@@ -433,6 +433,25 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath, con
     return BuildTreeResult {std::move(root), child};
 }
 
+qint64 archiveChildfileSize(const QString &filePath, const QString &childpath)
+{
+    qint64 childSize = -1;
+    const auto traverse = [&](archive *a, archive_entry *entry) {
+        QElapsedTimer timer;
+        timer.start();
+
+        // child always starts with '/'
+        const QString path = QString('/') + archive_entry_pathname(entry);
+        if (path != childpath)
+            return false;
+
+        childSize = archive_entry_size(entry);
+        return true; // break traversal
+    };
+
+    iterateArchiveEntries(filePath, traverse);
+    return childSize;
+}
 
 void extractFile(const QString &filePath, const QString &childpath, QIODevice *output)
 {
@@ -692,6 +711,48 @@ std::unique_ptr<IOSource> ArchiveSystem::iosource(Directory *dir, int child)
     result->file = extractFile(p, url.lastChild());
     if (!result->file)
         return {};
+
+    return result;
+}
+
+class ArchiveTempIODevice : public IODevice
+{
+public:
+    ArchiveTempIODevice(const ArchiveUrl &url)
+        : url{url}
+    {}
+
+    // reference to root
+    std::shared_ptr<ArchiveDir> r;
+    ArchiveUrl url;
+    qint64 size;
+
+    std::unique_ptr<QIODevice> readDevice() override
+    {
+        auto p = sourcePath(r.get(), url);
+        if (p.isEmpty())
+            return nullptr;
+
+        return std::make_unique<AsyncArchiveIODevice>(p, url.lastChild(), size);
+    }
+};
+
+std::unique_ptr<IODevice> ArchiveSystem::iodevice(Directory *dir, int child)
+{
+    auto wrapper = unwrap(dir);
+    if (!wrapper)
+        return {}; // invalid input
+
+    const ArchiveUrl url{dir->fileUrl(child)};
+    const auto p = sourcePath(wrapper->r.get(), url);
+    if (p.isEmpty())
+        return {};
+
+    auto size = archiveChildfileSize(p, url.lastChild());
+
+    auto result = std::make_unique<ArchiveTempIODevice>(url);
+    result->r = wrapper->r;
+    result->size = size;
 
     return result;
 }

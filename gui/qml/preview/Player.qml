@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import QtMultimedia
 import QtQml.StateMachine as DSM
 
+import filebrowser 0.1
 import "../widgets"
 
 FocusScope {
@@ -143,7 +144,8 @@ FocusScope {
                 if (!previewdata)
                     return
 
-                player.source = previewdata.readUrl()
+                if (!FileBrowser.setMediaSource(player, previewdata))
+                    console.warn("failed to set source")
 
                 player.play()
             }

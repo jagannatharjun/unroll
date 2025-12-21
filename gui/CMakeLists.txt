@@ -37,6 +37,7 @@ else()
 endif()
 
 
+find_package(Qt6 REQUIRED COMPONENTS Multimedia)
 
 target_link_libraries(file-browser
   PRIVATE Qt${QT_VERSION_MAJOR}::Core
@@ -44,6 +45,7 @@ target_link_libraries(file-browser
   Qt${QT_VERSION_MAJOR}::QuickControls2
   Qt${QT_VERSION_MAJOR}::Sql
   Qt${QT_VERSION_MAJOR}::StateMachine
+  Qt${QT_VERSION_MAJOR}::Multimedia
 )
 
 target_link_libraries(file-browser

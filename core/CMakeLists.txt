@@ -11,7 +11,8 @@ add_library(core directorysystem.hpp
     asyncdirectorysystem.hpp asyncdirectorysystem.cpp
     dbutil.hpp
     persistenthash.hpp persistenthash.cpp
-    asyncarchivefilereader.h asyncarchivefilereader.cpp)
+    asyncarchivefilereader.h asyncarchivefilereader.cpp
+    asyncarchiveiodevice.h asyncarchiveiodevice.cpp)
 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent Sql)
 # Find the Boost libraries, specifically the 'circular_buffer' component.

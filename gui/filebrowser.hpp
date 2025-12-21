@@ -2,8 +2,11 @@
 #define FILEBROWSER_HPP
 
 #include <QDir>
+#include <QMediaPlayer>
 #include <QObject>
 #include <QWindow>
+
+class PreviewData;
 
 class FileBrowser : public QObject
 {
@@ -32,6 +35,8 @@ public:
 
     Q_INVOKABLE void showFileContextMenu(const QPoint &p
                                          , const QString &filePath);
+
+    Q_INVOKABLE bool setMediaSource(QMediaPlayer *player, const PreviewData &data);
 
 signals:
     void windowChanged();

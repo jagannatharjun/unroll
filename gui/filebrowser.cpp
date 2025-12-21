@@ -12,6 +12,8 @@
 #include <string>
 #include <iostream>
 
+#include "viewcontroller.hpp"
+
 static const char *SUPPORTED_FORMATS[] = {
     ".7z",      // 7-Zip
     ".a",       // Archive (ar)
@@ -254,3 +256,27 @@ void FileBrowser::showFileContextMenu(const QPoint &p
     showContextMenu(id, p, nativePath.toStdWString(), openFolderCB);
 }
 
+bool FileBrowser::setMediaSource(QMediaPlayer *player, const PreviewData &data)
+{
+    if (!player)
+        return false;
+
+    auto device = data.readDevice();
+    if (device) {
+        if (!device->open(QIODevice::ReadOnly))
+            return false;
+
+        player->setSourceDevice(device.get());
+        // device->setParent(player);
+
+        device.release();
+        return true;
+    }
+
+    auto url = data.readUrl();
+    if (url.isEmpty())
+        return false;
+
+    player->setSource(url);
+    return true;
+}

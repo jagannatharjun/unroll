@@ -80,6 +80,15 @@ std::unique_ptr<IOSource> HybridDirSystem::iosource(Directory *dir, int child)
     return nullptr;
 }
 
+std::unique_ptr<IODevice> HybridDirSystem::iodevice(Directory *dir, int child)
+{
+    if (auto system = source(dir)) {
+        return system->iodevice(dir, child);
+    }
+
+    return nullptr;
+}
+
 void HybridDirSystem::updatesource(Directory *dir, DirectorySystem *source)
 {
     assert(dir);

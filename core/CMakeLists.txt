@@ -10,14 +10,19 @@ add_library(core directorysystem.hpp
     filehistorydb_p.hpp
     asyncdirectorysystem.hpp asyncdirectorysystem.cpp
     dbutil.hpp
-    persistenthash.hpp persistenthash.cpp)
+    persistenthash.hpp persistenthash.cpp
+    asyncarchivefilereader.h asyncarchivefilereader.cpp)
 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent Sql)
+# Find the Boost libraries, specifically the 'circular_buffer' component.
+# The COMPONENTS keyword tells CMake which parts you need.
+find_package(Boost 1.70 REQUIRED COMPONENTS system )
 
 target_link_libraries(core PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Concurrent
-    Qt${QT_VERSION_MAJOR}::Sql)
+    Qt${QT_VERSION_MAJOR}::Sql
+    Boost::system)
 
 target_link_libraries(core
     PUBLIC

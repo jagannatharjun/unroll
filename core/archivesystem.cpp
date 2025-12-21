@@ -8,6 +8,8 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <qelapsedtimer.h>
+#include <qrunnable.h>
 
 namespace
 {
@@ -434,14 +436,16 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath, con
 
 void extractFile(const QString &filePath, const QString &childpath, QIODevice *output)
 {
-    const auto extract = [&](archive *a, archive_entry *entry)
-    {
+    const auto extract = [&](archive *a, archive_entry *entry) {
+        QElapsedTimer timer;
+        timer.start();
+
         // child always starts with '/'
         const QString path = QString('/') + archive_entry_pathname(entry);
         if (path != childpath)
             return false;
 
-        const size_t bufsize = 1024;
+        const size_t bufsize = 1024 * 1024;
         std::unique_ptr<char[]> buf(new char[bufsize]);
         la_ssize_t readsize = 0;
         while ((readsize = archive_read_data(a, buf.get(), bufsize)) > 0)
@@ -449,13 +453,12 @@ void extractFile(const QString &filePath, const QString &childpath, QIODevice *o
             output->write(buf.get(), readsize);
         }
 
+        qInfo() << "extracting" << childpath << "took" << timer.elapsed() << "milliseconds";
         return true; // break traversal
     };
 
     iterateArchiveEntries(filePath, extract);
 }
-
-
 
 std::shared_ptr<QTemporaryFile> extractFile(const QString &filePath, const QString &childPath)
 {

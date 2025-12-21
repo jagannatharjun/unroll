@@ -3,7 +3,6 @@
 
 #include "directorysystem.hpp"
 
-
 class ArchiveSystem : public DirectorySystem
 {
 public:

@@ -733,7 +733,11 @@ public:
         if (p.isEmpty())
             return nullptr;
 
-        return std::make_unique<AsyncArchiveIODevice>(p, url.lastChild(), size);
+        auto childPath = url.lastChild();
+        if (childPath.startsWith("/"))
+            childPath = childPath.removeFirst();
+
+        return std::make_unique<AsyncArchiveIODevice>(p, childPath, size);
     }
 };
 
@@ -749,7 +753,6 @@ std::unique_ptr<IODevice> ArchiveSystem::iodevice(Directory *dir, int child)
         return {};
 
     auto size = archiveChildfileSize(p, url.lastChild());
-
     auto result = std::make_unique<ArchiveTempIODevice>(url);
     result->r = wrapper->r;
     result->size = size;

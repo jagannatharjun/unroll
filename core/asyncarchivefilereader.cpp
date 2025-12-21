@@ -223,7 +223,7 @@ void AsyncArchiveFileReaderImpl::start(const QString &archivePath,
             break;
         }
 
-        if (QString('/') + QString::fromUtf8(archive_entry_pathname(entry)) == childPath) {
+        if (QLatin1StringView(archive_entry_pathname(entry)) == childPath) {
             fileFound = true;
             qInfo() << "AsyncArchiveFileReaderImpl::start found file" << childPath;
 

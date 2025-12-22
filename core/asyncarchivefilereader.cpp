@@ -42,7 +42,6 @@ AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)
         &AsyncArchiveFileReaderImpl::read,
         this,
         [this](char *data, qint64 size) {
-            qDebug() << " AsyncArchiveFileReaderImpl::read" << size;
             {
                 QMutexLocker locker(&m_mutex);
                 m_buffer.append(data, size);

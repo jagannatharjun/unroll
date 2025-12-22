@@ -48,13 +48,8 @@ void AsyncArchiveIODevice::resetReader()
     m_reader->start(m_archivePath, m_childPath, m_readerStartPos);
 }
 
-qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
+bool AsyncArchiveIODevice::repositionReader()
 {
-    qDebug() << "AsyncArchiveIODevice::readData" << maxlen << pos();
-    if (!m_reader || maxlen <= 0) {
-        return 0;
-    }
-
     const qint64 currentPos = pos();
     const qint64 expectedBufferStart = m_readerStartPos + m_bufferPos;
 
@@ -68,6 +63,9 @@ qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
         if (bytesToSkip > 0) {
             // Forward seek - need to discard data to catch up
             qDebug() << "Forward seek detected - need to skip" << bytesToSkip << "bytes";
+
+            QElapsedTimer readTimer;
+            readTimer.start();
 
             while (bytesToSkip > 0) {
                 // Try to skip within current buffer first
@@ -83,12 +81,17 @@ qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
 
                 // If we still need to skip more, fetch and discard new data
                 if (bytesToSkip > 0 && m_bufferPos >= m_buf.size()) {
+                    if (readTimer.elapsed() > 1000) {
+                        resetReader();
+                        break;
+                    }
+
                     QByteArray newData = m_reader->getAvailableData();
                     if (newData.isEmpty()) {
                         // No more data available to skip
                         qDebug() << "No more data available, cannot skip remaining" << bytesToSkip
                                  << "bytes";
-                        return -1;
+                        return false;
                     }
 
                     m_readerStartPos += m_buf.size(); // Update position for old buffer
@@ -119,6 +122,18 @@ qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
         }
     }
 
+    return true;
+}
+
+qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
+{
+    if (!m_reader || maxlen <= 0) {
+        return 0;
+    }
+
+    if (!repositionReader())
+        return -1;
+
     qint64 totalRead = 0;
     // If we've exhausted the buffer, get more data
     if (m_bufferPos >= m_buf.size() && totalRead == 0) {
@@ -137,7 +152,6 @@ qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
         m_bufferPos += toRead;
     }
 
-    qDebug() << "AsyncArchiveIODevice::readData totalRead" << totalRead;
     return totalRead == 0 && (!m_reader || m_reader->isFinished()) ? -1 : totalRead;
 }
 
@@ -174,7 +188,7 @@ bool AsyncArchiveIODevice::seek(qint64 newpos)
     const qint64 oldPos = pos();
     bool s = QIODevice::seek(newpos);
     if (s && oldPos != pos())
-        resetReader();
+        return repositionReader();
 
     return s;
 }

@@ -27,6 +27,7 @@ protected:
 
 private:
     void resetReader();
+    bool repositionReader();
 
     const QString m_archivePath;
     const QString m_childPath;

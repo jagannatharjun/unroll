@@ -54,7 +54,7 @@ AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)
 
             {
                 QMutexLocker locker(&m_mutex);
-                while (m_buffer.size() >= m_maxBufferSize && !m_aborted)
+                while (m_buffer.size() >= BUFFER_CAPACITY && !m_aborted)
                     m_bufferNotFull.wait(&m_mutex);
             }
         },
@@ -128,7 +128,7 @@ QByteArray AsyncArchiveFileReader::getAvailableData()
 
         data = std::move(m_buffer);
         m_buffer.clear();
-        m_buffer.reserve(m_maxBufferSize); // Maintain capacity
+        m_buffer.reserve(BUFFER_CAPACITY); // Maintain capacity
     }
 
     m_bufferNotFull.wakeOne();

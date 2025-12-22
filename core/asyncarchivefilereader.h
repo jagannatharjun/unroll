@@ -69,8 +69,6 @@ private:
     QWaitCondition m_finishedCondition;
 
     QByteArray m_buffer;
-    qint64 m_maxBufferSize = 1024 * 1024; // 1MB
-
     bool m_aborted{false};
     qint64 m_fileSize{-1};
     bool m_isFinished{false};

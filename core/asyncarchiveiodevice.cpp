@@ -138,7 +138,7 @@ qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
 
         qDebug() << "new read from reader" << m_buf.size() << m_bufferPos << totalRead;
         // If we've exhausted the buffer, get more data
-        if (m_bufferPos >= m_buf.size()) {
+        if (m_bufferPos >= m_buf.size() && totalRead == 0) {
             m_readerStartPos += m_buf.size(); // Update position for old buffer
             m_buf = m_reader->getAvailableData();
             m_bufferPos = 0;

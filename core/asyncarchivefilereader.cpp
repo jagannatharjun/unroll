@@ -10,7 +10,7 @@
 #include <archive_entry.h>
 
 constexpr int READ_SIZE = 128 * 1024;
-constexpr int BUFFER_CAPACITY = READ_SIZE * 4;
+constexpr int BUFFER_CAPACITY = READ_SIZE * 64;
 
 AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)
     : QObject(parent)
@@ -213,7 +213,7 @@ void AsyncArchiveFileReaderImpl::start(const QString &archivePath,
     archive_read_support_filter_all(a);
     archive_read_support_format_all(a);
 
-    int ret = archive_read_open_filename(a, archivePath.toUtf8().constData(), 10240);
+    int ret = archive_read_open_filename_w(a, archivePath.toStdWString().c_str(), 10240);
     if (ret != ARCHIVE_OK) {
         emit error(QString("Failed to open archive: %1").arg(archive_error_string(a)));
 

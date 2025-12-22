@@ -267,7 +267,14 @@ bool FileBrowser::setMediaSource(QMediaPlayer *player, const PreviewData &data)
             return false;
 
         player->setSourceDevice(device.get());
-        // device->setParent(player);
+        auto lastSource = player->property("FileBrowser_Source");
+        if (lastSource.isValid() && lastSource.value<QObject *>()) {
+            lastSource.value<QObject *>()->deleteLater();
+        }
+        player->setProperty("FileBrowser_Source",
+                            QVariant::fromValue(static_cast<QObject *>(device.get())));
+
+        device->setParent(player);
 
         device.release();
         return true;

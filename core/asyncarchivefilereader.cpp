@@ -9,7 +9,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-constexpr int READ_SIZE = 128 * 1024;
+constexpr int READ_SIZE = 256 * 1024;
 constexpr int BUFFER_CAPACITY = READ_SIZE * 64;
 
 AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)

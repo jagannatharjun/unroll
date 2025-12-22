@@ -81,7 +81,8 @@ bool AsyncArchiveIODevice::repositionReader()
 
                 // If we still need to skip more, fetch and discard new data
                 if (bytesToSkip > 0 && m_bufferPos >= m_buf.size()) {
-                    if (readTimer.elapsed() > 1000) {
+                    if (readTimer.elapsed() > 500) {
+                        qDebug() << "Reached time limit to forward seek, resetting reader";
                         resetReader();
                         break;
                     }

@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QThreadPool>
 #include "asyncarchivefilereader.h"
+#include "directorysystem.hpp"
 #include <archive.h>
 #include <archive_entry.h>
 
@@ -41,6 +42,7 @@ AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)
         &AsyncArchiveFileReaderImpl::read,
         this,
         [this](char *data, qint64 size) {
+            qDebug() << " AsyncArchiveFileReaderImpl::read" << size;
             {
                 QMutexLocker locker(&m_mutex);
                 m_buffer.append(data, size);
@@ -172,7 +174,7 @@ bool seekToFile(struct archive *a,
     }
 
     la_int64_t actualPos = archive_seek_data(a, pos, SEEK_SET);
-    qInfo() << "-prince seekToFile" << pos << actualPos;
+    qInfo() << "seekToFile" << pos << actualPos;
 
     if (actualPos < 0) {
         qWarning("archive_seek_data failed, manual seek");

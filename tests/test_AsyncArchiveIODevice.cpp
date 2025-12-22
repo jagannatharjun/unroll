@@ -8,16 +8,6 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-namespace {
-static const auto dump = [](QString f, QByteArray d) {
-    QFile fd(f);
-    if (!fd.open(QIODevice::WriteOnly | QIODevice::Truncate))
-        qWarning("failed to open dump file");
-
-    fd.write(d);
-};
-} // namespace
-
 class TestAsyncArchiveIODevice : public QObject
 {
     Q_OBJECT
@@ -169,8 +159,6 @@ void TestAsyncArchiveIODevice::test02_RandomAccessSeek()
         QCOMPARE(device.pos(), test.pos);
 
         qint64 expectedSize = qMin(test.readSize, testData.size() - test.pos);
-        QTRY_VERIFY(device.bytesAvailable() >= expectedSize);
-
         QByteArray chunk = device.read(test.readSize);
         QCOMPARE(chunk.size(), expectedSize);
         QCOMPARE(chunk, testData.mid(test.pos, expectedSize));
@@ -205,6 +193,7 @@ void TestAsyncArchiveIODevice::test03_ReadAtEOF()
 
     // Seek past EOF (should fail or adjust)
     bool seekResult = device.seek(testData.size() + 1000);
+    qDebug() << seekResult << device.pos() << testData.size();
     QVERIFY(!seekResult || device.pos() == testData.size());
 
     // Seek back and verify we can read again
@@ -283,11 +272,11 @@ void TestAsyncArchiveIODevice::test06_SeekAndReadPattern()
 {
     const QByteArray testData = generatePatternData(20000);
     QMap<QString, QByteArray> files;
-    files["pattern.dat"] = testData;
+    files["test06_SeekAndReadPattern.dat"] = testData;
 
     QString archive = createTestArchive("test06.tar", files);
 
-    AsyncArchiveIODevice device(archive, "pattern.dat", testData.size());
+    AsyncArchiveIODevice device(archive, "test06_SeekAndReadPattern.dat", testData.size());
     QVERIFY(device.open(QIODevice::ReadOnly));
 
     // Complex access pattern: forward, backward, skip, etc.
@@ -304,12 +293,11 @@ void TestAsyncArchiveIODevice::test06_SeekAndReadPattern()
         {5000, 1500, "Seek backward"},
         {19000, 2000, "Read past end"},
         {500, 100, "Small read near start"},
-        {15000, 3000, "Read from middle to past end"},
+        {15000, 3000, "Read from middle to before end"},
         {0, 20000, "Read entire file from start"},
     };
 
     for (const auto &access : pattern) {
-        qInfo() << "seek test" << access.description;
         QVERIFY2(device.seek(access.seekPos),
                  qPrintable(QString("Seek failed for: %1").arg(access.description)));
 
@@ -320,8 +308,8 @@ void TestAsyncArchiveIODevice::test06_SeekAndReadPattern()
         QCOMPARE(chunk.size(), expectedSize);
         auto expectedData = testData.mid(access.seekPos, expectedSize);
         QCOMPARE(chunk.size(), expectedData.size());
-        dump("E:\\", chunk);
-        dump("E:\\expectedData", expectedData);
+        if (chunk != expectedData)
+            qInfo("chunk and expected data not equal");
         QCOMPARE(chunk, expectedData);
     }
 

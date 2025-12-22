@@ -1,4 +1,5 @@
 #include "asyncarchiveiodevice.h"
+#include "directorysystem.hpp"
 #include <qdebug.h>
 
 AsyncArchiveIODevice::AsyncArchiveIODevice(QString archivePath,
@@ -19,6 +20,7 @@ AsyncArchiveIODevice::~AsyncArchiveIODevice()
 
 void AsyncArchiveIODevice::resetReader()
 {
+    qDebug() << "AsyncArchiveIODevice::resetReader";
     if (m_reader) {
         m_reader->disconnect(this);
         m_reader->deleteLater();
@@ -27,6 +29,7 @@ void AsyncArchiveIODevice::resetReader()
 
     m_buf.clear();
     m_bufferPos = 0;
+    m_readerStartPos = pos();
 
     m_reader = new AsyncArchiveFileReader;
     connect(m_reader, &AsyncArchiveFileReader::dataAvailable, this, &QIODevice::readyRead);
@@ -46,44 +49,109 @@ void AsyncArchiveIODevice::resetReader()
         setErrorString(message);
     });
 
-    qInfo() << "-prince startin read";
-    m_reader->start(m_archivePath, m_childPath, pos());
+    qInfo() << "-prince startin read" << pos();
+    m_reader->start(m_archivePath, m_childPath, m_readerStartPos);
 }
 
 qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
 {
-    qDebug() << "AsyncArchiveIODevice::readData" << maxlen;
+    qDebug() << "AsyncArchiveIODevice::readData" << maxlen << pos();
     if (!m_reader || maxlen <= 0) {
         return 0;
     }
 
-    qint64 totalRead = 0;
+    const qint64 currentPos = pos();
+    const qint64 expectedBufferStart = m_readerStartPos + m_bufferPos;
 
+    // Check if position has been changed externally (not matching our buffer state)
+    if (currentPos != expectedBufferStart) {
+        qDebug() << "Position mismatch detected - currentPos:" << currentPos
+                 << "expectedBufferStart:" << expectedBufferStart;
+
+        qint64 bytesToSkip = currentPos - expectedBufferStart;
+
+        if (bytesToSkip > 0) {
+            // Forward seek - need to discard data to catch up
+            qDebug() << "Forward seek detected - need to skip" << bytesToSkip << "bytes";
+
+            while (bytesToSkip > 0) {
+                // Try to skip within current buffer first
+                qint64 availableInBuffer = m_buf.size() - m_bufferPos;
+                qint64 skipInBuffer = qMin(bytesToSkip, availableInBuffer);
+
+                if (skipInBuffer > 0) {
+                    m_bufferPos += skipInBuffer;
+                    bytesToSkip -= skipInBuffer;
+                    qDebug() << "Skipped" << skipInBuffer
+                             << "bytes in buffer, remaining:" << bytesToSkip;
+                }
+
+                // If we still need to skip more, fetch and discard new data
+                if (bytesToSkip > 0 && m_bufferPos >= m_buf.size()) {
+                    QByteArray newData = m_reader->getAvailableData();
+                    if (newData.isEmpty()) {
+                        // No more data available to skip
+                        qDebug() << "No more data available, cannot skip remaining" << bytesToSkip
+                                 << "bytes";
+
+                        resetReader();
+                        break;
+                    }
+
+                    m_readerStartPos += m_buf.size(); // Update position for old buffer
+                    m_buf = newData;
+                    m_bufferPos = 0;
+                    qDebug() << "Fetched new buffer of size" << m_buf.size();
+                }
+
+                // Safety check to avoid infinite loop
+                if (m_bufferPos >= m_buf.size() && bytesToSkip > 0) {
+                    break;
+                }
+            }
+        } else if (bytesToSkip < 0) {
+            // Backward seek - check if it's within current buffer
+            qint64 offsetFromReaderStart = currentPos - m_readerStartPos;
+
+            if (offsetFromReaderStart >= 0 && offsetFromReaderStart < m_buf.size()) {
+                // Can handle backward seek within buffer
+                qDebug() << "Backward seek within buffer - adjusting position to"
+                         << offsetFromReaderStart;
+                m_bufferPos = offsetFromReaderStart;
+            } else {
+                // Backward seek outside buffer - must reset reader
+                qDebug() << "Backward seek outside buffer - resetting reader";
+                resetReader();
+            }
+        }
+    }
+
+    qint64 totalRead = 0;
     while (totalRead < maxlen) {
         // First, try to read from our internal buffer
-
         qint64 toRead = qMin(maxlen - totalRead, (qint64) m_buf.size() - m_bufferPos);
-        if (toRead >= 0) {
+        if (toRead > 0) { // Only copy if there's data to copy
             memcpy(data + totalRead, m_buf.constData() + m_bufferPos, toRead);
             totalRead += toRead;
             m_bufferPos += toRead;
         }
 
-        Q_ASSERT(m_bufferPos <= m_buf.size());
-        if (m_bufferPos != m_buf.size())
+        qDebug() << "new read from reader" << m_buf.size() << m_bufferPos << totalRead;
+        // If we've exhausted the buffer, get more data
+        if (m_bufferPos >= m_buf.size()) {
+            m_readerStartPos += m_buf.size(); // Update position for old buffer
+            m_buf = m_reader->getAvailableData();
+            m_bufferPos = 0;
+            if (m_buf.isEmpty()) // No more data available
+                break;
+        } else {
+            // Still have data in buffer but didn't need it
             break;
-
-        // If buffer is empty, get more data from reader
-        m_buf = m_reader->getAvailableData();
-        m_bufferPos = 0;
-        if (m_buf.isEmpty())
-            break;
+        }
     }
 
-    if (totalRead == 0)
-        return m_reader && m_reader->isFinished() ? -1 : 0;
-
-    return totalRead;
+    qDebug() << "totalRead" << totalRead;
+    return totalRead == 0 && (!m_reader || m_reader->isFinished()) ? -1 : totalRead;
 }
 
 qint64 AsyncArchiveIODevice::writeData(const char *data, qint64 len)
@@ -118,7 +186,7 @@ bool AsyncArchiveIODevice::seek(qint64 newpos)
 
     const qint64 oldPos = pos();
     bool s = QIODevice::seek(newpos);
-    if (s && oldPos != newpos)
+    if (s && oldPos != pos())
         resetReader();
 
     return s;

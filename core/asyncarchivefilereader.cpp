@@ -6,7 +6,7 @@
 #include <archive_entry.h>
 
 // Configuration
-constexpr int BUFFER_CAPACITY = 16 * 1024 * 1024; // 16MB fixed memory
+constexpr int BUFFER_CAPACITY = 32 * 1024 * 1024; // 16MB fixed memory
 constexpr int READ_CHUNK_SIZE = 256 * 1024;       // 256KB read increments
 
 // Helper for manual seeking in libarchive
@@ -45,6 +45,7 @@ AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)
 AsyncArchiveFileReader::~AsyncArchiveFileReader()
 {
     abort();
+
     QMutexLocker locker(&m_mutex);
     while (m_workerRunning) {
         m_workerStopped.wait(&m_mutex);

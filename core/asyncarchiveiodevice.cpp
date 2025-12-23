@@ -13,19 +13,12 @@ AsyncArchiveIODevice::AsyncArchiveIODevice(QString archivePath,
 
 AsyncArchiveIODevice::~AsyncArchiveIODevice()
 {
-    if (m_reader) {
-        m_reader->abort();
-        m_reader->deleteLater();
-    }
+    releaseReader();
 }
 
 void AsyncArchiveIODevice::resetReader()
 {
-    if (m_reader) {
-        m_reader->disconnect(this);
-        m_reader->deleteLater();
-        m_reader = nullptr;
-    }
+    releaseReader();
 
     m_buf.clear();
     m_bufferPos = 0;
@@ -127,6 +120,16 @@ bool AsyncArchiveIODevice::repositionReader()
     return true;
 }
 
+void AsyncArchiveIODevice::releaseReader()
+{
+    if (m_reader) {
+        m_reader->abort();
+        m_reader->disconnect(this);
+        m_reader->deleteLater();
+        m_reader = nullptr;
+    }
+}
+
 qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
 {
     if (!m_reader || maxlen <= 0) {
@@ -198,4 +201,10 @@ bool AsyncArchiveIODevice::seek(qint64 newpos)
 qint64 AsyncArchiveIODevice::bytesAvailable() const
 {
     return (m_buf.size() - m_bufferPos) + ((m_reader) ? m_reader->bytesAvailable() : 0);
+}
+
+void AsyncArchiveIODevice::close()
+{
+    releaseReader();
+    QIODevice::close();
 }

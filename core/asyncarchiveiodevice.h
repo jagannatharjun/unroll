@@ -20,6 +20,7 @@ public:
     qint64 size() const;
     bool seek(qint64 pos);
     qint64 bytesAvailable() const;
+    void close();
 
 protected:
     qint64 readData(char *data, qint64 maxlen);
@@ -28,6 +29,7 @@ protected:
 private:
     void resetReader();
     bool repositionReader();
+    void releaseReader();
 
     const QString m_archivePath;
     const QString m_childPath;

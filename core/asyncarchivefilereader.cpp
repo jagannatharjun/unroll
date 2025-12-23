@@ -2,12 +2,11 @@
 #include <QDebug>
 #include <QScopeGuard>
 #include <QThreadPool>
+#include <algorithm>
 #include <archive.h>
 #include <archive_entry.h>
 
-// Configuration
-constexpr int BUFFER_CAPACITY = 32 * 1024 * 1024; // 16MB fixed memory
-constexpr int READ_CHUNK_SIZE = 256 * 1024;       // 256KB read increments
+constexpr int READ_CHUNK_SIZE = 256 * 1024;
 
 // Helper for manual seeking in libarchive
 bool seekToFile(struct archive *a,
@@ -39,13 +38,12 @@ bool seekToFile(struct archive *a,
 AsyncArchiveFileReader::AsyncArchiveFileReader(QObject *parent)
     : QObject(parent)
 {
-    m_byteBuffer.set_capacity(BUFFER_CAPACITY);
+    m_buffer.resize(m_capacity);
 }
 
 AsyncArchiveFileReader::~AsyncArchiveFileReader()
 {
     abort();
-
     QMutexLocker locker(&m_mutex);
     while (m_workerRunning) {
         m_workerStopped.wait(&m_mutex);
@@ -62,7 +60,9 @@ void AsyncArchiveFileReader::start(const QString &archiveFile,
 
     m_workerRunning = true;
     m_aborted = false;
-    m_byteBuffer.clear();
+    m_head = 0;
+    m_tail = 0;
+    m_count = 0;
 
     QThreadPool::globalInstance()->start([this, archiveFile, childPath, startPos]() {
         runExtractionTask(archiveFile, childPath, startPos);
@@ -83,9 +83,11 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
 
         QMutexLocker locker(&m_mutex);
         m_workerRunning = false;
-        m_dataAvailable.notify_all(); // Wake consumer to let them know no more is coming
-        m_workerStopped.notify_all(); // Wake destructor
-        emit finished();
+        m_dataAvailable.notify_all();
+        m_workerStopped.notify_all();
+
+        // Use invokeMethod to safely signal completion from a thread
+        QMetaObject::invokeMethod(this, &AsyncArchiveFileReader::finished, Qt::QueuedConnection);
     });
 
     if (archive_read_open_filename_w(a, archivePath.toStdWString().c_str(), 10240) != ARCHIVE_OK) {
@@ -93,9 +95,8 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
         return;
     }
 
-    struct archive_entry *entry;
     bool fileFound = false;
-
+    struct archive_entry *entry;
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
         if (m_aborted.load())
             return;
@@ -108,34 +109,44 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
                 return;
             }
 
-            char tempReadBuf[READ_CHUNK_SIZE];
-
-            // --- PRODUCER LOOP ---
+            // --- ZERO-COPY PRODUCER LOOP ---
             while (!m_aborted.load()) {
-                la_ssize_t bytesRead = archive_read_data(a, tempReadBuf, READ_CHUNK_SIZE);
+                QMutexLocker locker(&m_mutex);
+
+                // Wait until we have at least READ_CHUNK_SIZE space available
+                while ((m_capacity - m_count) < READ_CHUNK_SIZE && !m_aborted.load()) {
+                    m_canProduce.wait(&m_mutex);
+                }
+                if (m_aborted.load())
+                    return;
+
+                // Find the contiguous linear space at the end of the buffer
+                size_t linearSpace = m_capacity - m_tail;
+                size_t toRead = std::min<size_t>(linearSpace, READ_CHUNK_SIZE);
+
+                // IMPORTANT: Unlock during I/O to allow the consumer to drain the buffer
+                // while libarchive is decompressing data.
+                locker.unlock();
+                la_ssize_t bytesRead = archive_read_data(a, &m_buffer[m_tail], toRead);
+                locker.relock();
+
                 if (bytesRead < 0) {
                     emit error(QString::fromUtf8(archive_error_string(a)));
                     return;
                 }
                 if (bytesRead == 0)
-                    break; // End of file
+                    break; // EOF
 
-                QMutexLocker locker(&m_mutex);
-
-                // Backpressure: Wait if buffer cannot fit the new chunk
-                while (m_byteBuffer.capacity() - m_byteBuffer.size() < (size_t) bytesRead
-                       && !m_aborted.load()) {
-                    m_canProduce.wait(&m_mutex);
-                }
-
-                if (m_aborted.load())
-                    return;
-
-                // Push bytes into circular buffer
-                m_byteBuffer.insert(m_byteBuffer.end(), tempReadBuf, tempReadBuf + bytesRead);
+                m_tail = (m_tail + bytesRead) % m_capacity;
+                m_count += bytesRead;
 
                 m_dataAvailable.notify_all();
-                emit dataAvailable();
+
+                // Using QueuedConnection ensures the UI thread handles this
+                // when it's next "awake" and the object is guaranteed to exist.
+                QMetaObject::invokeMethod(this,
+                                          &AsyncArchiveFileReader::dataAvailable,
+                                          Qt::QueuedConnection);
             }
             return;
         }
@@ -147,63 +158,44 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
     }
 }
 
-qint64 AsyncArchiveFileReader::read(char *data, qint64 maxLen)
-{
-    if (maxLen <= 0)
-        return 0;
-
-    QMutexLocker locker(&m_mutex);
-
-    // Block until data arrives or worker stops
-    while (m_byteBuffer.empty() && m_workerRunning && !m_aborted.load()) {
-        m_dataAvailable.wait(&m_mutex);
-    }
-
-    if (m_byteBuffer.empty())
-        return 0;
-
-    qint64 bytesToCopy = qMin(maxLen, (qint64) m_byteBuffer.size());
-
-    // boost::circular_buffer iterators handle wrap-around during std::copy
-    std::copy(m_byteBuffer.begin(), m_byteBuffer.begin() + bytesToCopy, data);
-    m_byteBuffer.erase_begin(bytesToCopy);
-
-    m_canProduce.notify_all(); // Wake producer
-    return bytesToCopy;
-}
-
 QByteArray AsyncArchiveFileReader::getAvailableData()
 {
     QMutexLocker locker(&m_mutex);
-
-    while (m_byteBuffer.empty() && m_workerRunning && !m_aborted.load()) {
+    while (m_count == 0 && m_workerRunning && !m_aborted.load()) {
         m_dataAvailable.wait(&m_mutex);
     }
 
-    if (m_byteBuffer.empty())
+    if (m_count == 0)
         return QByteArray();
 
-    QByteArray result(m_byteBuffer.size(), Qt::Uninitialized);
-    std::copy(m_byteBuffer.begin(), m_byteBuffer.end(), result.data());
+    QByteArray result;
+    result.resize(m_count);
 
-    m_byteBuffer.clear();
+    size_t totalToCopy = m_count;
+    size_t copied = 0;
+
+    while (copied < totalToCopy) {
+        size_t linearData = m_capacity - m_head;
+        size_t toCopy = std::min<size_t>(totalToCopy - copied, linearData);
+
+        std::memcpy(result.data() + copied, &m_buffer[m_head], toCopy);
+
+        m_head = (m_head + toCopy) % m_capacity;
+        copied += toCopy;
+    }
+
+    m_count = 0;
     m_canProduce.notify_all();
     return result;
 }
 
-qint64 AsyncArchiveFileReader::bytesAvailable()
+qint64 AsyncArchiveFileReader::bytesAvailable() const
 {
     QMutexLocker locker(&m_mutex);
-
-    // Block if the buffer is empty, but only if the worker is still
-    // actively extracting and we haven't aborted.
-    while (m_byteBuffer.empty() && m_workerRunning && !m_aborted.load()) {
+    while (m_count == 0 && m_workerRunning && !m_aborted.load()) {
         m_dataAvailable.wait(&m_mutex);
     }
-
-    // Once woken, return whatever is currently in the buffer.
-    // If the worker finished or aborted, this might still be 0.
-    return static_cast<qint64>(m_byteBuffer.size());
+    return static_cast<qint64>(m_count);
 }
 
 void AsyncArchiveFileReader::abort()

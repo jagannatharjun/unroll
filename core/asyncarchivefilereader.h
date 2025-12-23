@@ -7,7 +7,7 @@
 #include <QString>
 #include <QWaitCondition>
 #include <atomic>
-#include <boost/circular_buffer.hpp>
+#include <vector>
 
 class AsyncArchiveFileReader : public QObject
 {
@@ -16,19 +16,13 @@ public:
     explicit AsyncArchiveFileReader(QObject *parent = nullptr);
     ~AsyncArchiveFileReader();
 
-    // Starts the background extraction thread
     void start(const QString &archiveFile, const QString &childPath, qint64 startPos = 0);
-
-    // Aborts extraction and wakes all waiting threads
     void abort();
 
     // Consumer Methods
-    qint64 read(char *data, qint64 maxLen); // Read a specific amount
-    QByteArray getAvailableData();          // Read everything currently in buffer
+    QByteArray getAvailableData();
+    qint64 bytesAvailable() const;
     bool isFinished() const { return !m_workerRunning; }
-
-    // Returns the number of bytes currently buffered and ready for consumption
-    qint64 bytesAvailable();
 
 signals:
     void dataAvailable();
@@ -38,17 +32,20 @@ signals:
 private:
     void runExtractionTask(QString archivePath, QString childPath, qint64 startPos);
 
-    // Thread Safety & State
     mutable QMutex m_mutex;
-    QWaitCondition m_dataAvailable; // Consumer waits for data
-    QWaitCondition m_canProduce;    // Producer waits for space
-    QWaitCondition m_workerStopped; // Destructor waits for thread exit
+    mutable QWaitCondition m_dataAvailable;
+    QWaitCondition m_canProduce;
+    QWaitCondition m_workerStopped;
 
     std::atomic<bool> m_workerRunning{false};
     std::atomic<bool> m_aborted{false};
 
-    // The Circular Buffer (Bytes)
-    boost::circular_buffer<char> m_byteBuffer;
+    // Ring Buffer state
+    std::vector<char> m_buffer;
+    size_t m_head = 0;
+    size_t m_tail = 0;
+    size_t m_count = 0;
+    const size_t m_capacity = 64 * 1024 * 1024; // 64MB
 };
 
-#endif // ASYNCARCHIVEFILEREADER_H
+#endif

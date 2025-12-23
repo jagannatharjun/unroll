@@ -128,14 +128,13 @@ void TestAsyncArchiveFileReader::testReadSmallFile()
     QString archive = createTestArchive("small.tar", files);
 
     AsyncArchiveFileReader reader;
-
     // Wait for data
     QSignalSpy dataSpy(&reader, &AsyncArchiveFileReader::dataAvailable);
     QSignalSpy finishedSpy(&reader, &AsyncArchiveFileReader::finished);
 
     reader.start(archive, "test.txt", 0);
 
-    QVERIFY(finishedSpy.wait(5000));
+    QVERIFY(finishedSpy.wait());
 
     // Get and verify data
     QByteArray receivedData = reader.getAvailableData();
@@ -243,7 +242,7 @@ void TestAsyncArchiveFileReader::testNonExistentArchive()
     QVERIFY(finishedSpy.wait(5000) || errorSpy.wait(5000));
     QVERIFY(errorSpy.count() > 0);
 
-    QCOMPARE(reader.getAvailableData(), 0);
+    QCOMPARE(reader.getAvailableData(), QByteArray());
 }
 
 void TestAsyncArchiveFileReader::testNonExistentFileInArchive()

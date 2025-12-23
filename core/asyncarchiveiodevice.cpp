@@ -1,4 +1,5 @@
 #include "asyncarchiveiodevice.h"
+#include <QElapsedTimer>
 #include "directorysystem.hpp"
 #include <qdebug.h>
 

@@ -113,6 +113,11 @@ FocusScope {
         previewTimer.restart()
     }
 
+    Component.onDestruction: {
+        console.info("destorying player")
+        FileBrowser.unsetMediaSource(player)
+    }
+
     DSM.StateMachine {
         id: playbackStateMachine
 

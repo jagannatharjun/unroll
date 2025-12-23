@@ -14,6 +14,7 @@ AsyncArchiveIODevice::AsyncArchiveIODevice(QString archivePath,
 AsyncArchiveIODevice::~AsyncArchiveIODevice()
 {
     if (m_reader) {
+        m_reader->abort();
         m_reader->deleteLater();
     }
 }

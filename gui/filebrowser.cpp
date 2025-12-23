@@ -287,3 +287,8 @@ bool FileBrowser::setMediaSource(QMediaPlayer *player, const PreviewData &data)
     player->setSource(url);
     return true;
 }
+
+void FileBrowser::unsetMediaSource(QMediaPlayer *player)
+{
+    player->setSourceDevice(nullptr);
+}

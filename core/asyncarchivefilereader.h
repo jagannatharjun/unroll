@@ -1,60 +1,34 @@
 #ifndef ASYNCARCHIVEFILEREADER_H
 #define ASYNCARCHIVEFILEREADER_H
 
-#include <QObject>
-
 #include <QByteArray>
 #include <QMutex>
 #include <QObject>
-#include <QPointer>
 #include <QString>
 #include <QWaitCondition>
 #include <atomic>
-
-class AsyncArchiveFileReaderImpl : public QObject
-{
-    Q_OBJECT
-public:
-    using QObject::QObject;
-
-    void start(const QString &archivePath, const QString &childPath, qint64 startpos);
-
-    void abort() { m_aborted = true; }
-
-signals:
-    void read(char *data, qint64 size);
-    void foundFile(qint64 size);
-    void finished();
-    void error(const QString &error);
-
-private:
-    std::atomic_bool m_aborted = false;
-};
+#include <boost/circular_buffer.hpp>
 
 class AsyncArchiveFileReader : public QObject
 {
     Q_OBJECT
 public:
     explicit AsyncArchiveFileReader(QObject *parent = nullptr);
-    ~AsyncArchiveFileReader() override;
+    ~AsyncArchiveFileReader();
 
-    // Non-copyable, non-movable
-    AsyncArchiveFileReader(const AsyncArchiveFileReader &) = delete;
-    AsyncArchiveFileReader &operator=(const AsyncArchiveFileReader &) = delete;
-
+    // Starts the background extraction thread
     void start(const QString &archiveFile, const QString &childPath, qint64 startPos = 0);
 
-    bool isFinished() const
-    {
-        QMutexLocker locker(&m_mutex);
-        return m_isFinished;
-    }
-
-    qint64 fileSize() const;
-    QByteArray getAvailableData();
-    qint64 bytesAvailable();
-    bool waitForFileSize(int timeoutMs = 5000);
+    // Aborts extraction and wakes all waiting threads
     void abort();
+
+    // Consumer Methods
+    qint64 read(char *data, qint64 maxLen); // Read a specific amount
+    QByteArray getAvailableData();          // Read everything currently in buffer
+    bool isFinished() const { return !m_workerRunning; }
+
+    // Returns the number of bytes currently buffered and ready for consumption
+    qint64 bytesAvailable();
 
 signals:
     void dataAvailable();
@@ -62,17 +36,19 @@ signals:
     void error(const QString &message);
 
 private:
-    mutable QMutex m_mutex;
-    QWaitCondition m_bufferEmpty;
-    QWaitCondition m_bufferNotFull;
-    QWaitCondition m_sizeReady;
-    QWaitCondition m_finishedCondition;
+    void runExtractionTask(QString archivePath, QString childPath, qint64 startPos);
 
-    QByteArray m_buffer;
-    bool m_aborted{false};
-    qint64 m_fileSize{-1};
-    bool m_isFinished{false};
-    QPointer<AsyncArchiveFileReaderImpl> m_reader;
+    // Thread Safety & State
+    mutable QMutex m_mutex;
+    QWaitCondition m_dataAvailable; // Consumer waits for data
+    QWaitCondition m_canProduce;    // Producer waits for space
+    QWaitCondition m_workerStopped; // Destructor waits for thread exit
+
+    std::atomic<bool> m_workerRunning{false};
+    std::atomic<bool> m_aborted{false};
+
+    // The Circular Buffer (Bytes)
+    boost::circular_buffer<char> m_byteBuffer;
 };
 
 #endif // ASYNCARCHIVEFILEREADER_H

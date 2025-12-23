@@ -37,6 +37,7 @@ public:
                                          , const QString &filePath);
 
     Q_INVOKABLE bool setMediaSource(QMediaPlayer *player, const PreviewData &data);
+    Q_INVOKABLE void unsetMediaSource(QMediaPlayer *player);
 
 signals:
     void windowChanged();

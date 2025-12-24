@@ -35,7 +35,8 @@ MenuBar {
             id: recentFilesMenu
             title: qsTr("&Recent")
 
-            visible: Preferences.recentUrls.length > 0
+            // using visible causes crashes on >Qt6.8
+            enabled: Preferences.recentUrls.length > 0
 
             Instantiator {
                 model: Preferences.recentUrls

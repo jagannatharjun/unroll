@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
     QGuiApplication app(argc, argv);
-    QQuickStyle::setStyle("Fusion");
+    QQuickStyle::setStyle("FluentWinUI3");
 
 #ifdef DB_TEST
     qDebug("DB_TEST defined, test databases will be used");

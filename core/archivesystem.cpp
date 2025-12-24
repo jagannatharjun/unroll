@@ -96,7 +96,7 @@ public:
             childPath += p;
         }
 
-        return m_url.path(QUrl::PrettyDecoded) + childPath;
+        return m_url.path(QUrl::FullyDecoded) + childPath;
     }
 
     QString firstChild() const
@@ -112,10 +112,7 @@ public:
         return QUrlQuery(m_url).queryItemValue(childKey(m_childCount - 1));
     }
 
-    QString archivePath() const
-    {
-        return m_url.path(QUrl::PrettyDecoded);
-    }
+    QString archivePath() const { return m_url.path(QUrl::FullyDecoded); }
 
     QUrl url() const { return m_url; }
 

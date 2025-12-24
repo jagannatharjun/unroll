@@ -76,6 +76,7 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
     struct archive *a = archive_read_new();
     archive_read_support_filter_all(a);
     archive_read_support_format_all(a);
+    archive_read_support_format_zip_seekable(a);
 
     auto cleanup = qScopeGuard([&] {
         archive_read_close(a);

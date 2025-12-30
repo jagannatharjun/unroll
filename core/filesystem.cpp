@@ -35,17 +35,20 @@ public:
 
     QDateTime fileLastAccessTime(int i) override
     {
-        return QFileInfo(entries[i].path).lastRead();
+        return {};
+        // return QFileInfo(entries[i].path).lastRead();
     }
 
     QDateTime fileCreationTime(int i) override
     {
-        return QFileInfo(entries[i].path).birthTime();
+        return {};
+        // return QFileInfo(entries[i].path).birthTime();
     }
 
     QDateTime fileModifiedTime(int i) override
     {
-        return QFileInfo(entries[i].path).lastModified();
+        return {};
+        // return QFileInfo(entries[i].path).lastModified();
     }
 };
 

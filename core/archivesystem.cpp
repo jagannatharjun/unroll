@@ -1,5 +1,5 @@
 #include "archivesystem.hpp"
-#include "asyncarchiveiodevice.h"
+#include "ArchiveIODevice.h"
 
 #include <QDir>
 #include <QVector>
@@ -734,7 +734,8 @@ public:
         if (childPath.startsWith("/"))
             childPath = childPath.removeFirst();
 
-        return std::make_unique<AsyncArchiveIODevice>(p, childPath, size);
+        return std::make_unique<ArchiveIODevice>(p, childPath);
+        // return std::make_unique<AsyncArchiveIODevice>(p, childPath, size);
     }
 };
 

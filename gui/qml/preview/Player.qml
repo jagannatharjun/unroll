@@ -115,7 +115,7 @@ FocusScope {
 
     Component.onDestruction: {
         console.info("destorying player")
-        FileBrowser.unsetMediaSource(player)
+        // FileBrowser.unsetMediaSource(player)
     }
 
     DSM.StateMachine {

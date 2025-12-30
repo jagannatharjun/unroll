@@ -283,6 +283,18 @@ bool FileBrowser::setMediaSource(QMediaPlayer *player, const PreviewData &data)
     auto url = data.readUrl();
     if (url.isEmpty())
         return false;
+    if (url.isLocalFile()) {
+        QFile *f = new QFile(url.toLocalFile());
+        if (!f->open(QIODevice::ReadOnly))
+            return false;
+        player->setSourceDevice(f, url);
+
+        auto lastSource = player->property("FileBrowser_Source");
+        if (lastSource.isValid() && lastSource.value<QObject *>()) {
+            lastSource.value<QObject *>()->deleteLater();
+        }
+        player->setProperty("FileBrowser_Source", QVariant::fromValue(static_cast<QObject *>(f)));
+    }
 
     player->setSource(url);
     return true;

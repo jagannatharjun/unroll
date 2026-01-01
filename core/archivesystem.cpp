@@ -8,6 +8,7 @@
 #include <QTemporaryFile>
 
 #include "CachedFileDevice.h"
+#include "asyncarchiveiodevice.h"
 #include <archive.h>
 #include <archive_entry.h>
 #include <qelapsedtimer.h>
@@ -735,9 +736,21 @@ public:
         if (childPath.startsWith("/"))
             childPath = childPath.removeFirst();
 
-        auto archiveIODevice = new ArchiveIODevice(p, childPath);
+        auto archiveIODevice = new AsyncArchiveIODevice(p, childPath, size);
+        if (!archiveIODevice->open(QIODevice::ReadOnly)) {
+            delete archiveIODevice;
+            return nullptr;
+        }
+
         std::unique_ptr<CachedFileDevice> rDevice(new CachedFileDevice(archiveIODevice));
-        archiveIODevice->setParent(rDevice.get());
+        QObject::connect(rDevice.get(),
+                         &QIODevice::aboutToClose,
+                         archiveIODevice,
+                         &QIODevice::close);
+        QObject::connect(rDevice.get(),
+                         &QIODevice::aboutToClose,
+                         archiveIODevice,
+                         &QIODevice::deleteLater);
         return std::move(rDevice);
     }
 };

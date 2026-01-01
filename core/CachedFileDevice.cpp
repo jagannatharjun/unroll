@@ -44,6 +44,7 @@ void CachedFileDevice::close()
     m_cacheFile.close();
     m_cachedChunks.clear();
     m_pos = 0;
+    m_source = nullptr;
     QIODevice::close();
 }
 

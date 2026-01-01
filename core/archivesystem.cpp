@@ -7,6 +7,7 @@
 #include <QUrlQuery>
 #include <QTemporaryFile>
 
+#include "CachedFileDevice.h"
 #include <archive.h>
 #include <archive_entry.h>
 #include <qelapsedtimer.h>
@@ -734,8 +735,10 @@ public:
         if (childPath.startsWith("/"))
             childPath = childPath.removeFirst();
 
-        return std::make_unique<ArchiveIODevice>(p, childPath);
-        // return std::make_unique<AsyncArchiveIODevice>(p, childPath, size);
+        auto archiveIODevice = new ArchiveIODevice(p, childPath);
+        std::unique_ptr<CachedFileDevice> rDevice(new CachedFileDevice(archiveIODevice));
+        archiveIODevice->setParent(rDevice.get());
+        return std::move(rDevice);
     }
 };
 

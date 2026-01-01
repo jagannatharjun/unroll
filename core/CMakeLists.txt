@@ -13,7 +13,8 @@ add_library(core directorysystem.hpp
     persistenthash.hpp persistenthash.cpp
     asyncarchivefilereader.h asyncarchivefilereader.cpp
     asyncarchiveiodevice.h asyncarchiveiodevice.cpp
-    ArchiveIODevice.h ArchiveIODevice.cpp)
+    ArchiveIODevice.h ArchiveIODevice.cpp
+    CachedFileDevice.h CachedFileDevice.cpp)
 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent Sql)
 

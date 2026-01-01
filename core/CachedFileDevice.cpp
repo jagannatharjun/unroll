@@ -36,6 +36,14 @@ bool CachedFileDevice::open(OpenMode mode)
         return false;
     }
 
+    // Map the entire file to memory
+    m_cachePtr = m_cacheFile.map(0, m_cacheFile.size());
+
+    if (!m_cachePtr) {
+        setErrorString("Failed to map cache file to memory.");
+        return false;
+    }
+
     return QIODevice::open(mode);
 }
 
@@ -89,11 +97,9 @@ qint64 CachedFileDevice::readData(char *data, qint64 maxlen)
         return -1;
     }
 
+    std::memcpy(data, m_cachePtr + m_pos, len);
     qint64 bytesRead = m_cacheFile.read(data, len);
-    if (bytesRead > 0) {
-        m_pos += bytesRead;
-    }
-
+    m_pos += bytesRead;
     return bytesRead;
 }
 
@@ -140,16 +146,10 @@ bool CachedFileDevice::ensureCacheAvailable(qint64 pos, qint64 len)
             }
 
             // Write buffer to the temporary cache file
-            if (!m_cacheFile.seek(chunkStart))
-                return false;
-
-            if (m_cacheFile.write(buffer) != bytesToRead)
-                return false;
-
+            std::memcpy(m_cachePtr + chunkStart, buffer.constData(), bytesRead);
             m_cachedChunks.insert(i);
         }
     }
 
-    m_cacheFile.flush();
     return true;
 }

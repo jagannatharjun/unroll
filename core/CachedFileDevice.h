@@ -39,6 +39,7 @@ private:
     qint64 m_chunkSize;
     qint64 m_pos;
     QSet<qint64> m_cachedChunks;
+    uchar *m_cachePtr = nullptr; // Pointer to the mapped memory
 };
 
 #endif // CACHEDFILEDEVICE_H

@@ -55,7 +55,10 @@ bool AsyncArchiveIODevice::repositionReader()
 
         qint64 bytesToSkip = currentPos - expectedBufferStart;
 
-        if (bytesToSkip > 0) {
+        if (bytesToSkip > 64 * 1024 * 1024) {
+            qDebug("Bytes to skip excess of buffer, resetting reader");
+            resetReader();
+        } else if (bytesToSkip > 0) {
             // Forward seek - need to discard data to catch up
             qDebug() << "Forward seek detected - need to skip" << bytesToSkip << "bytes";
 

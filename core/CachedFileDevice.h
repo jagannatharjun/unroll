@@ -11,10 +11,10 @@ class CachedFileDevice : public QIODevice
 public:
     /**
      * @param source The underlying device to read from.
-     * @param chunkSize The size of each cache block in bytes (default 64MiB match with AsyncArchiveFileReader chynk).
+     * @param chunkSize The size of each cache block in bytes.
      */
     explicit CachedFileDevice(QIODevice *source,
-                              qint64 chunkSize = 32 * 1024 * 1024,
+                              qint64 chunkSize = 4 * 1024 * 1024,
                               QObject *parent = nullptr);
     ~CachedFileDevice();
 

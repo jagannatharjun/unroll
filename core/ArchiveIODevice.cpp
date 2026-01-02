@@ -112,7 +112,6 @@ qint64 ArchiveIODevice::readData(char *data, qint64 maxlen)
         setErrorString(archive_error_string(m_archive));
         return -1;
     }
-    qDebug() << "Read" << m_pos << pos() << bytesRead;
 
     m_pos += bytesRead;
     return bytesRead;

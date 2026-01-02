@@ -6,7 +6,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-constexpr int READ_CHUNK_SIZE = 256 * 1024;
+constexpr int READ_CHUNK_SIZE = 512 * 1024;
 
 // Helper for manual seeking in libarchive
 bool seekToFile(struct archive *a,

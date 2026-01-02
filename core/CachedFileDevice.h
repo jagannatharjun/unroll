@@ -14,7 +14,7 @@ public:
      * @param chunkSize The size of each cache block in bytes.
      */
     explicit CachedFileDevice(QIODevice *source,
-                              qint64 chunkSize = 4 * 1024 * 1024,
+                              qint64 chunkSize = 1 * 1024 * 1024,
                               QObject *parent = nullptr);
     ~CachedFileDevice();
 
@@ -38,7 +38,7 @@ private:
     QTemporaryFile m_cacheFile;
     qint64 m_chunkSize;
     qint64 m_pos;
-    QSet<qint64> m_cachedChunks;
+    std::vector<bool> m_cachedChunks;
     uchar *m_cachePtr = nullptr; // Pointer to the mapped memory
 };
 

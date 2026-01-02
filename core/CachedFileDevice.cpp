@@ -36,6 +36,8 @@ bool CachedFileDevice::open(OpenMode mode)
         return false;
     }
 
+    m_cachedChunks.resize(std::ceil(static_cast<double>(m_source->size()) / m_chunkSize), false);
+
     // Map the entire file to memory
     m_cachePtr = m_cacheFile.map(0, m_cacheFile.size());
 
@@ -117,7 +119,7 @@ bool CachedFileDevice::ensureCacheAvailable(qint64 pos, qint64 len)
     const qint64 endChunk = (pos + len - 1) / m_chunkSize;
 
     for (qint64 i = startChunk; i <= endChunk; ++i) {
-        if (!m_cachedChunks.contains(i)) {
+        if (!m_cachedChunks[i]) {
             qint64 chunkStart = i * m_chunkSize;
 
             // Handle the potential partial chunk at the very end of the file
@@ -147,7 +149,7 @@ bool CachedFileDevice::ensureCacheAvailable(qint64 pos, qint64 len)
 
             // Write buffer to the temporary cache file
             std::memcpy(m_cachePtr + chunkStart, buffer.constData(), bytesRead);
-            m_cachedChunks.insert(i);
+            m_cachedChunks[i] = true;
         }
     }
 

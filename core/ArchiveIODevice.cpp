@@ -39,13 +39,13 @@ qint64 ArchiveIODevice::pos() const
 
 bool ArchiveIODevice::open(OpenMode mode)
 {
-    if (mode != ReadOnly)
+    if (mode != ReadOnly || isOpen())
         return false;
 
     m_archive = archive_read_new();
     archive_read_support_format_all(m_archive);
     archive_read_support_filter_all(m_archive);
-    archive_read_support_format_zip_streamable(m_archive);
+    // archive_read_support_format_zip_streamable(m_archive);
 
     if (archive_read_open_filename(m_archive, m_archivePath.toLocal8Bit().constData(), 10240)
         != ARCHIVE_OK) {
@@ -85,6 +85,9 @@ bool ArchiveIODevice::seek(qint64 pos)
     if (pos < 0 || pos > m_entrySize)
         return false;
 
+    if (QIODevice::pos() == pos)
+        return QIODevice::seek(pos);
+
     // SEEK_SET: Seek to absolute position from the start of the entry
     la_int64_t result = archive_seek_data(m_archive, pos, SEEK_SET);
 
@@ -92,6 +95,7 @@ bool ArchiveIODevice::seek(qint64 pos)
         // Abort if the archive format or filter doesn't support seeking
         setErrorString(tr("Archive does not support seeking: %1")
                            .arg(archive_error_string(m_archive)));
+        qInfo() << "error" << errorString();
         return false;
     }
 

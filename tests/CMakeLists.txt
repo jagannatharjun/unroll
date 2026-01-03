@@ -36,6 +36,20 @@ target_include_directories(test_asyncarchivefilereader
         "C:/local/libarchive/include"
 )
 
+add_executable(test_ArchiveIODevice test_ArchiveIODevice.cpp)
+add_test(NAME test_ArchiveIODevice COMMAND test_ArchiveIODevice)
+target_link_libraries(test_ArchiveIODevice PRIVATE core Qt${QT_VERSION_MAJOR}::Test)
+target_link_libraries(test_ArchiveIODevice
+    PUBLIC
+        "C:/local/libarchive/lib/archive.lib"
+)
+
+target_include_directories(test_ArchiveIODevice
+    PRIVATE
+        "C:/local/libarchive/include"
+)
+
+
 
 add_executable(test_directorysystemmodel test_directorysystemmodel.cpp)
 add_test(NAME test_directorysystemmodel COMMAND test_directorysystemmodel)

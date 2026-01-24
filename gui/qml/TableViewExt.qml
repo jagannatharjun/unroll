@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
 Pane {
     id: root
@@ -57,62 +58,68 @@ Pane {
 
             model: Math.max(view.columns, 0)
 
-            ItemDelegate {
+            Item {
                 id: headerDelegate
 
                 y: view.contentY
-
                 height: 32
-                background: Rectangle {
-                    color: "#2D2D2D"
-                    border.color: "#3F3F3F"
-                    border.width: 1
-                }
+                width: view.columnWidthProvider(index)
 
-                text: view.model.headerData(index, Qt.Horizontal,
-                                            Qt.DisplayRole)
+                property string headerText: view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
 
                 function resetWidth() {
-                    // don't use layout change signal, since that will set width to 0, when cell goes out of view
                     width = Qt.binding(function () {
                         return view.columnWidthProvider(index)
                     })
                 }
 
                 function resetText() {
-                    text = Qt.binding(function () {
-                        return view.model.headerData(index, Qt.Horizontal,
-                                                     Qt.DisplayRole)
-                    })
+                    headerText = view.model.headerData(index, Qt.Horizontal, Qt.DisplayRole)
                 }
 
-                onPressed: {
-                    const order = (modelSortOrder === Qt.AscendingOrder)
-                                ? Qt.DescendingOrder
-                                : Qt.AscendingOrder
-
-                    view.model.sort(index, order)
+                Rectangle {
+                    anchors.fill: parent
+                    color: "#2D2D2D"
+                    border.color: "#3F3F3F"
+                    border.width: 1
                 }
 
-                Row {
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        const order = (modelSortOrder === Qt.AscendingOrder)
+                                    ? Qt.DescendingOrder
+                                    : Qt.AscendingOrder
+                        view.model.sort(index, order)
+                    }
+                }
+
+                RowLayout {
                     anchors {
-                        top: parent.top
-                        bottom: parent.bottom
-                        right: parent.right
+                        fill:parent
+                        leftMargin: 8
+                        rightMargin: 8
+                    }
+                    spacing: 4
+
+                    Text {
+                        text: headerDelegate.headerText
+                        color: "#E8E8E8"
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
                     }
 
-                    Label {
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        font: headerDelegate.font
+                    Text {
+                        Layout.alignment: Qt.AlignVCenter
+                        font.pixelSize: 12
+                        color: "#E8E8E8"
                         visible: root.modelSortColumn === index
                         text: {
                             if (root.modelSortOrder === Qt.DescendingOrder) return "↓"
                             if (root.modelSortOrder === Qt.AscendingOrder)  return "↑"
                             return ""
                         }
-                        scale: 1.1
-                        rightPadding: headerDelegate.rightPadding + 10
                     }
                 }
 
@@ -121,18 +128,29 @@ Pane {
                         root._setColumnWidth(index, width)
                     }
 
-                    VerticalBorder {
-                        palette: headerDelegate.palette
+                    Rectangle {
+                        anchors {
+                            right: parent.right
+                            top: parent.top
+                            bottom: parent.bottom
+                        }
+                        width: 1
+                        color: "#3F3F3F"
                     }
                 }
 
-                HorizontalBorder {
-                    palette: headerDelegate.palette
+                Rectangle {
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        bottom: parent.bottom
+                    }
+                    height: 1
+                    color: "#3F3F3F"
                 }
 
                 Connections {
                     target: root
-
                     function on_ColumnWidthChanged() {
                         headerDelegate.resetWidth()
                     }
@@ -140,7 +158,6 @@ Pane {
 
                 Connections {
                     target: view.model
-
                     function onHeaderDataChanged() {
                         headerDelegate.resetText()
                     }
@@ -148,12 +165,8 @@ Pane {
 
                 Connections {
                     target: view
-
                     function onLayoutChanged() {
-
-                        // position header delegates
                         const item = view.itemAtCell(index, view.topRow)
-
                         if (item !== null) {
                             headerDelegate.visible = true
                             headerDelegate.x = item.x
@@ -163,7 +176,6 @@ Pane {
                                 const prev = index > 0
                                            ? repeater.itemAt(index - 1)
                                            : null
-
                                 return !!prev ? prev.x + prev.width : 0
                             })
                         }
@@ -213,81 +225,72 @@ Pane {
         }
 
         rowHeightProvider: function (row) {
-            return 32
+            return 36
         }
 
-        delegate: ItemDelegate {
+        delegate: Item {
             id: delegate
 
             required property bool selected
             required property bool current
 
-            text: model.display
+            width: view.columnWidthProvider(column)
 
-            icon.cache: true
-            icon.source: model.iconId
-            icon.height: 24
-            icon.width: 24
+            property bool isHighlighted: selected || current || row == view.selectionModel.currentIndex.row
 
-            height: 32
-
-            focus: true
-
-            highlighted: selected || current || row == view.selectionModel.currentIndex.row
-
-            // Windows dark mode styling
-            background: Rectangle {
+            Rectangle {
+                anchors.fill: parent
                 color: {
-                    if (delegate.highlighted) {
-                        return "#0078D4"  // Windows 11 accent blue
+                    if (delegate.isHighlighted) {
+                        return "#0078D4"
                     } else if (row % 2 === 1) {
-                        return "#252525"  // Subtle alternating row color
+                        return "#252525"
                     }
                     return "#1E1E1E"
                 }
-                border.color: {
-                    if (delegate.highlighted) return "#0078D4"
-                    return "transparent"
-                }
-                border.width: delegate.highlighted ? 1 : 0
+                border.color: delegate.isHighlighted ? "#0078D4" : "transparent"
+                border.width: delegate.isHighlighted ? 1 : 0
             }
 
-            contentItem: Row {
-                spacing: 8
-                leftPadding: 8
+            RowLayout {
+                anchors {
+                    fill: parent
+                    leftMargin: 8
+                }
+
+                spacing: 6
 
                 Image {
-                    source: delegate.icon.source
-                    width: delegate.icon.width
-                    height: delegate.icon.height
-                    cache: delegate.icon.cache
-                    anchors.verticalCenter: parent.verticalCenter
+                    source: column === 0 ? model.iconId : ""
+                    width: 24
+                    height: 24
+                    cache: true
+                    Layout.alignment:Qt.AlignVCenter
+                    visible: column === 0
                 }
 
                 Text {
-                    text: delegate.text
-                    color: delegate.highlighted ? "#FFFFFF" : "#E8E8E8"
+                    Layout.fillWidth: true
+                    text: model.display
+                    color: delegate.isHighlighted ? "#FFFFFF" : "#E8E8E8"
                     elide: Text.ElideRight
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment:Qt.AlignVCenter
                 }
             }
 
-            opacity: model.seen && !highlighted ? .7 : 1
+            opacity: model.seen && !delegate.isHighlighted ? 0.7 : 1
 
-            onClicked: {
-                forceActiveFocus(Qt.MouseFocusReason)
-                select()
-            }
-
-            onDoubleClicked: {
-                forceActiveFocus(Qt.MouseFocusReason)
-                select()
-
-                actionAtIndex(row, column)
-            }
-
-            function select() {
-                root._setCurrentIndex(row, column)
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    delegate.forceActiveFocus(Qt.MouseFocusReason)
+                    root._setCurrentIndex(row, column)
+                }
+                onDoubleClicked: {
+                    delegate.forceActiveFocus(Qt.MouseFocusReason)
+                    root._setCurrentIndex(row, column)
+                    root.actionAtIndex(row, column)
+                }
             }
 
             TapHandler {
@@ -296,25 +299,34 @@ Pane {
             }
 
             HResizeHandle {
-                id: resizeHandle
-
                 setResizeWidth: function (width) {
                     root._setColumnWidth(column, width)
                 }
 
-                VerticalBorder {
-                    palette: delegate.palette
+                Rectangle {
+                    anchors {
+                        right: parent.right
+                        top: parent.top
+                        bottom: parent.bottom
+                    }
+                    width: 1
+                    color: "#3F3F3F"
                 }
             }
 
-            HorizontalBorder {
-                palette: delegate.palette
+            Rectangle {
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
+                }
+                height: 1
+                color: "#3F3F3F"
             }
 
             Triangle {
                 width: 8
                 height: 8
-
                 color: "#FF610A"
                 visible: (column == 0) && (model.showNewIndicator ?? false)
             }
@@ -378,28 +390,6 @@ Pane {
             anchors.right: view.right
             anchors.top: view.bottom
         }
-    }
-
-    component VerticalBorder: Rectangle {
-        anchors {
-            right: parent.right
-            top: parent.top
-            bottom: parent.bottom
-        }
-
-        width: 1
-        color: "#3F3F3F"
-    }
-
-    component HorizontalBorder: Rectangle {
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-        }
-
-        height: 1
-        color: "#3F3F3F"
     }
 
     component Triangle : Item {

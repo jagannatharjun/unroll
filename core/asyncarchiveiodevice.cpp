@@ -55,13 +55,28 @@ bool AsyncArchiveIODevice::repositionReader()
 
         qint64 bytesToSkip = currentPos - expectedBufferStart;
 
-        if (bytesToSkip > 64 * 1024 * 1024) {
-            qDebug("Bytes to skip excess of buffer, resetting reader");
-            resetReader();
-        } else if (bytesToSkip > 0) {
-            // Forward seek - need to discard data to catch up
+        if (bytesToSkip > 0) {
+            // Forward seek
             qDebug() << "Forward seek detected - need to skip" << bytesToSkip << "bytes";
 
+            // Try to use the reader's seek if available
+            if (m_reader && !m_reader->isFinished()) {
+                // Use archive seek for large forward seeks
+                if (bytesToSkip > 64 * 1024) {
+                    qDebug() << "Using archive_seek_data for large forward seek";
+                    if (m_reader->seek(m_readerStartPos + m_bufferPos + bytesToSkip)) {
+                        // Seek succeeded - clear buffer and continue
+                        m_readerStartPos = m_readerStartPos + m_bufferPos + bytesToSkip;
+                        m_buf.clear();
+                        m_bufferPos = 0;
+                        return true;
+                    } else {
+                        qWarning() << "Archive seek failed, falling back to manual skip";
+                    }
+                }
+            }
+
+            // Fall back to manual skipping within buffer or fetching new data
             QElapsedTimer readTimer;
             readTimer.start();
 
@@ -80,7 +95,14 @@ bool AsyncArchiveIODevice::repositionReader()
                 // If we still need to skip more, fetch and discard new data
                 if (bytesToSkip > 0 && m_bufferPos >= m_buf.size()) {
                     if (readTimer.elapsed() > 200) {
-                        qDebug() << "Reached time limit to forward seek, resetting reader";
+                        qDebug() << "Reached time limit to forward seek, attempting reader seek";
+                        if (m_reader && m_reader->seek(m_readerStartPos + m_bufferPos + bytesToSkip)) {
+                            m_readerStartPos = m_readerStartPos + m_bufferPos + bytesToSkip;
+                            m_buf.clear();
+                            m_bufferPos = 0;
+                            return true;
+                        }
+                        qDebug() << "Reader seek failed, resetting reader";
                         resetReader();
                         break;
                     }
@@ -114,8 +136,15 @@ bool AsyncArchiveIODevice::repositionReader()
                          << offsetFromReaderStart;
                 m_bufferPos = offsetFromReaderStart;
             } else {
-                // Backward seek outside buffer - must reset reader
-                qDebug() << "Backward seek outside buffer - resetting reader";
+                // Backward seek outside buffer - use reader seek or reset
+                qDebug() << "Backward seek outside buffer - attempting reader seek";
+                if (m_reader && m_reader->seek(currentPos)) {
+                    m_readerStartPos = currentPos;
+                    m_buf.clear();
+                    m_bufferPos = 0;
+                    return true;
+                }
+                qDebug() << "Reader seek failed, resetting reader";
                 resetReader();
             }
         }

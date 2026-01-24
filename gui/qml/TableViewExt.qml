@@ -5,6 +5,9 @@ Pane {
     id: root
 
     padding: 0
+    background: Rectangle {
+        color: "#1E1E1E"
+    }
 
     property alias model: view.model
     property alias selectionModel: view.selectionModel
@@ -59,7 +62,12 @@ Pane {
 
                 y: view.contentY
 
-                height: 36
+                height: 32
+                background: Rectangle {
+                    color: "#2D2D2D"
+                    border.color: "#3F3F3F"
+                    border.width: 1
+                }
 
                 text: view.model.headerData(index, Qt.Horizontal,
                                             Qt.DisplayRole)
@@ -205,7 +213,7 @@ Pane {
         }
 
         rowHeightProvider: function (row) {
-            return 40
+            return 32
         }
 
         delegate: ItemDelegate {
@@ -218,16 +226,53 @@ Pane {
 
             icon.cache: true
             icon.source: model.iconId
-            icon.height: 32
-            icon.width: 32
+            icon.height: 24
+            icon.width: 24
 
-            height: 36
+            height: 32
 
             focus: true
 
             highlighted: selected || current || row == view.selectionModel.currentIndex.row
 
-            opacity: model.seen && !highlighted ? .6 : 1
+            // Windows dark mode styling
+            background: Rectangle {
+                color: {
+                    if (delegate.highlighted) {
+                        return "#0078D4"  // Windows 11 accent blue
+                    } else if (row % 2 === 1) {
+                        return "#252525"  // Subtle alternating row color
+                    }
+                    return "#1E1E1E"
+                }
+                border.color: {
+                    if (delegate.highlighted) return "#0078D4"
+                    return "transparent"
+                }
+                border.width: delegate.highlighted ? 1 : 0
+            }
+
+            contentItem: Row {
+                spacing: 8
+                leftPadding: 8
+
+                Image {
+                    source: delegate.icon.source
+                    width: delegate.icon.width
+                    height: delegate.icon.height
+                    cache: delegate.icon.cache
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Text {
+                    text: delegate.text
+                    color: delegate.highlighted ? "#FFFFFF" : "#E8E8E8"
+                    elide: Text.ElideRight
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            opacity: model.seen && !highlighted ? .7 : 1
 
             onClicked: {
                 forceActiveFocus(Qt.MouseFocusReason)
@@ -343,7 +388,7 @@ Pane {
         }
 
         width: 1
-        color: palette.midlight
+        color: "#3F3F3F"
     }
 
     component HorizontalBorder: Rectangle {
@@ -354,7 +399,7 @@ Pane {
         }
 
         height: 1
-        color: palette.midlight
+        color: "#3F3F3F"
     }
 
     component Triangle : Item {
@@ -396,26 +441,28 @@ Pane {
         visible: control.policy !== ScrollBar.AlwaysOff
         minimumSize: orientation === Qt.Horizontal ? height / width : width / height
 
+        background: Rectangle {
+            color: "#1E1E1E"
+        }
+
         contentItem: Rectangle {
-            implicitWidth: control.interactive ? 6 : 2
-            implicitHeight: control.interactive ? 6 : 2
+            implicitWidth: control.interactive ? 8 : 4
+            implicitHeight: control.interactive ? 8 : 4
 
             radius: width / 2
-            color: control.pressed ? control.palette.highlight : control.palette.dark
-            opacity: 0.0
-
-            states: State {
-                name: "active"
-                when: control.policy === ScrollBar.AlwaysOn || (control.active && control.size < 1.0)
-                PropertyChanges { control.contentItem.opacity: .7 }
+            color: {
+                if (control.pressed) return "#6A6A6A"
+                if (control.active) return "#555555"
+                return "#404040"
+            }
+            opacity: {
+                if (control.policy === ScrollBar.AlwaysOn) return 1.0
+                if (control.active && control.size < 1.0) return 0.8
+                return 0.0
             }
 
-            transitions: Transition {
-                from: "active"
-                SequentialAnimation {
-                    PauseAnimation { duration: 450 }
-                    NumberAnimation { target: control.contentItem; duration: 200; property: "opacity"; to: 0.0 }
-                }
+            Behavior on opacity {
+                NumberAnimation { duration: 200 }
             }
         }
     }

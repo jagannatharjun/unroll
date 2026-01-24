@@ -15,6 +15,7 @@ ApplicationWindow {
     height: 800
     visible: true
     title: qsTr("File Browser")
+    color: "#1E1E1E"
 
     // row of which we are showing the preview of
     // useful in changing the preview when model changes or resetFocus

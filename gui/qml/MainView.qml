@@ -43,8 +43,11 @@ SplitView {
         implicitWidth: 4
         implicitHeight: 4
 
-        color: SplitHandle.pressed ? palette.highlight
-               : (SplitHandle.hovered ? palette.button : palette.base)
+        color: {
+            if (SplitHandle.pressed) return "#0078D4"
+            if (SplitHandle.hovered) return "#404040"
+            return "#2D2D2D"
+        }
 
         HoverHandler {
             onHoveredChanged: {
@@ -77,6 +80,9 @@ SplitView {
         // so the extra content is not visible
 
         SplitView.fillWidth: true
+        background: Rectangle {
+            color: "#1E1E1E"
+        }
 
         PreviewView {
             id: previewView

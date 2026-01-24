@@ -324,6 +324,7 @@ FocusScope {
 
                 Label {
                     text: millisecondsToReadable(root._positionRounded)
+                    Layout.preferredWidth: Math.max(implicitWidth, 40)
                 }
 
                 Slider {
@@ -337,6 +338,9 @@ FocusScope {
                     stepSize: 5000 // 5 sec
 
                     focus: true
+
+                    leftPadding: 0
+                    rightPadding: 0
 
 
                     Binding {
@@ -383,6 +387,7 @@ FocusScope {
 
                 Label {
                     text: millisecondsToReadable(player.duration)
+                    Layout.preferredWidth: Math.max(implicitWidth, 40)
                 }
 
                 ToolButton {
@@ -408,6 +413,11 @@ FocusScope {
                     from: 0
                     to: 100
                     focus: true
+
+                    leftPadding: 0
+                    rightPadding: 0
+
+                    Layout.preferredWidth: 100
 
                     onValueChanged: {
                         if (_updateSource)

@@ -125,7 +125,7 @@ public slots:
 
 signals:
     void urlChanged();
-    void showPreview(PreviewData data);
+    void showPreview(PreviewData data, int row);
 
     void fileBrowserChanged();
 

@@ -192,7 +192,7 @@ void ViewController::setPreview(int row)
 
     auto root = m_dirModel->directory();
     if (!root)
-        emit showPreview({});
+        emit showPreview({}, row);
 
     using FutureVariant = std::variant<QFuture<PreviewData>, QFuture<FileHistoryDB::Data>>;
 
@@ -203,7 +203,7 @@ void ViewController::setPreview(int row)
 
     QtFuture::whenAll(preview, data)
             .then(this
-                  , [this, requestID](const QList<FutureVariant> &results)
+                  , [this, requestID, row](const QList<FutureVariant> &results)
     {
         if (requestID != m_previewRequest)
             return;
@@ -212,7 +212,7 @@ void ViewController::setPreview(int row)
         FileHistoryDB::Data data = std::get<1>(results[1]).result();
 
         preview.m_progress = data.progress.value_or(0);
-        emit showPreview(preview);
+        emit showPreview(preview, row);
     });
 }
 

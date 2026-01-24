@@ -19,7 +19,11 @@ ApplicationWindow {
 
     // row of which we are showing the preview of
     // useful in changing the preview when model changes or resetFocus
+    // last requested preview Row
     property int previewRow: -1
+
+    // last ShowPreview call row
+    property int currentPreviewRow: -1
 
     property var previewdata: controller.invalidPreviewData()
 
@@ -102,9 +106,20 @@ ApplicationWindow {
 
         fileBrowser: FileBrowser
 
-        onShowPreview: (data) => root.previewdata = data
+        onShowPreview: function (data, row)  {
+            root.previewdata = data
+            if (root.previewdata.fileType() !== PreviewData.Unknown)
+                root.currentPreviewRow = row
+            else
+                root.currentPreviewRow = -1
+        }
 
-        onUrlChanged: Preferences.lastSessionUrl = controller.url
+        onUrlChanged: {
+            Preferences.lastSessionUrl = controller.url
+            print("onUrlChanged", controller.url)
+            root.currentPreviewRow = -1
+            root.previewRow = -1
+        }
 
         Component.onCompleted: controller.openUrl(Preferences.lastSessionUrl)
     }
@@ -274,7 +289,15 @@ ApplicationWindow {
 
             selectionModel: root.selectionModel
 
-            onActionAtIndex: (row) => controller.openRow(row)
+            onActionAtIndex: (row) => {
+                                 console.info("ActionAtIndex", root.currentPreviewRow, row)
+                                 if (root.currentPreviewRow !== row) {
+                                     console.info("requesting open row", row)
+                                    controller.openRow(row)
+                                 } else {
+                                     console.info("rejecting open row since same row is in preview")
+                                 }
+                             }
 
             onPreviewCompleted: {
                 root._previewCompleted = true

@@ -736,21 +736,29 @@ public:
         if (childPath.startsWith("/"))
             childPath = childPath.removeFirst();
 
-        auto archiveIODevice = new AsyncArchiveIODevice(p, childPath, size);
-        if (!archiveIODevice->open(QIODevice::ReadOnly)) {
-            delete archiveIODevice;
-            return nullptr;
-        }
+        std::unique_ptr<QIODevice> archiveIODevice = nullptr;
 
-        std::unique_ptr<CachedFileDevice> rDevice(new CachedFileDevice(archiveIODevice));
+        // rar files support seemless seeking
+        if (p.endsWith(".rar"))
+            archiveIODevice.reset(new ArchiveIODevice(p, childPath));
+        else
+            archiveIODevice.reset(new AsyncArchiveIODevice(p, childPath, size));
+
+        if (!archiveIODevice->open(QIODevice::ReadOnly))
+            return nullptr;
+
+        std::unique_ptr<CachedFileDevice> rDevice(new CachedFileDevice(archiveIODevice.get()));
+        archiveIODevice.release();
+
         QObject::connect(rDevice.get(),
                          &QIODevice::aboutToClose,
-                         archiveIODevice,
+                         archiveIODevice.get(),
                          &QIODevice::close);
         QObject::connect(rDevice.get(),
                          &QIODevice::aboutToClose,
-                         archiveIODevice,
+                         archiveIODevice.get(),
                          &QIODevice::deleteLater);
+
         return std::move(rDevice);
     }
 };

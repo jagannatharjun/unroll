@@ -91,11 +91,11 @@ bool ArchiveIODevice::seek(qint64 pos)
     // SEEK_SET: Seek to absolute position from the start of the entry
     la_int64_t result = archive_seek_data(m_archive, pos, SEEK_SET);
 
-    if (result != ARCHIVE_OK) {
+    if (result < ARCHIVE_OK) {
         // Abort if the archive format or filter doesn't support seeking
         setErrorString(tr("Archive does not support seeking: %1")
                            .arg(archive_error_string(m_archive)));
-        qInfo() << "error" << errorString();
+        qInfo() << "error" << errorString() << pos << m_entrySize;
         return false;
     }
 

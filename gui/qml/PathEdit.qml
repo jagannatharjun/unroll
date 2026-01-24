@@ -166,7 +166,7 @@ Container {
     }
 
     function _requestPath(pathIndex) {
-        var p = _pathcomponents.slice(0, pathIndex + 1).map(obj => obj.node).join("/")
+        var p = _pathcomponents.slice(0, pathIndex + 1).map(obj => obj.node).join("/") + "/"
         root.requestPath(p)
     }
 

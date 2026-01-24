@@ -23,6 +23,7 @@ public:
     QByteArray getAvailableData();
     qint64 bytesAvailable() const;
     bool isFinished() const { return !m_workerRunning; }
+    bool seek(qint64 pos);
 
 signals:
     void dataAvailable();
@@ -36,9 +37,13 @@ private:
     mutable QWaitCondition m_dataAvailable;
     QWaitCondition m_canProduce;
     QWaitCondition m_workerStopped;
+    QWaitCondition m_seekDone;
 
     std::atomic<bool> m_workerRunning{false};
     std::atomic<bool> m_aborted{false};
+    std::atomic<bool> m_seekRequested{false};
+    std::atomic<qint64> m_seekPos{0};
+    bool m_seekSuccess{false};
 
     // Ring Buffer state
     std::vector<char> m_buffer;

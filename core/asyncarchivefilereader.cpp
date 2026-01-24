@@ -114,12 +114,38 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
             while (!m_aborted.load()) {
                 QMutexLocker locker(&m_mutex);
 
+                // Check if a seek was requested
+                if (m_seekRequested.load()) {
+                    qint64 pos = m_seekPos.load();
+
+                    locker.unlock();
+                    la_int64_t actualPos = archive_seek_data(a, pos, SEEK_SET);
+                    locker.relock();
+
+                    m_seekSuccess = (actualPos >= 0 && actualPos == pos);
+
+                    if (m_seekSuccess) {
+                        // Clear the buffer after successful seek
+                        m_head = 0;
+                        m_tail = 0;
+                        m_count = 0;
+                    } else {
+                        qWarning("Archive seek to %lld failed", pos);
+                    }
+
+                    m_seekRequested = false;
+                    m_seekDone.notify_all();
+                }
+
                 // Wait until we have at least READ_CHUNK_SIZE space available
                 while ((m_capacity - m_count) < READ_CHUNK_SIZE && !m_aborted.load()) {
                     m_canProduce.wait(&m_mutex);
                 }
                 if (m_aborted.load())
                     return;
+
+                if (m_seekRequested)
+                    continue;
 
                 // Find the contiguous linear space at the end of the buffer
                 size_t linearSpace = m_capacity - m_tail;
@@ -204,4 +230,26 @@ void AsyncArchiveFileReader::abort()
     m_aborted = true;
     m_canProduce.notify_all();
     m_dataAvailable.notify_all();
+}
+
+bool AsyncArchiveFileReader::seek(qint64 pos)
+{
+    QMutexLocker locker(&m_mutex);
+
+    if (!m_workerRunning) {
+        qWarning("Cannot seek: worker is not running");
+        return false;
+    }
+
+    // Request the seek operation
+    m_seekPos = pos;
+    m_seekRequested = true;
+    m_seekSuccess = false;
+
+    // Wait for the worker to complete the seek
+    while (m_seekRequested.load() && !m_aborted.load()) {
+        m_seekDone.wait(&m_mutex);
+    }
+
+    return m_seekSuccess;
 }

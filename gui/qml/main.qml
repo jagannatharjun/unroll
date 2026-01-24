@@ -200,7 +200,9 @@ ApplicationWindow {
         spacing: 0
 
         Pane {
+            Layout.margins: 6
             Layout.fillWidth: true
+            padding: 0
 
             // this is to cover outoff view items from TableView
             z: 2
@@ -258,6 +260,7 @@ ApplicationWindow {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.margins: 6
 
             focus: true
 

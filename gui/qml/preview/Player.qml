@@ -33,6 +33,7 @@ FocusScope {
     focus: true
 
     function _showStatus(txt, statusType) {
+        console.info("player show status", txt, statusType)
         root.showStatus(txt, statusType || StatusLabel.LabelType.Other)
     }
 
@@ -237,6 +238,7 @@ FocusScope {
 
             }
         }
+
 
         onMetaDataChanged: {
             const TitleIdx = 0

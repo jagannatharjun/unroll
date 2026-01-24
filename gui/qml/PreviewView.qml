@@ -110,9 +110,7 @@ Loader {
     RowLayout {
         z: 10
         anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
+            fill: parent
             margins: 10
         }
 
@@ -122,12 +120,21 @@ Loader {
             sourceWidth: root.width
             sourceHeight: root.height
 
+            Layout.alignment: Qt.AlignLeft | Qt.AlignTop
             Layout.fillWidth: true
         }
 
         Item {
+            Layout.fillHeight: true
             Layout.fillWidth: true
             Layout.minimumWidth: 32
+
+            Text {
+                anchors.centerIn: parent
+                text: "Select file to preview."
+                color: palette.text
+                visible: !root.active
+            }
         }
 
         StatusLabel {
@@ -135,6 +142,7 @@ Loader {
 
             sourceWidth: root.width
             sourceHeight: root.height
+            Layout.alignment: Qt.AlignRight | Qt.AlignTop
         }
     }
 }

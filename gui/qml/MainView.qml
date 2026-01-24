@@ -46,7 +46,7 @@ SplitView {
         color: {
             if (SplitHandle.pressed) return "#0078D4"
             if (SplitHandle.hovered) return "#404040"
-            return "#2D2D2D"
+            return palette.mid
         }
 
         HoverHandler {
@@ -57,12 +57,15 @@ SplitView {
         }
     }
 
+
     TableViewExt {
         id: tableView
 
         SplitView.minimumWidth: 200
 
         focus: true
+
+        clip: true
 
         visible: splitView._showTableView || (previewdata?.fileType() ?? PreviewData.Unknown) === PreviewData.Unknown
 
@@ -81,7 +84,7 @@ SplitView {
 
         SplitView.fillWidth: true
         background: Rectangle {
-            color: "#1E1E1E"
+            color: "#202020"
         }
 
         PreviewView {

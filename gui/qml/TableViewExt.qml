@@ -431,8 +431,7 @@ Pane {
         visible: control.policy !== ScrollBar.AlwaysOff
         minimumSize: orientation === Qt.Horizontal ? height / width : width / height
 
-        background: Rectangle {
-            color: "#1E1E1E"
+        background: Item {
         }
 
         contentItem: Rectangle {

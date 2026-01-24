@@ -33,23 +33,11 @@ public:
     qint64 fileSize(int i) override { return entries[i].size; }
     bool isDir(int i) override { return entries[i].isdir; }
 
-    QDateTime fileLastAccessTime(int i) override
-    {
-        return {};
-        // return QFileInfo(entries[i].path).lastRead();
-    }
+    QDateTime fileLastAccessTime(int i) override { return QFileInfo(entries[i].path).lastRead(); }
 
-    QDateTime fileCreationTime(int i) override
-    {
-        return {};
-        // return QFileInfo(entries[i].path).birthTime();
-    }
+    QDateTime fileCreationTime(int i) override { return QFileInfo(entries[i].path).birthTime(); }
 
-    QDateTime fileModifiedTime(int i) override
-    {
-        return {};
-        // return QFileInfo(entries[i].path).lastModified();
-    }
+    QDateTime fileModifiedTime(int i) override { return QFileInfo(entries[i].path).lastModified(); }
 };
 
 template<bool LeanMode>

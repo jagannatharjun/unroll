@@ -6,11 +6,11 @@ Rectangle {
 
     color: "white"
 
-    property alias player: player
+    property alias previewPlayer: player
 
     property alias source: player.source
 
-    property int position: player.position
+    property int position
 
     property alias videoRotation: voutput.orientation
 
@@ -25,18 +25,11 @@ Rectangle {
     onEnabledChanged: {
         if (enabled)
             player.pause()
-        else
-            player.stop()
     }
 
-    onPositionChanged: {
-        if (enabled)
-            player.pause()
-        else
-            player.stop()
-    }
+    Component.onCompleted: player.pause()
 
-    visible: enabled && player.mediaStatus !== MediaPlayer.PauseState
+    visible: enabled && player.mediaStatus === MediaPlayer.LoadedMedia
 
     MediaPlayer {
         id: player
@@ -44,7 +37,9 @@ Rectangle {
         videoOutput: voutput
 
         // resolution is 1sec, we don't need this too much accurate
-        position: (root.position / 1000) * 1000
+        position: Math.floor(root.position / 1000) * 1000
+
+        playbackOptions.playbackIntent: PlaybackOptions.LowLatencyStreaming
     }
 
     VideoOutput {
@@ -52,7 +47,5 @@ Rectangle {
 
         anchors.fill: parent
         anchors.margins: 2
-
-        visible: player.mediaStatus === MediaPlayer.LoadedMedia
     }
 }

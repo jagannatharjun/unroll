@@ -24,6 +24,8 @@ FocusScope {
 
     property int _positionRounded: Math.floor(player.position / 1000) * 1000
 
+    property bool _positionLongHovered: false
+
     signal previewCompleted()
 
     signal previewed()
@@ -109,6 +111,8 @@ FocusScope {
     }
 
     onPreviewdataChanged: {
+        videoThumbnailLoader.active = false
+
         playbackStateMachine.startLoading()
 
         previewTimer.restart()
@@ -153,8 +157,7 @@ FocusScope {
                 if (!FileBrowser.setMediaSource(player, previewdata))
                     console.warn("failed to set source")
 
-                if (!FileBrowser.setMediaSource(videoPreview.player, previewdata))
-                    console.warn("failed to set source on video preview")
+
 
                 player.play()
             }
@@ -355,10 +358,35 @@ FocusScope {
                         value: player.position
                     }
 
-                    HoverHandler {
-                        id: durationHoverHandler
+                    MouseArea {
+                        id: positionMouseArea
 
-                        target: slider
+                        anchors.fill: parent
+
+                        acceptedButtons: Qt.NoButton
+
+                        hoverEnabled: true
+
+                        propagateComposedEvents: true
+
+                        onExited: {
+                            root._positionLongHovered = false
+                        }
+
+                        onPositionChanged: {
+                            root._positionLongHovered = false
+                            longPositionHoveredTimer.restart()
+                        }
+                    }
+
+                    Timer {
+                        id: longPositionHoveredTimer
+
+                        repeat: false
+
+                        interval: 500
+
+                        onTriggered: root._positionLongHovered = positionMouseArea.containsMouse
                     }
 
                     onValueChanged: {
@@ -462,50 +490,73 @@ FocusScope {
         }
     }
 
-    VideoFrame {
-        id: videoPreview
-
-        source: player.source
+    Loader {
+        id: videoThumbnailLoader
 
         property bool sliderLongPressed: false
 
-        readonly property point pos: {
-            const p = durationHoverHandler.point.position
-            const mp = durationHoverHandler.target.mapToItem(parent, p)
-            const mid = mp.x - width / 2
-            const x = Math.min(Math.max(0, mid), parent.width - width)
-            const y = durationHoverHandler.target.mapToItem(parent, Qt.point(0, 0)).y - height - 10
-            return Qt.point(x, y)
+        visible: root._positionLongHovered && !sliderLongPressed
+
+        onVisibleChanged: {
+            if (!active && visible) {
+                active = true
+
+                item.enabled = false
+
+                if (!item || !FileBrowser.setMediaSource(item.previewPlayer, root.previewdata))
+                    console.warn("failed to set source on video preview")
+                else
+                    item.enabled = true
+            }
         }
 
+        readonly property point pos: {
+            if (!active) return Qt.point(0, 0)
+            const p = Qt.point(positionMouseArea.mouseX, positionMouseArea.mouseY)
+            const mp = positionMouseArea.parent.mapToItem(parent, p)
+            const mid = mp.x - width / 2
+            const x = Math.min(Math.max(0, mid), parent.width - width)
+            const y = positionMouseArea.parent.mapToItem(parent, Qt.point(0, 0)).y - height - 10
+            return Qt.point(x, y)
+        }
 
         x: pos.x
 
         y: pos.y
 
-        width: implicitWidth
-        height: implicitHeight
+        sourceComponent: VideoFrame {
+            id: videoThumbnail
 
-        enabled: durationHoverHandler.hovered && !sliderLongPressed
+            source: player.source
 
-        position: {
-            if (!enabled) return 0
-            const pos = durationHoverHandler.point.position.x / slider.background.width
-            return pos * player.duration
-        }
+            width: implicitWidth
+            height: implicitHeight
 
-        videoRotation: root.videoRotation
+            enabled: false
 
-        Timer {
-            id: pressedTimeout
+            position: {
+                if (!enabled) return 0
+                const pos = positionMouseArea.mouseX / slider.background.width
+                return pos * player.duration
+            }
 
-            running: slider.pressed
 
-            interval: 200
+            videoRotation: root.videoRotation
 
-            onRunningChanged: if (running) videoPreview.sliderLongPressed = false
+            Timer {
+                id: pressedTimeout
 
-            onTriggered: videoPreview.sliderLongPressed = Qt.binding(() => slider.pressed)
+                running: slider.pressed
+
+                interval: 200
+
+                onRunningChanged: if (running) videoThumbnail.sliderLongPressed = false
+
+                onTriggered: videoThumbnail.sliderLongPressed = Qt.binding(() => slider.pressed)
+            }
+
+            Component.onCompleted: print("loaded video thumbnail component")
+            Component.onDestruction: print("destroyed video thumbnail component")
         }
     }
 

@@ -40,6 +40,7 @@ private:
     QByteArray m_buf;
     qint64 m_bufferPos = 0;
     qint64 m_readerStartPos = 0;
+    bool m_readerSeekable = false;
 };
 
 #endif // ASYNCARCHIVEIODEVICE_H

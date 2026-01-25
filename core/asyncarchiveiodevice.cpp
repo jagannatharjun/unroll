@@ -59,23 +59,6 @@ bool AsyncArchiveIODevice::repositionReader()
             // Forward seek
             qDebug() << "Forward seek detected - need to skip" << bytesToSkip << "bytes";
 
-            // Try to use the reader's seek if available
-            if (m_reader && !m_reader->isFinished()) {
-                // Use archive seek for large forward seeks
-                if (bytesToSkip > 64 * 1024 * 1024) {
-                    qDebug() << "Using archive_seek_data for large forward seek";
-                    if (m_reader->seek(m_readerStartPos + m_bufferPos + bytesToSkip)) {
-                        // Seek succeeded - clear buffer and continue
-                        m_readerStartPos = m_readerStartPos + m_bufferPos + bytesToSkip;
-                        m_buf.clear();
-                        m_bufferPos = 0;
-                        return true;
-                    } else {
-                        qWarning() << "Archive seek failed, falling back to manual skip";
-                    }
-                }
-            }
-
             // Fall back to manual skipping within buffer or fetching new data
             QElapsedTimer readTimer;
             readTimer.start();
@@ -94,8 +77,13 @@ bool AsyncArchiveIODevice::repositionReader()
 
                 // If we still need to skip more, fetch and discard new data
                 if (bytesToSkip > 0 && m_bufferPos >= m_buf.size()) {
-                    if (readTimer.elapsed() > 100) {
-                        qDebug() << "Reached time limit to forward seek, attempting reader seek";
+                    const bool hitTimeLimit = readTimer.elapsed() > 100;
+                    if (hitTimeLimit || m_readerSeekable) {
+                        if (hitTimeLimit)
+                            qDebug() << "Reached time limit to forward seek, attempting reader seek";
+                        else
+                            qDebug() << "reader seekable, attempting direct seek";
+
                         seekOrResetReader(m_readerStartPos + m_bufferPos + bytesToSkip);
                         break;
                     }
@@ -155,6 +143,7 @@ void AsyncArchiveIODevice::seekOrResetReader(qint64 pos)
         m_readerStartPos = pos;
         m_buf.clear();
         m_bufferPos = 0;
+        m_readerSeekable = true;
     } else {
         qDebug() << "reader seek failed, resetting reader";
         resetReader();

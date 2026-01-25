@@ -30,6 +30,7 @@ private:
     void resetReader();
     bool repositionReader();
     void releaseReader();
+    void seekOrResetReader(qint64 pos);
 
     const QString m_archivePath;
     const QString m_childPath;

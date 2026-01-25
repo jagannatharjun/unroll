@@ -740,7 +740,7 @@ public:
 
         // rar files support seemless seeking
         if (p.endsWith(".rar"))
-            archiveIODevice.reset(new ArchiveIODevice(p, childPath));
+           return std::unique_ptr<QIODevice>(new ArchiveIODevice(p, childPath));
         else
             archiveIODevice.reset(new AsyncArchiveIODevice(p, childPath, size));
 

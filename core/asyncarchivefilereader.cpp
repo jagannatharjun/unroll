@@ -180,17 +180,18 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
     }
 }
 
-QByteArray AsyncArchiveFileReader::getAvailableData()
+void AsyncArchiveFileReader::getAvailableData(QByteArray &result)
 {
     QMutexLocker locker(&m_mutex);
     while (m_count == 0 && m_workerRunning && !m_aborted.load()) {
         m_dataAvailable.wait(&m_mutex);
     }
 
-    if (m_count == 0)
-        return QByteArray();
+    if (m_count == 0) {
+        result.resize(0);
+        return;
+    }
 
-    QByteArray result;
     result.resize(m_count);
 
     size_t totalToCopy = m_count;
@@ -208,7 +209,13 @@ QByteArray AsyncArchiveFileReader::getAvailableData()
 
     m_count = 0;
     m_canProduce.notify_all();
-    return result;
+}
+
+QByteArray AsyncArchiveFileReader::getAvailableData()
+{
+    QByteArray data;
+    getAvailableData(data);
+    return data;
 }
 
 qint64 AsyncArchiveFileReader::bytesAvailable() const

@@ -88,17 +88,17 @@ bool AsyncArchiveIODevice::repositionReader()
                         break;
                     }
 
-                    QByteArray newData = m_reader->getAvailableData();
-                    if (newData.isEmpty()) {
+                    m_reader->getAvailableData(m_buf);
+                    m_readerStartPos += m_buf.size(); // Update position for old buffer
+                    m_bufferPos = 0;
+
+                    if (m_buf.isEmpty()) {
                         // No more data available to skip
                         qDebug() << "No more data available, cannot skip remaining" << bytesToSkip
                                  << "bytes";
                         return false;
                     }
 
-                    m_readerStartPos += m_buf.size(); // Update position for old buffer
-                    m_buf = newData;
-                    m_bufferPos = 0;
                     qDebug() << "Fetched new buffer of size" << m_buf.size();
                 }
 
@@ -163,7 +163,7 @@ qint64 AsyncArchiveIODevice::readData(char *data, qint64 maxlen)
     // If we've exhausted the buffer, get more data
     if (m_bufferPos >= m_buf.size() && totalRead == 0) {
         m_readerStartPos += m_buf.size(); // Update position for old buffer
-        m_buf = m_reader->getAvailableData();
+        m_reader->getAvailableData(m_buf);
         m_bufferPos = 0;
         if (m_buf.isEmpty()) // No more data available
             return -1;       // nothing to read

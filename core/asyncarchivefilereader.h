@@ -21,6 +21,7 @@ public:
 
     // Consumer Methods
     QByteArray getAvailableData();
+    void getAvailableData(QByteArray &buf);
     qint64 bytesAvailable() const;
     bool isFinished() const { return !m_workerRunning; }
     bool seek(qint64 pos);

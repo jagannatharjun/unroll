@@ -71,13 +71,40 @@ Container {
         sourceComponent: root._editMode ? editComponent : pathButtonComponent
     }
 
-    component PathButton : Button {
-        font: pathButtonFont.font
-        padding: root._pathButtonPadding
-        hoverEnabled: true
-        background: Rectangle {
+    component PathButton : Item {
+        id: pathButton
+
+        property alias text: lbl.text
+
+        signal pressed()
+
+        implicitWidth: lbl.implicitWidth
+        implicitHeight: lbl.implicitHeight
+
+        width: implicitWidth
+        height: implicitHeight
+
+        Rectangle {
+            anchors.fill: parent
             color: palette.active.button
-            visible: (visualFocus || hovered)
+            visible: hoverHandler.hovered
+        }
+
+        Text {
+            id: lbl
+
+            anchors.fill: parent
+            color: palette.text
+            padding: root._pathButtonPadding
+            font: pathButtonFont.font
+        }
+
+        HoverHandler {
+            id: hoverHandler
+        }
+
+        TapHandler{
+            onTapped: pathButton.pressed()
         }
     }
 
@@ -129,13 +156,17 @@ Container {
                 model: root._displayedPathComponents
 
                 delegate: PathButton {
-                    Layout.minimumWidth: Math.min(implicitWidth, 32)
-                    Layout.maximumWidth: implicitWidth + 2 // in some cases, Layout seems to elide
-                    Layout.fillWidth: true // required for auto resize
 
                     text: modelData.pathText + root._pathButtonSuffix
 
                     onPressed: root._requestPath(modelData.pathIndex)
+
+                    onImplicitWidthChanged: Qt.callLater(root._requestComponentUpdate)
+
+                    onWidthChanged: {
+                        if (implicitWidth > width)
+                            Qt.callLater(root._requestComponentUpdate)
+                    }
                 }
             }
 
@@ -170,6 +201,10 @@ Container {
         root.requestPath(p)
     }
 
+    function _requestComponentUpdate() {
+        root._displayedPathComponents = Qt.binding(() => root._calcDisplayedPathButtons())
+    }
+
     function _calcDisplayedPathButtons() {
         let aw = root.availableWidth - pathButtonFont.advanceWidth("<<") - _pathButtonPadding * 2
 
@@ -177,7 +212,8 @@ Container {
         var r = []
         var i
         for (i = _pathcomponents.length - 1; i >= 0; --i) {
-            const s = pathButtonFont.advanceWidth(_pathcomponents[i].pathText + root._pathButtonSuffix)
+            const text = _pathcomponents[i].pathText + root._pathButtonSuffix
+            const s = pathButtonFont.advanceWidth(text)
                     + _pathButtonPadding * 2
                     + root._pathButtonSpacing
 
@@ -191,7 +227,7 @@ Container {
 
         if (i === -1)
             r = _pathcomponents // all fits
-        else // nothing fits
+        else if (i === _pathcomponents.length - 1) // nothing fits
             r = _pathcomponents.slice(_pathcomponents.length - 1)
 
         return r

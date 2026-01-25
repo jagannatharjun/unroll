@@ -6,6 +6,8 @@ Rectangle {
 
     color: "white"
 
+    property alias player: player
+
     property alias source: player.source
 
     property int position: player.position

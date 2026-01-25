@@ -153,6 +153,9 @@ FocusScope {
                 if (!FileBrowser.setMediaSource(player, previewdata))
                     console.warn("failed to set source")
 
+                if (!FileBrowser.setMediaSource(videoPreview.player, previewdata))
+                    console.warn("failed to set source on video preview")
+
                 player.play()
             }
 

@@ -111,6 +111,8 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
                 return;
             }
 
+            qint64 currentPos = startPos;
+
             // --- ZERO-COPY PRODUCER LOOP ---
             while (!m_aborted.load()) {
                 QMutexLocker locker(&m_mutex);
@@ -119,17 +121,29 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
                 if (m_seekRequested.load()) {
                     qint64 pos = m_seekPos.load();
 
-                    locker.unlock();
-                    la_int64_t actualPos = archive_seek_data(a, pos, SEEK_SET);
-                    locker.relock();
+                    // The buffer contains data from [bufferStartPos] to [currentPos]
+                    const qint64 bufferStartPos = currentPos - m_count;
+                    if (bufferStartPos <= pos && currentPos >= pos) {
+                        const qint64 bytesToSkip = pos - bufferStartPos;
+                        qDebug() << "Seek request inside the buffer, bytes to skip" << bytesToSkip;
+                        m_head = (m_head + bytesToSkip) % m_capacity;
+                        m_count -= bytesToSkip;
+                        m_seekSuccess = true;
+                    } else {
+                        locker.unlock();
+                        la_int64_t actualPos = archive_seek_data(a, pos, SEEK_SET);
+                        locker.relock();
 
-                    m_seekSuccess = (actualPos >= 0 && actualPos == pos);
+                        m_seekSuccess = (actualPos >= 0 && actualPos == pos);
 
-                    if (m_seekSuccess) {
-                        m_head = 0;
-                        m_tail = 0;
-                        m_count = 0;
+                        if (m_seekSuccess) {
+                            m_head = 0;
+                            m_tail = 0;
+                            m_count = 0;
+                            currentPos = pos;
+                        }
                     }
+
 
                     m_seekRequested = false;
                     m_seekDone.notify_all(); // Wake up the specific seek waiter
@@ -149,7 +163,7 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
                 size_t toRead = std::min<size_t>(linearSpace, READ_CHUNK_SIZE);
 
                 locker.unlock();
-                la_ssize_t bytesRead = archive_read_data(a, &m_buffer[m_tail], toRead);
+                const la_ssize_t bytesRead = archive_read_data(a, &m_buffer[m_tail], toRead);
                 locker.relock();
 
                 if (bytesRead < 0) {
@@ -161,6 +175,7 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
 
                 m_tail = (m_tail + bytesRead) % m_capacity;
                 m_count += bytesRead;
+                currentPos += bytesRead;
 
                 m_dataAvailable.notify_all();
 

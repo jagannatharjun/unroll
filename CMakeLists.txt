@@ -32,6 +32,8 @@ if (STATIC_BUILD)
 	message("using msvc static runtime")
 endif(STATIC_BUILD)
 
+add_link_options("/PROFILE")
+
 add_subdirectory(core)
 add_subdirectory(tests)
 add_subdirectory(gui)

@@ -65,6 +65,7 @@ void AsyncArchiveFileReader::start(const QString &archiveFile,
     m_count = 0;
 
     QThreadPool::globalInstance()->start([this, archiveFile, childPath, startPos]() {
+        qInfo() << "running on thread" << QThread::currentThreadId();
         runExtractionTask(archiveFile, childPath, startPos);
     });
 }
@@ -114,7 +115,7 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
             while (!m_aborted.load()) {
                 QMutexLocker locker(&m_mutex);
 
-                // Check if a seek was requested
+                // 1. Check if a seek was requested
                 if (m_seekRequested.load()) {
                     qint64 pos = m_seekPos.load();
 
@@ -125,34 +126,28 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
                     m_seekSuccess = (actualPos >= 0 && actualPos == pos);
 
                     if (m_seekSuccess) {
-                        // Clear the buffer after successful seek
                         m_head = 0;
                         m_tail = 0;
                         m_count = 0;
-                    } else {
-                        qWarning("Archive seek to %lld failed", pos);
                     }
 
                     m_seekRequested = false;
-                    m_seekDone.notify_all();
+                    m_seekDone.notify_all(); // Wake up the specific seek waiter
+                    continue; // Re-evaluate loop condition and buffer space
                 }
 
-                // Wait until we have at least READ_CHUNK_SIZE space available
-                while ((m_capacity - m_count) < READ_CHUNK_SIZE && !m_aborted.load()) {
+                // 2. Wait until we have space OR a seek is requested
+                while (((m_capacity - m_count) < READ_CHUNK_SIZE && !m_aborted.load()) && !m_seekRequested) {
                     m_canProduce.wait(&m_mutex);
                 }
-                if (m_aborted.load())
-                    return;
 
-                if (m_seekRequested)
-                    continue;
+                if (m_aborted.load()) return;
+                if (m_seekRequested) continue; // Go back to top to handle seek
 
-                // Find the contiguous linear space at the end of the buffer
+                // 3. Perform Read
                 size_t linearSpace = m_capacity - m_tail;
                 size_t toRead = std::min<size_t>(linearSpace, READ_CHUNK_SIZE);
 
-                // IMPORTANT: Unlock during I/O to allow the consumer to drain the buffer
-                // while libarchive is decompressing data.
                 locker.unlock();
                 la_ssize_t bytesRead = archive_read_data(a, &m_buffer[m_tail], toRead);
                 locker.relock();
@@ -236,20 +231,18 @@ bool AsyncArchiveFileReader::seek(qint64 pos)
 {
     QMutexLocker locker(&m_mutex);
 
-    if (!m_workerRunning) {
-        qWarning("Cannot seek: worker is not running");
-        return false;
-    }
+    if (!m_workerRunning) return false;
 
-    // Request the seek operation
     m_seekPos = pos;
     m_seekRequested = true;
-    m_seekSuccess = false;
 
-    // Wait for the worker to complete the seek
-    while (m_seekRequested.load() && !m_aborted.load()) {
+    // Wake the worker in case it's sleeping because the buffer is full
+    m_canProduce.notify_all();
+
+    // Wait on the dedicated seek condition, NOT the production condition
+    while (m_seekRequested && !m_aborted && m_workerRunning) {
         m_seekDone.wait(&m_mutex);
     }
 
-    return m_seekSuccess;
+    return m_seekSuccess && m_workerRunning;
 }

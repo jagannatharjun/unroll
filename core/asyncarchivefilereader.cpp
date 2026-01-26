@@ -74,6 +74,12 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
                                                QString childPath,
                                                qint64 startPos)
 {
+    const auto raiseError = [this](const QString &error)
+    {
+        // Use invokeMethod to safely signal completion from a thread
+        QMetaObject::invokeMethod(this, &AsyncArchiveFileReader::error, error);
+    };
+
     struct archive *a = archive_read_new();
     archive_read_support_filter_all(a);
     archive_read_support_format_all(a);
@@ -93,7 +99,7 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
     });
 
     if (archive_read_open_filename_w(a, archivePath.toStdWString().c_str(), 10240) != ARCHIVE_OK) {
-        emit error(QString::fromUtf8(archive_error_string(a)));
+        raiseError(QString::fromUtf8(archive_error_string(a)));
         return;
     }
 
@@ -103,95 +109,96 @@ void AsyncArchiveFileReader::runExtractionTask(QString archivePath,
         if (m_aborted.load())
             return;
 
-        if (QLatin1StringView(archive_entry_pathname(entry)) == childPath) {
-            fileFound = true;
+        if (QLatin1StringView(archive_entry_pathname(entry)) != childPath) {
+            continue;
+        }
 
-            if (!seekToFile(a, entry, startPos, [this]() { return m_aborted.load(); })) {
-                emit error("Failed to seek to start position");
-                return;
-            }
+        fileFound = true;
 
-            qint64 currentPos = startPos;
-
-            // --- ZERO-COPY PRODUCER LOOP ---
-            while (!m_aborted.load()) {
-                QMutexLocker locker(&m_mutex);
-
-                // 1. Check if a seek was requested
-                if (m_seekRequested.load()) {
-                    qint64 pos = m_seekPos.load();
-
-                    // The buffer contains data from [bufferStartPos] to [currentPos]
-                    const qint64 bufferStartPos = currentPos - m_count;
-                    if (bufferStartPos <= pos && currentPos >= pos) {
-                        const qint64 bytesToSkip = pos - bufferStartPos;
-                        qDebug() << "Seek request inside the buffer, bytes to skip" << bytesToSkip;
-                        m_head = (m_head + bytesToSkip) % m_capacity;
-                        m_count -= bytesToSkip;
-                        m_seekSuccess = true;
-                    } else {
-                        locker.unlock();
-                        la_int64_t actualPos = archive_seek_data(a, pos, SEEK_SET);
-                        locker.relock();
-
-                        m_seekSuccess = (actualPos >= 0 && actualPos == pos);
-
-                        if (m_seekSuccess) {
-                            m_head = 0;
-                            m_tail = 0;
-                            m_count = 0;
-                            currentPos = pos;
-                        }
-                    }
-
-
-                    m_seekRequested = false;
-                    m_seekDone.notify_all(); // Wake up the specific seek waiter
-                    continue; // Re-evaluate loop condition and buffer space
-                }
-
-                // 2. Wait until we have space OR a seek is requested
-                while (((m_capacity - m_count) < READ_CHUNK_SIZE && !m_aborted.load()) && !m_seekRequested) {
-                    m_canProduce.wait(&m_mutex);
-                }
-
-                if (m_aborted.load()) return;
-                if (m_seekRequested) continue; // Go back to top to handle seek
-
-                // 3. Perform Read
-                size_t linearSpace = m_capacity - m_tail;
-                size_t toRead = std::min<size_t>(linearSpace, READ_CHUNK_SIZE);
-
-                locker.unlock();
-                const la_ssize_t bytesRead = archive_read_data(a, &m_buffer[m_tail], toRead);
-                locker.relock();
-
-                if (bytesRead < 0) {
-                    emit error(QString::fromUtf8(archive_error_string(a)));
-                    return;
-                }
-                if (bytesRead == 0)
-                    break; // EOF
-
-                m_tail = (m_tail + bytesRead) % m_capacity;
-                m_count += bytesRead;
-                currentPos += bytesRead;
-
-                m_dataAvailable.notify_all();
-
-                // Using QueuedConnection ensures the UI thread handles this
-                // when it's next "awake" and the object is guaranteed to exist.
-                QMetaObject::invokeMethod(this,
-                                          &AsyncArchiveFileReader::dataAvailable,
-                                          Qt::QueuedConnection);
-            }
+        if (!seekToFile(a, entry, startPos, [this]() { return m_aborted.load(); })) {
+            raiseError("Failed to seek to start position");
             return;
         }
-        archive_read_data_skip(a);
+
+        qint64 currentPos = startPos;
+
+        while (!m_aborted.load()) {
+            QMutexLocker locker(&m_mutex);
+
+            // 1. Check if a seek was requested
+            if (m_seekRequested.load()) {
+                qint64 pos = m_seekPos.load();
+
+                // The buffer contains data from [bufferStartPos] to [currentPos]
+                const qint64 bufferStartPos = currentPos - m_count;
+                if (bufferStartPos <= pos && currentPos >= pos) {
+                    const qint64 bytesToSkip = pos - bufferStartPos;
+                    qDebug() << "Seek request inside the buffer, bytes to skip" << bytesToSkip;
+                    m_head = (m_head + bytesToSkip) % m_capacity;
+                    m_count -= bytesToSkip;
+                    m_seekSuccess = true;
+                } else {
+                    const la_int64_t actualPos = archive_seek_data(a, pos, SEEK_SET);
+
+                    m_seekSuccess = (actualPos >= 0 && actualPos == pos);
+
+                    if (m_seekSuccess) {
+                        m_head = 0;
+                        m_tail = 0;
+                        m_count = 0;
+                        currentPos = pos;
+                    }
+                }
+
+                m_seekRequested = false;
+                m_seekDone.notify_all(); // Wake up the specific seek waiter
+                continue;                // Re-evaluate loop condition and buffer space
+            }
+
+            // 2. Wait until we have space OR a seek is requested
+            while (((m_capacity - m_count) < READ_CHUNK_SIZE)
+                   && !m_aborted.load()
+                   && !m_seekRequested) {
+                m_canProduce.wait(&m_mutex);
+            }
+
+            if (m_aborted.load())
+                return;
+            if (m_seekRequested)
+                continue; // Go back to top to handle seek
+
+            // 3. Perform Read
+            size_t linearSpace = m_capacity - m_tail;
+            size_t toRead = std::min<size_t>(linearSpace, READ_CHUNK_SIZE);
+
+            locker.unlock();
+            const la_ssize_t bytesRead = archive_read_data(a, &m_buffer[m_tail], toRead);
+            locker.relock();
+
+            if (bytesRead < 0) {
+                raiseError(QString::fromUtf8(archive_error_string(a)));
+                return;
+            }
+            if (bytesRead == 0)
+                break; // EOF
+
+            m_tail = (m_tail + bytesRead) % m_capacity;
+            m_count += bytesRead;
+            currentPos += bytesRead;
+
+            m_dataAvailable.notify_all();
+
+            // Using QueuedConnection ensures the UI thread handles this
+            // when it's next "awake" and the object is guaranteed to exist.
+            QMetaObject::invokeMethod(this,
+                                      &AsyncArchiveFileReader::dataAvailable,
+                                      Qt::QueuedConnection);
+        }
+        return;
     }
 
     if (!fileFound && !m_aborted.load()) {
-        emit error("File not found in archive");
+        raiseError("File not found in archive");
     }
 }
 

@@ -51,7 +51,7 @@ private:
     size_t m_head = 0;
     size_t m_tail = 0;
     size_t m_count = 0;
-    const size_t m_capacity = 16 * 1024 * 1024;
+    const size_t m_capacity = 32 * 1024 * 1024;
 };
 
 #endif

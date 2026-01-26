@@ -400,7 +400,7 @@ BuildTreeResult buildTree(const QString &filePath, const QString &childpath, con
             current = next;
         }
 
-        if (!name.isEmpty()) // this is a file
+        if (!name.isEmpty() && !dirMap[current][name]) // this is a file
         {
             nodepath += QString("/") + name;
 

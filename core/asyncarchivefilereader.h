@@ -21,7 +21,7 @@ public:
 
     // Consumer Methods
     QByteArray getAvailableData();
-    void getAvailableData(QByteArray &buf);
+    void getAvailableData(QByteArray &buf, qint64 maxRead = 8 * 1024 * 1024);
     qint64 bytesAvailable() const;
     bool isFinished() const { return !m_workerRunning; }
     bool seek(qint64 pos);
@@ -51,7 +51,7 @@ private:
     size_t m_head = 0;
     size_t m_tail = 0;
     size_t m_count = 0;
-    const size_t m_capacity = 32 * 1024 * 1024;
+    const size_t m_capacity = 50 * 1024 * 1024;
 };
 
 #endif

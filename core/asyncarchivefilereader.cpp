@@ -202,12 +202,10 @@ void AsyncArchiveFileReader::getAvailableData(QByteArray &result)
         m_dataAvailable.wait(&m_mutex);
     }
 
+    result.resize(m_count);
     if (m_count == 0) {
-        result.resize(0);
         return;
     }
-
-    result.resize(m_count);
 
     size_t totalToCopy = m_count;
     size_t copied = 0;

@@ -146,6 +146,7 @@ void AsyncArchiveIODevice::seekOrResetReader(qint64 pos)
         m_readerSeekable = true;
     } else {
         qDebug() << "reader seek failed, resetting reader";
+        m_readerSeekable = false;
         resetReader();
     }
 }

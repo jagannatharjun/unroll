@@ -264,6 +264,9 @@ Pane {
                     source: column === 0 ? model.iconId : ""
                     width: 24
                     height: 24
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize.width: width
+                    sourceSize.height: height
                     cache: true
                     Layout.alignment:Qt.AlignVCenter
                     visible: column === 0

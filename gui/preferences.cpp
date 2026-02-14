@@ -13,6 +13,7 @@ const QString RECENT_URLS = "RECENT_URLS";
 const QString LAST_SESSION_INDEX = "MainView/LAST_SESSION_INDEX";
 const QString LAST_SESSION_URL = "MainView/LAST_SESSION_URL";
 const QString PREVIEW_VIDEO_ROTATION = "MainView/PREVIEW_VIDEO_ROTATION";
+const QString ENABLE_THUMBNAIL_PREVIEW = "MainView/ENABLE_THUMBNAIL_PREVIEW";
 
 
 const int MAX_RECENT_URLS = 10;
@@ -31,6 +32,7 @@ Preferences::Preferences(const QDir &appDataDir
     , m_recentUrls(RECENT_URLS, {}, m_setting)
     , m_lastSessionUrl(LAST_SESSION_URL, {}, m_setting)
     , m_videoRotation(PREVIEW_VIDEO_ROTATION, {}, m_setting)
+    , m_enableThumbnailPreview(ENABLE_THUMBNAIL_PREVIEW, {}, m_setting)
 {
 }
 
@@ -134,3 +136,16 @@ void Preferences::setShowMainFileView(bool newShowMainFileView)
     emit showMainFileViewChanged();
 }
 
+bool Preferences::enableThumbnailPreview() const
+{
+    return m_enableThumbnailPreview;
+}
+
+void Preferences::setEnableThumbnailPreview(const bool &newEnableThumbnailPreview)
+{
+    if (newEnableThumbnailPreview == m_enableThumbnailPreview)
+        return;
+
+    m_enableThumbnailPreview.set(newEnableThumbnailPreview, m_setting);
+    emit enableThumbnailPreviewChanged();
+}

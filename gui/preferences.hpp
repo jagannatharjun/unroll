@@ -55,6 +55,7 @@ class Preferences : public QObject
     Q_PROPERTY(QString lastSessionUrl READ lastSessionUrl WRITE setLastSessionUrl NOTIFY lastSessionUrlChanged FINAL)
     Q_PROPERTY(int videoRotation READ videoRotation WRITE setVideoRotation NOTIFY videoRotationChanged FINAL)
     Q_PROPERTY(bool showMainFileView READ showMainFileView WRITE setShowMainFileView NOTIFY showMainFileViewChanged FINAL)
+    Q_PROPERTY(bool enableThumbnailPreview READ enableThumbnailPreview WRITE setEnableThumbnailPreview NOTIFY enableThumbnailPreviewChanged FINAL)
 
 
 public:
@@ -83,6 +84,9 @@ public:
     bool showMainFileView() const;
     void setShowMainFileView(bool newShowMainFileView);
 
+    bool enableThumbnailPreview() const;
+    void setEnableThumbnailPreview(const bool &newEnableThumbnailPreview);
+
 signals:
     void volumeMutedChanged();
 
@@ -98,6 +102,8 @@ signals:
 
     void showMainFileViewChanged();
 
+    void enableThumbnailPreviewChanged();
+
 private:
     QSettings m_setting;
     SettingEntry<bool> m_volumeMuted;
@@ -107,5 +113,6 @@ private:
     SettingEntry<QStringList> m_recentUrls;
     SettingEntry<QString> m_lastSessionUrl;
     SettingEntry<int> m_videoRotation;
+    SettingEntry<bool> m_enableThumbnailPreview;
 };
 

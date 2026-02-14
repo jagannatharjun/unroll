@@ -26,6 +26,8 @@ FocusScope {
 
     property bool _positionLongHovered: false
 
+    property bool _enableThumbnailPreview: thumbnailPreview.checked
+
     signal previewCompleted()
 
     signal previewed()
@@ -311,6 +313,16 @@ FocusScope {
                 anchors.fill: parent
 
             }
+
+            ContextMenu.menu: Menu {
+                MenuItem {
+                    id: thumbnailPreview
+                    text: qsTr("Enable Preview")
+                    checkable: true
+                    checked: Preferences.enableThumbnailPreview
+                    onCheckedChanged: Preferences.enableThumbnailPreview = checked
+                }
+            }
         }
 
         Pane {
@@ -495,7 +507,7 @@ FocusScope {
 
         property bool sliderLongPressed: false
 
-        visible: root._positionLongHovered && !sliderLongPressed
+        visible: root._positionLongHovered && !sliderLongPressed && root._enableThumbnailPreview
 
         onVisibleChanged: {
             if (!active && visible) {

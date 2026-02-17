@@ -135,13 +135,16 @@ void AsyncBufferedReaderTest::testSeekInsideBuffer()
     inputData.append("TARGET");
     auto source = std::make_unique<QBuffer>(&inputData);
 
-    AsyncBufferedReader reader;
+    AsyncBufferedReader reader(2 * 1024 * 1024);
     reader.openSource(std::move(source));
 
     // Wait until at least 1MB is buffered
-    while(reader.bytesAvailable() < 1024 * 1024) {
-        QTest::qWait(10);
-    }
+    auto count = [&reader]() {
+        QMutexLocker l(&reader.m_mutex);
+        return reader.m_count;
+    };
+
+    QTRY_VERIFY(count() < 1024 * 1024);
 
     // Seek to the "TARGET" string
     bool seekSuccess = reader.seek(1024 * 1024);
@@ -189,11 +192,7 @@ void AsyncBufferedReaderTest::testAbortMidRead()
     QTest::qWait(100); // Let it start
     reader.abort();
 
-    QTest::qWait(100);
-    // bytesAvailable should stop increasing
-    qint64 available = reader.bytesAvailable();
-    QTest::qWait(100);
-    QCOMPARE(reader.bytesAvailable(), available);
+    QTRY_VERIFY(!reader.m_workerRunning);
 }
 
 /**

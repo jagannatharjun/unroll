@@ -144,7 +144,7 @@ void AsyncBufferedReaderTest::testSeekInsideBuffer()
         return reader.m_count;
     };
 
-    QTRY_VERIFY(count() < 1024 * 1024);
+    QTRY_VERIFY(count() == inputData.size());
 
     // Seek to the "TARGET" string
     bool seekSuccess = reader.seek(1024 * 1024);

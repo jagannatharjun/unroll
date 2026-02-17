@@ -104,7 +104,6 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
         if (bytesRead <= 0) {
             m_sourceEof = (bytesRead == 0);
             m_dataWait.notify_all();
-            break;
         }
 
         // --- 3. Update Tail Correctly ---
@@ -195,8 +194,9 @@ bool AsyncBufferedReader::seek(qint64 pos)
         return false;
 
     QMutexLocker locker(&m_mutex);
-    if (!m_workerRunning)
+    if (!m_workerRunning) {
         return false;
+    }
 
     m_seekPos = pos;
     m_seekRequested = true;

@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
+add_compile_options(-fsanitize=address -fsanitize=undefined  -fno-omit-frame-pointer)
+add_link_options(-fsanitize=address -fsanitize=undefined )
 
 project(file-browser VERSION 0.1 LANGUAGES CXX)
 
@@ -18,7 +20,6 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Test)
 #    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 option(DB_TEST "use test database" ON)
-
 if (DB_TEST)
     add_compile_definitions(-DDB_TEST)
 endif(DB_TEST)
@@ -31,8 +32,6 @@ if (STATIC_BUILD)
 	add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/MT>")
 	message("using msvc static runtime")
 endif(STATIC_BUILD)
-
-add_link_options("/PROFILE")
 
 add_subdirectory(core)
 add_subdirectory(tests)

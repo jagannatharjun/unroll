@@ -14,7 +14,8 @@ add_library(core directorysystem.hpp
     asyncarchivefilereader.h asyncarchivefilereader.cpp
     asyncarchiveiodevice.h asyncarchiveiodevice.cpp
     ArchiveIODevice.h ArchiveIODevice.cpp
-    CachedFileDevice.h CachedFileDevice.cpp)
+    CachedFileDevice.h CachedFileDevice.cpp
+    AsyncBufferedReader.h AsyncBufferedReader.cpp)
 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent Sql)
 

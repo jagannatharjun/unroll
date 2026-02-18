@@ -21,10 +21,7 @@ AsyncBufferedReader::AsyncBufferedReader(size_t capacity, QObject *parent)
 
 AsyncBufferedReader::~AsyncBufferedReader()
 {
-    abort();
-    QMutexLocker locker(&m_mutex);
-    while (m_workerRunning)
-        m_threadFinishedWait.wait(&m_mutex);
+    abortWorkerAndWait();
 }
 
 bool AsyncBufferedReader::openSource(std::unique_ptr<QIODevice> source,
@@ -38,13 +35,15 @@ bool AsyncBufferedReader::openSource(std::unique_ptr<QIODevice> source,
     if (!source->isOpen() && !source->open(QIODevice::ReadOnly))
         return false;
 
+    abortWorkerAndWait();
+
     m_totalSourceSize = source->size();
     m_workerRunning = true;
     m_aborted = false;
     m_sourceEof = false;
-    m_head = m_tail = m_count = 0;
+    m_head = m_tail = m_count = m_readPos = m_readLeft = 0;
 
-    QIODevice::open(openMode | QIODevice::Unbuffered);
+    QIODevice::open(openMode);
 
     QThreadPool::globalInstance()->start([this, src = std::move(source), startPos]() mutable {
         runWorker(std::move(src), startPos);
@@ -106,11 +105,12 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
             m_dataWait.notify_all();
         }
 
-        // --- 3. Update Tail Correctly ---
+        // --- 3. Update Tail ---
         // Because toRead was clamped by spaceAtTail,
         // (m_tail + bytesRead) will be <= m_capacity
         m_tail = (m_tail + bytesRead) % m_capacity;
         m_count += bytesRead;
+        m_readLeft += bytesRead;
         currentPos += bytesRead;
 
         m_dataWait.notify_all();
@@ -125,20 +125,28 @@ void AsyncBufferedReader::handleSeekInWorker(QIODevice *source, qint64 &currentP
 
     if (target >= bufferStart && target <= currentPos) {
         size_t offset = target - bufferStart;
-        m_head = (m_head + offset) % m_capacity;
-        m_count -= offset;
+        m_readPos = (m_head + offset) % m_capacity;
+        m_readLeft = m_count - offset;
         m_seekSuccess = true;
         m_sourceEof = false;
     } else {
         m_seekSuccess = source->seek(target);
         if (m_seekSuccess) {
-            m_head = m_tail = m_count = 0;
+            m_head = m_tail = m_count = m_readPos = m_readLeft = 0;
             currentPos = target;
             m_sourceEof = false;
         }
     }
     m_seekRequested = false;
     m_seekFinishedWait.notify_all();
+}
+
+void AsyncBufferedReader::abortWorkerAndWait()
+{
+    abort();
+    QMutexLocker locker(&m_mutex);
+    while (m_workerRunning)
+        m_threadFinishedWait.wait(&m_mutex);
 }
 
 qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
@@ -161,23 +169,27 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
         // 3. Determine how much we can pull in this specific iteration
         // We can only read what's in the buffer (m_count)
         // OR what's left to fill our request (target - totalRead)
-        size_t availableToCopy = std::min<size_t>(m_count, target - totalRead);
+        size_t availableToCopy = std::min<size_t>(m_readLeft, target - totalRead);
         size_t iterationCopied = 0;
 
         // 4. Handle Circular Buffer Wrap-around
         while (iterationCopied < availableToCopy) {
-            size_t chunk = std::min(availableToCopy - iterationCopied, m_capacity - m_head);
+            size_t chunk = std::min(availableToCopy - iterationCopied, m_capacity - m_readPos);
 
-            std::memcpy(data + totalRead, &m_buffer[m_head], chunk);
+            std::memcpy(data + totalRead, &m_buffer[m_readPos], chunk);
 
-            m_head = (m_head + chunk) % m_capacity;
+            m_readPos = (m_readPos + chunk) % m_capacity;
+            m_readLeft -= chunk;
             iterationCopied += chunk;
             totalRead += chunk;
         }
 
         // 5. Update global count and notify producer there is now room
-        m_count -= availableToCopy;
-        m_bufferSpaceWait.notify_all();
+        if (m_readLeft * 3 < m_capacity) {
+            m_head = m_readPos;
+            m_count = m_readLeft;
+            m_bufferSpaceWait.notify_all();
+        }
 
         // If we hit EOF or the source stopped, don't loop again even if totalRead < target
         if (m_sourceEof || m_aborted) {

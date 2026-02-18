@@ -17,6 +17,49 @@ private slots:
     void testSeekAtCapacityBoundary();
     void testCircularBufferWrap();
 
+    void testHistoryRetention() {
+        const size_t capacity = 30;
+        QByteArray data = "0123456789ABCDEFGHIJKLMNOPQRST"; // 30 bytes
+        AsyncBufferedReader reader(capacity);
+        reader.openSource(std::make_unique<QBuffer>(&data), 0, QIODevice::ReadOnly | QIODevice::Unbuffered);
+
+        auto count = [&reader]() {
+            QMutexLocker l(&reader.m_mutex);
+            return reader.m_count;
+        };
+
+        // Wait for full buffer
+        QTRY_COMPARE(count(), capacity);
+
+        // Read 10 bytes. readLeft becomes 20.
+        // History is 10. (10 < 30/3), so no eviction should happen yet.
+        QCOMPARE(reader.read(9), data.left(9));
+
+        QMutexLocker locker(&reader.m_mutex);
+        size_t history = reader.m_count - reader.m_readLeft;
+        QCOMPARE(history, (size_t)9);
+
+        // Internal Seek back to 0
+        locker.unlock();
+        QVERIFY(reader.seek(0));
+        // Verify no source seek happened (if you have a way to track source calls)
+        QCOMPARE(reader.read(5), QByteArray("01234"));
+    }
+
+    void testSeekBackwardAfterEOF() {
+        QByteArray data = "SmallData";
+        AsyncBufferedReader reader(100);
+        reader.openSource(std::make_unique<QBuffer>(&data));
+
+        QCOMPARE(reader.readAll(), data);
+        QVERIFY(reader.atEnd());
+
+        // Seek back to start
+        QVERIFY(reader.seek(0));
+        QTRY_VERIFY(reader.bytesAvailable() > 0);
+        QCOMPARE(reader.read(5), QByteArray("Small"));
+    }
+
     void testReadEmptySource() {
         QByteArray emptyData;
         AsyncBufferedReader reader(100);

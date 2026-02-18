@@ -43,6 +43,7 @@ private:
     friend class AsyncBufferedReaderTest;
     void runWorker(std::unique_ptr<QIODevice> source, qint64 startPos);
     void handleSeekInWorker(QIODevice *source, qint64 &currentPos);
+    void abortWorkerAndWait();
 
     mutable QMutex m_mutex;
     QWaitCondition m_dataWait;
@@ -55,6 +56,8 @@ private:
     size_t m_head = 0;
     size_t m_tail = 0;
     size_t m_count = 0;
+    size_t m_readPos = 0;
+    size_t m_readLeft = 0;
 
     std::atomic<bool> m_workerRunning{false};
     std::atomic<bool> m_aborted{false};

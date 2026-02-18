@@ -262,6 +262,7 @@ bool FileBrowser::setMediaSource(QMediaPlayer *player, const PreviewData &data)
     if (!player)
         return false;
 
+    qDebug() << "Setting setMediaSource" << player;
     auto device = data.readDevice();
     if (device) {
         if (!device->open(QIODevice::ReadOnly))
@@ -285,15 +286,18 @@ bool FileBrowser::setMediaSource(QMediaPlayer *player, const PreviewData &data)
     if (url.isEmpty())
         return false;
     if (url.isLocalFile()) {
+        qDebug() << "using AsyncBufferedReader for" << url;
         AsyncBufferedReader *f = new AsyncBufferedReader(150 * 1024 * 1024);
         f->openSource(std::make_unique<QFile>(url.toLocalFile()));
-        player->setSourceDevice(f, url);
+        f->setParent(player);
+        player->setSourceDevice(f);
 
         auto lastSource = player->property("FileBrowser_Source");
         if (lastSource.isValid() && lastSource.value<QObject *>()) {
             lastSource.value<QObject *>()->deleteLater();
         }
         player->setProperty("FileBrowser_Source", QVariant::fromValue(static_cast<QObject *>(f)));
+        return true;
     }
 
     player->setSource(url);

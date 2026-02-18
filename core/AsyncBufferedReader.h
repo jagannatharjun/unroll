@@ -47,7 +47,7 @@ private:
     void abortWorkerAndWait();
 
     // requires mutex to be locked
-    void makeSpaceForMoreReading();
+    bool makeSpaceForMoreReading();
 
     mutable QMutex m_mutex;
     QWaitCondition m_dataWait;

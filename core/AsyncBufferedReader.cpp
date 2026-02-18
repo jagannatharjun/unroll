@@ -154,13 +154,16 @@ void AsyncBufferedReader::abortWorkerAndWait()
         m_threadFinishedWait.wait(&m_mutex);
 }
 
-void AsyncBufferedReader::makeSpaceForMoreReading() {
+bool AsyncBufferedReader::makeSpaceForMoreReading() {
 
     if ((m_readLeft < m_capacity / 3 && m_count == m_capacity)) {
         qDebug() << "AsyncBufferedReader::readData discarding front buffer" << m_readLeft << m_capacity << m_count;
         m_head = m_readPos;
         m_count = m_readLeft;
+        return true;
     }
+
+    return false;
 }
 
 qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
@@ -201,8 +204,8 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
         }
 
         // 5. Update global count and notify producer there is now room
-        makeSpaceForMoreReading();
-        m_bufferSpaceWait.notify_all();
+        if (makeSpaceForMoreReading())
+            m_bufferSpaceWait.notify_all();
 
         // If we hit EOF or the source stopped, don't loop again even if totalRead < target
         if (m_sourceEof || m_aborted) {

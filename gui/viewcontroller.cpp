@@ -150,9 +150,9 @@ void ViewController::setPreview(int row)
 
                 const auto ReadSize = 4 * 1024 * 1024;
                 f.read(ReadSize);
-                f.seek(f.size() - ReadSize);
+                f.seek(qMin(0, f.size() - ReadSize));
                 f.read(ReadSize);
-                qDebug("successfull full read");
+                qDebug("successfull pre read");
             });
         }
 

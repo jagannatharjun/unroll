@@ -35,6 +35,7 @@ bool AsyncBufferedReader::openSource(std::unique_ptr<QIODevice> source,
     if (!source->isOpen() && !source->open(QIODevice::ReadOnly))
         return false;
 
+    // support reopening
     abortWorkerAndWait();
 
     m_totalSourceSize = source->size();
@@ -185,7 +186,7 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
         }
 
         // 5. Update global count and notify producer there is now room
-        if (m_readLeft * 3 < m_capacity) {
+        if (m_readLeft * 2 < m_capacity) {
             m_head = m_readPos;
             m_count = m_readLeft;
             m_bufferSpaceWait.notify_all();

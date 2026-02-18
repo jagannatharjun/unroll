@@ -41,6 +41,7 @@ protected:
 
 private:
     friend class AsyncBufferedReaderTest;
+
     void runWorker(std::unique_ptr<QIODevice> source, qint64 startPos);
     void handleSeekInWorker(QIODevice *source, qint64 &currentPos);
     void abortWorkerAndWait();
@@ -53,9 +54,14 @@ private:
 
     QVector<char> m_buffer;
     const size_t m_capacity;
+
+    // denotes full circular queue with all the data
     size_t m_head = 0;
     size_t m_tail = 0;
     size_t m_count = 0;
+
+    // sub circular queue of next read
+    // this is maintained to allow fast backward seeks
     size_t m_readPos = 0;
     size_t m_readLeft = 0;
 

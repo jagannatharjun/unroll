@@ -4,6 +4,7 @@
 #include <QThreadPool>
 #include <cstring>
 #include <qelapsedtimer.h>
+#include <QTimer>
 
 constexpr qint64 CHUNK_SIZE = 256 * 1024;
 
@@ -17,6 +18,18 @@ AsyncBufferedReader::AsyncBufferedReader(size_t capacity, QObject *parent)
     , m_capacity(capacity)
 {
     m_buffer.resize(m_capacity);
+
+    auto timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, [this]()
+    {
+        if (!m_workerRunning) return;
+
+        QMutexLocker lock(&m_mutex);
+        qDebug() << this << "buffer size" << (m_count / (1024. * 1024)) << "MiB"
+                 << "readable size" << (m_readLeft / (1024. * 1024)) << "MiB";
+    });
+
+    timer->start(5000);
 }
 
 AsyncBufferedReader::~AsyncBufferedReader()
@@ -135,6 +148,7 @@ void AsyncBufferedReader::handleSeekInWorker(QIODevice *source, qint64 &currentP
         m_sourceEof = false;
         makeSpaceForMoreReading();
     } else {
+        qDebug("seek outside buffer");
         m_seekSuccess = source->seek(target);
         if (m_seekSuccess) {
             m_head = m_tail = m_count = m_readPos = m_readLeft = 0;
@@ -156,7 +170,7 @@ void AsyncBufferedReader::abortWorkerAndWait()
 
 bool AsyncBufferedReader::makeSpaceForMoreReading() {
 
-    if ((m_readLeft < m_capacity / 3 && m_count == m_capacity)) {
+    if ((m_readLeft < m_capacity / 1.5 && m_count == m_capacity)) {
         qDebug() << "AsyncBufferedReader::readData discarding front buffer" << m_readLeft << m_capacity << m_count;
         m_head = m_readPos;
         m_count = m_readLeft;
@@ -194,6 +208,7 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
             size_t chunk = std::min(availableToCopy - iterationCopied, m_capacity - m_readPos);
 
             locker.unlock();
+            // Consumer is blocked (this thread), no seek request possible
             std::memcpy(data + totalRead, &m_buffer[m_readPos], chunk);
             locker.relock();
 

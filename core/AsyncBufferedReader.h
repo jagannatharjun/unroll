@@ -42,6 +42,7 @@ protected:
 private:
     friend class AsyncBufferedReaderTest;
 
+    // only support producer thread and once consumer thread
     void runWorker(std::unique_ptr<QIODevice> source, qint64 startPos);
     void handleSeekInWorker(QIODevice *source, qint64 &currentPos);
     void abortWorkerAndWait();

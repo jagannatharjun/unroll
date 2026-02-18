@@ -15,7 +15,10 @@
 #include <QThread>
 #include <QWaitCondition>
 #include <QQueue>
-#include <cstdio>
+
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
 
 struct LogMessage {
     QtMsgType type;
@@ -48,14 +51,22 @@ public:
                 m = queue.dequeue();
             }
 
-            // Real printing happens here, in the logger thread
-            fprintf(stderr, "%s[%s] %s [%p]%s %s\033[0m\n",
+            char buf[1024];
+            snprintf(buf, sizeof buf, "%s[%s] %s [%p]%s %s\033[0m\n",
                     m.color.toLocal8Bit().constData(),
                     m.time.toLocal8Bit().constData(),
                     m.level.toLocal8Bit().constData(),
                     m.threadId,
                     m.location.toLocal8Bit().constData(),
                     m.msg.toLocal8Bit().constData());
+
+#ifdef Q_OS_WIN
+            // Output to the IDE's debug console
+            OutputDebugStringA(buf);
+#else
+            // Fallback for Linux/macOS
+            fprintf(stderr, "%s", buf);
+#endif
 
             if (m.type == QtFatalMsg) std::abort();
         }

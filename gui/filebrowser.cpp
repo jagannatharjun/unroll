@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include "viewcontroller.hpp"
+#include "../core/AsyncBufferedReader.h"
 
 static const char *SUPPORTED_FORMATS[] = {
     ".7z",      // 7-Zip
@@ -284,9 +285,8 @@ bool FileBrowser::setMediaSource(QMediaPlayer *player, const PreviewData &data)
     if (url.isEmpty())
         return false;
     if (url.isLocalFile()) {
-        QFile *f = new QFile(url.toLocalFile());
-        if (!f->open(QIODevice::ReadOnly))
-            return false;
+        AsyncBufferedReader *f = new AsyncBufferedReader(150 * 1024 * 1024);
+        f->openSource(std::make_unique<QFile>(url.toLocalFile()));
         player->setSourceDevice(f, url);
 
         auto lastSource = player->property("FileBrowser_Source");

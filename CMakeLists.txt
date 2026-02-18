@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-add_compile_options(-fsanitize=address -fsanitize=undefined  -fno-omit-frame-pointer)
-add_link_options(-fsanitize=address -fsanitize=undefined )
+
 
 project(file-browser VERSION 0.1 LANGUAGES CXX)
 

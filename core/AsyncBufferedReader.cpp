@@ -32,8 +32,10 @@ bool AsyncBufferedReader::openSource(std::unique_ptr<QIODevice> source,
         return false;
 
     // Ensure source is open
-    if (!source->isOpen() && !source->open(QIODevice::ReadOnly))
+    if (!source->isOpen() && !source->open(QIODevice::ReadOnly)) {
+        qWarning("AsyncBufferedReader::openSource failed to open source");
         return false;
+    }
 
     // support reopening
     abortWorkerAndWait();
@@ -45,6 +47,7 @@ bool AsyncBufferedReader::openSource(std::unique_ptr<QIODevice> source,
     m_head = m_tail = m_count = m_readPos = m_readLeft = 0;
 
     QIODevice::open(openMode);
+    QIODevice::seek(startPos);
 
     QThreadPool::globalInstance()->start([this, src = std::move(source), startPos]() mutable {
         runWorker(std::move(src), startPos);
@@ -75,11 +78,11 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
         }
 
         // Wait as long as the buffer is absolutely full
-        while (m_count >= m_capacity && !m_aborted && !m_seekRequested) {
+        while (m_count >= m_capacity && !m_aborted && !m_seekRequested && !m_sourceEof) {
             m_bufferSpaceWait.wait(&m_mutex);
         }
 
-        if (m_aborted || m_seekRequested)
+        if (m_aborted || m_seekRequested || m_sourceEof)
             continue;
 
         // --- 2. Calculate Contiguous Space ---
@@ -130,6 +133,7 @@ void AsyncBufferedReader::handleSeekInWorker(QIODevice *source, qint64 &currentP
         m_readLeft = m_count - offset;
         m_seekSuccess = true;
         m_sourceEof = false;
+        makeSpaceForMoreReading();
     } else {
         m_seekSuccess = source->seek(target);
         if (m_seekSuccess) {
@@ -150,11 +154,20 @@ void AsyncBufferedReader::abortWorkerAndWait()
         m_threadFinishedWait.wait(&m_mutex);
 }
 
+void AsyncBufferedReader::makeSpaceForMoreReading() {
+
+    if (m_readLeft == 0 || (m_readLeft < m_capacity / 3 && m_count == m_capacity)) {
+        qDebug() << "AsyncBufferedReader::readData discarding front buffer" << m_readLeft << m_capacity << m_count;
+        m_head = m_readPos;
+        m_count = m_readLeft;
+    }
+}
+
 qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
 {
     QMutexLocker locker(&m_mutex);
-    size_t totalRead = 0;
-    size_t target = static_cast<size_t>(maxlen);
+    qint64 totalRead = 0;
+    qint64 target = static_cast<size_t>(maxlen);
 
     while (totalRead < target) {
         // 1. Wait if the buffer is empty but the worker is still producing
@@ -186,11 +199,8 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
         }
 
         // 5. Update global count and notify producer there is now room
-        if (m_readLeft * 2 < m_capacity) {
-            m_head = m_readPos;
-            m_count = m_readLeft;
-            m_bufferSpaceWait.notify_all();
-        }
+        makeSpaceForMoreReading();
+        m_bufferSpaceWait.notify_all();
 
         // If we hit EOF or the source stopped, don't loop again even if totalRead < target
         if (m_sourceEof || m_aborted) {

@@ -46,6 +46,9 @@ private:
     void handleSeekInWorker(QIODevice *source, qint64 &currentPos);
     void abortWorkerAndWait();
 
+    // requires mutex to be locked
+    void makeSpaceForMoreReading();
+
     mutable QMutex m_mutex;
     QWaitCondition m_dataWait;
     QWaitCondition m_bufferSpaceWait;

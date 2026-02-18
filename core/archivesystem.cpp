@@ -7,6 +7,7 @@
 #include <QUrlQuery>
 #include <QTemporaryFile>
 
+#include "AsyncBufferedReader.h"
 #include "CachedFileDevice.h"
 #include "asyncarchiveiodevice.h"
 #include <archive.h>
@@ -739,9 +740,12 @@ public:
         std::unique_ptr<QIODevice> archiveIODevice = nullptr;
 
         // rar files support seemless seeking
-        if (p.endsWith(".rar"))
-            return std::unique_ptr<QIODevice>(new AsyncArchiveIODevice(p, childPath, size));
-        else
+        if (p.endsWith(".rar")) {
+            std::unique_ptr<AsyncBufferedReader> reader(new AsyncBufferedReader(AsyncBufferedReader::idealBufferCapacity(size)));
+            if (!reader->openSource(std::make_unique<ArchiveIODevice>(p, childPath)))
+                return nullptr;
+            return reader;
+        } else
             archiveIODevice.reset(new AsyncArchiveIODevice(p, childPath, size));
 
         if (!archiveIODevice->open(QIODevice::ReadOnly))

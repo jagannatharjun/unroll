@@ -17,6 +17,8 @@ class AsyncBufferedReader : public QIODevice
 {
     Q_OBJECT
 public:
+    static qint64 idealBufferCapacity(qint64 sourceSize);
+
     static constexpr size_t default_capacity = 2 * 1024 * 1024; // 2MB
 
     explicit AsyncBufferedReader(QObject *parent = nullptr);

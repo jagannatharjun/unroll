@@ -287,7 +287,7 @@ bool FileBrowser::setMediaSource(QMediaPlayer *player, const PreviewData &data)
         return false;
     if (url.isLocalFile()) {
         qDebug() << "using AsyncBufferedReader for" << url;
-        AsyncBufferedReader *f = new AsyncBufferedReader(150 * 1024 * 1024);
+        AsyncBufferedReader *f = new AsyncBufferedReader(AsyncBufferedReader::idealBufferCapacity(QFileInfo(url.toLocalFile()).size()));
         f->openSource(std::make_unique<QFile>(url.toLocalFile()));
         f->setParent(player);
         player->setSourceDevice(f);

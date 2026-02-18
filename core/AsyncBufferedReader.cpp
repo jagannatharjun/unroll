@@ -8,6 +8,10 @@
 
 constexpr qint64 CHUNK_SIZE = 256 * 1024;
 
+qint64 AsyncBufferedReader::idealBufferCapacity(qint64 sourceSize) {
+    return std::clamp<qint64>(sourceSize * .1, 1 * 1024 * 1024, 200 * 1024 * 1024);
+}
+
 AsyncBufferedReader::AsyncBufferedReader(QObject *parent)
     : AsyncBufferedReader(default_capacity, parent)
 
@@ -148,7 +152,7 @@ void AsyncBufferedReader::handleSeekInWorker(QIODevice *source, qint64 &currentP
         m_sourceEof = false;
         makeSpaceForMoreReading();
     } else {
-        qDebug("seek outside buffer");
+        qDebug() << this << "seek outside buffer, relativepos" << currentPos - target;
         m_seekSuccess = source->seek(target);
         if (m_seekSuccess) {
             m_head = m_tail = m_count = m_readPos = m_readLeft = 0;

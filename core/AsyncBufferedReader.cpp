@@ -5,7 +5,7 @@
 #include <cstring>
 #include <qelapsedtimer.h>
 
-constexpr qint64 CHUNK_SIZE = 128 * 1024;
+constexpr qint64 CHUNK_SIZE = 256 * 1024;
 
 AsyncBufferedReader::AsyncBufferedReader(QObject *parent)
     : AsyncBufferedReader(default_capacity, parent)
@@ -156,7 +156,7 @@ void AsyncBufferedReader::abortWorkerAndWait()
 
 void AsyncBufferedReader::makeSpaceForMoreReading() {
 
-    if (m_readLeft == 0 || (m_readLeft < m_capacity / 3 && m_count == m_capacity)) {
+    if ((m_readLeft < m_capacity / 3 && m_count == m_capacity)) {
         qDebug() << "AsyncBufferedReader::readData discarding front buffer" << m_readLeft << m_capacity << m_count;
         m_head = m_readPos;
         m_count = m_readLeft;
@@ -171,12 +171,12 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
 
     while (totalRead < target) {
         // 1. Wait if the buffer is empty but the worker is still producing
-        while (m_count == 0 && m_workerRunning && !m_sourceEof && !m_aborted) {
+        while (m_readLeft == 0 && m_workerRunning && !m_sourceEof && !m_aborted) {
             m_dataWait.wait(&m_mutex);
         }
 
         // 2. If buffer is still empty after waiting, we hit EOF/Abort
-        if (m_count == 0) {
+        if (m_sourceEof || m_aborted) {
             break;
         }
 
@@ -190,7 +190,9 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
         while (iterationCopied < availableToCopy) {
             size_t chunk = std::min(availableToCopy - iterationCopied, m_capacity - m_readPos);
 
+            locker.unlock();
             std::memcpy(data + totalRead, &m_buffer[m_readPos], chunk);
+            locker.relock();
 
             m_readPos = (m_readPos + chunk) % m_capacity;
             m_readLeft -= chunk;

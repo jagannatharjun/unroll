@@ -9,65 +9,117 @@
 
 #include <QQuickStyle>
 
-#include <QDebug>
+#include <QCoreApplication>
 #include <QDateTime>
+#include <QMutex>
 #include <QThread>
-#include <iostream>
+#include <QWaitCondition>
+#include <QQueue>
+#include <cstdio>
+
+struct LogMessage {
+    QtMsgType type;
+    QString time;
+    QString level;
+    QString color;
+    void* threadId;
+    QString location;
+    QString msg;
+};
+
+class LogWorker : public QObject {
+public:
+    void enqueue(LogMessage m) {
+        QMutexLocker locker(&mutex);
+        queue.enqueue(m);
+        condition.wakeOne();
+    }
+
+public:
+    void process() {
+        while (true) {
+            LogMessage m;
+            {
+                QMutexLocker locker(&mutex);
+                while (queue.isEmpty()) {
+                    if (stopping) return;
+                    condition.wait(&mutex);
+                }
+                m = queue.dequeue();
+            }
+
+            // Real printing happens here, in the logger thread
+            fprintf(stderr, "%s[%s] %s [%p]%s %s\033[0m\n",
+                    m.color.toLocal8Bit().constData(),
+                    m.time.toLocal8Bit().constData(),
+                    m.level.toLocal8Bit().constData(),
+                    m.threadId,
+                    m.location.toLocal8Bit().constData(),
+                    m.msg.toLocal8Bit().constData());
+
+            if (m.type == QtFatalMsg) std::abort();
+        }
+    }
+
+    void stop() {
+        QMutexLocker locker(&mutex);
+        stopping = true;
+        condition.wakeOne();
+    }
+
+private:
+    QQueue<LogMessage> queue;
+    QMutex mutex;
+    QWaitCondition condition;
+    bool stopping = false;
+};
+
+// Global pointer to the logger (or use a singleton)
+static LogWorker* g_logger = nullptr;
 
 void myMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
-    QString time = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
+    if (!g_logger) return;
 
-    // ANSI Color Codes
-    const char *reset   = "\033[0m";
-    const char *white   = "\033[37m"; // Debug
-    const char *yellow  = "\033[33m"; // Info
-    const char *boldYel = "\033[1;33m"; // Warning (Bold Yellow)
-    const char *red     = "\033[31m"; // Critical
-    const char *magenta = "\033[35m"; // Fatal
+    LogMessage m;
+    m.type = type;
+    m.time = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
+    m.threadId = QThread::currentThreadId();
 
-    const char *color = white;
-    const char *level = "DEBUG";
-
-    // Adjusting colors based on your request
+    // Setup color and level
     switch (type) {
-    case QtDebugMsg:    color = white;   level = "DEBUG"; break;
-    case QtInfoMsg:     color = yellow;  level = "INFO "; break;
-    case QtWarningMsg:  color = boldYel; level = "WARN "; break;
-    case QtCriticalMsg: color = red;     level = "CRIT "; break;
-    case QtFatalMsg:    color = magenta; level = "FATAL"; break;
+    case QtDebugMsg:    m.color = "\033[37m";   m.level = "DEBUG"; break;
+    case QtInfoMsg:     m.color = "\033[33m";   m.level = "INFO "; break;
+    case QtWarningMsg:  m.color = "\033[1;33m"; m.level = "WARN "; break;
+    case QtCriticalMsg: m.color = "\033[31m";   m.level = "CRIT "; break;
+    case QtFatalMsg:    m.color = "\033[35m";   m.level = "FATAL"; break;
     }
 
-    // Omit file/line if unknown
-    QString location = "";
-    if (context.file && strlen(context.file) > 0) {
+    if (context.file) {
         const char *shortFile = strrchr(context.file, '/') ? strrchr(context.file, '/') + 1 :
                                     (strrchr(context.file, '\\') ? strrchr(context.file, '\\') + 1 : context.file);
-
-        location = QString(" [%1:%2]").arg(shortFile).arg(context.line);
+        m.location = QString(" [%1:%2]").arg(shortFile).arg(context.line);
     }
 
-    // Print the whole line in the chosen color
-    fprintf(stderr, "%s[%s] %s [%p]%s %s%s\n",
-            color,
-            time.toLocal8Bit().constData(),
-            level,
-            QThread::currentThreadId(),
-            location.toLocal8Bit().constData(),
-            msg.toLocal8Bit().constData(),
-            reset);
-
-    if (type == QtFatalMsg) abort();
+    m.msg = msg;
+    g_logger->enqueue(m);
 }
-
 int main(int argc, char *argv[])
 {
-    qInstallMessageHandler(myMessageHandler);
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
     QGuiApplication app(argc, argv);
     QQuickStyle::setStyle("FluentWinUI3");
+
+    QThread logThread;
+    g_logger = new LogWorker();
+    g_logger->moveToThread(&logThread);
+
+    QObject::connect(&logThread, &QThread::started, g_logger, &LogWorker::process);
+    logThread.start();
+
+    qInstallMessageHandler(myMessageHandler);
 
 #ifdef DB_TEST
     qDebug("DB_TEST defined, test databases will be used");
@@ -96,5 +148,13 @@ int main(int argc, char *argv[])
     }, Qt::QueuedConnection);
     engine.load(url);
 
-    return app.exec();
+    int result = app.exec();
+
+    // 3. Cleanup
+    g_logger->stop();
+    logThread.quit();
+    logThread.wait();
+    delete g_logger;
+
+    return result;
 }

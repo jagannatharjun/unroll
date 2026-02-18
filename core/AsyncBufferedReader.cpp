@@ -179,7 +179,7 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
         }
 
         // 2. If buffer is still empty after waiting, we hit EOF/Abort
-        if (m_sourceEof || m_aborted) {
+        if (m_readLeft == 0) {
             break;
         }
 

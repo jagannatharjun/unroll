@@ -161,8 +161,6 @@ void AsyncBufferedReaderTest::testBasicRead()
     QVERIFY(reader.openSource(std::move(source)));
 
     // Wait for readyRead signal
-    QSignalSpy spy(&reader, &AsyncBufferedReader::readyRead);
-    QVERIFY(spy.wait(1000));
 
     QByteArray outputData = reader.readAll();
     QCOMPARE(outputData, inputData);

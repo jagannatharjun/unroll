@@ -71,9 +71,9 @@ private:
     size_t m_readPos = 0;
     size_t m_readLeft = 0;
 
-    std::atomic<bool> m_workerRunning{false};
-    std::atomic<bool> m_aborted{false};
-    std::atomic<bool> m_seekRequested{false};
+    bool m_workerRunning {false};
+    std::atomic<bool> m_aborted {false};
+    bool m_seekRequested{false};
     std::atomic<qint64> m_seekPos{0};
 
     qint64 m_totalSourceSize = 0;

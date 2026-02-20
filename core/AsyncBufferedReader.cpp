@@ -89,7 +89,7 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
 
     QMutexLocker locker(&m_mutex);
     while (!m_aborted.load()) {
-        if (m_seekRequested.load()) {
+        if (m_seekRequested) {
             handleSeekInWorker(source.get(), currentPos);
             continue;
         }

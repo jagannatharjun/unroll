@@ -9,7 +9,7 @@
 constexpr qint64 CHUNK_SIZE = 256 * 1024;
 
 qint64 AsyncBufferedReader::idealBufferCapacity(qint64 sourceSize) {
-    return std::clamp<qint64>(sourceSize * .1, 1 * 1024 * 1024, 200 * 1024 * 1024);
+    return std::clamp<qint64>(sourceSize * .1, qMin(sourceSize, 150 * 1024 * 1024), 250 * 1024 * 1024);
 }
 
 AsyncBufferedReader::AsyncBufferedReader(QObject *parent)
@@ -84,18 +84,18 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
 
     if (startPos > 0 && !source->seek(startPos))
         return;
+
     qint64 currentPos = startPos;
 
+    QMutexLocker locker(&m_mutex);
     while (!m_aborted.load()) {
-        QMutexLocker locker(&m_mutex);
-
         if (m_seekRequested.load()) {
             handleSeekInWorker(source.get(), currentPos);
             continue;
         }
 
         // Wait as long as the buffer is absolutely full
-        while (m_count >= m_capacity && !m_aborted && !m_seekRequested && !m_sourceEof) {
+        while ((m_sourceEof || m_count == m_capacity) && !m_aborted && !m_seekRequested) {
             m_bufferSpaceWait.wait(&m_mutex);
         }
 
@@ -108,11 +108,20 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
         // totalBufferSpace is how much we can add before hitting m_head
         size_t totalBufferSpace = m_capacity - m_count;
 
+        size_t recommendedReadSize = 0;
+        if (m_count == 0)
+            recommendedReadSize = 32 * 1024;
+        else if (m_count < 1024 * 1024)
+            recommendedReadSize = 128 * 1024;
+        else
+            recommendedReadSize = 1024 * 1024;
+        assert(recommendedReadSize > 0);
+
         // We can only read the smaller of:
         // - Our desired chunk size
         // - The linear space until the end of the vector
         // - The total space remaining in the buffer
-        size_t toRead = std::min({(size_t) CHUNK_SIZE, spaceAtTail, totalBufferSpace});
+        size_t toRead = std::min({recommendedReadSize, spaceAtTail, totalBufferSpace});
 
         if (toRead == 0)
             continue;
@@ -124,6 +133,7 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
         if (bytesRead <= 0) {
             m_sourceEof = (bytesRead == 0);
             m_dataWait.notify_all();
+            continue;
         }
 
         // --- 3. Update Tail ---
@@ -202,14 +212,15 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
         }
 
         // 3. Determine how much we can pull in this specific iteration
-        // We can only read what's in the buffer (m_count)
+        // We can only read what's in the buffer (m_readLeft)
         // OR what's left to fill our request (target - totalRead)
         size_t availableToCopy = std::min<size_t>(m_readLeft, target - totalRead);
         size_t iterationCopied = 0;
 
         // 4. Handle Circular Buffer Wrap-around
         while (iterationCopied < availableToCopy) {
-            size_t chunk = std::min(availableToCopy - iterationCopied, m_capacity - m_readPos);
+            const size_t availableAtTail = m_capacity - m_readPos;
+            const size_t chunk = std::min(availableToCopy - iterationCopied, availableAtTail);
 
             locker.unlock();
             // Consumer is blocked (this thread), no seek request possible

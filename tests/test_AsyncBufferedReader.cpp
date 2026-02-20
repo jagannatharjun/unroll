@@ -3,6 +3,32 @@
 #include <memory>
 #include "../core/AsyncBufferedReader.h"
 
+class VirtualDevice : public QIODevice {
+public:
+    VirtualDevice(qint64 size) : m_size(size), m_pos(0) { open(ReadOnly); }
+    bool isSequential() const override { return false; }
+    qint64 size() const override { return m_size; }
+    qint64 pos() const override { return m_pos; }
+    bool seek(qint64 pos) override { m_pos = pos; return true; }
+
+protected:
+    // Generates a repeating pattern 'ABC...'
+    qint64 readData(char *data, qint64 maxlen) override {
+        qint64 remaining = m_size - m_pos;
+        qint64 len = std::min(maxlen, remaining);
+        for (qint64 i = 0; i < len; ++i) {
+            data[i] = static_cast<char>('A' + ((m_pos + i) % 26));
+        }
+        m_pos += len;
+        return len;
+    }
+    qint64 writeData(const char*, qint64) override { return -1; }
+
+private:
+    qint64 m_size;
+    qint64 m_pos;
+};
+
 class AsyncBufferedReaderTest : public QObject
 {
     Q_OBJECT
@@ -16,6 +42,34 @@ private slots:
     void testSourceOwnership();
     void testSeekAtCapacityBoundary();
     void testCircularBufferWrap();
+
+    void testLargeVirtualReadBenchmark() {
+        const qint64 fileSize = 1024 * 1024 * 1024; // 1 GB
+        const size_t bufferCapacity = 10 * 1024 * 1024; // 10 MB
+        const qint64 chunkSize = 64 * 1024; // 64 KB reads
+
+        // Setup the reader
+        AsyncBufferedReader reader(bufferCapacity);
+
+        // Run the benchmark
+        QBENCHMARK {
+            reader.openSource(std::make_unique<VirtualDevice>(fileSize));
+
+            qint64 totalRead = 0;
+            while (!reader.atEnd() || reader.bytesAvailable() > 0) {
+                QByteArray chunk = reader.read(chunkSize);
+                totalRead += chunk.size();
+
+                // If the producer is faster than our loop, we might need a small
+                // yield if bytesAvailable is 0 but atEnd is false
+                if (chunk.isEmpty() && !reader.atEnd()) {
+                    QThread::yieldCurrentThread();
+                }
+            }
+            reader.abort();
+            QCOMPARE(totalRead, fileSize);
+        }
+    }
 
     void testHistoryRetention() {
         const size_t capacity = 30;

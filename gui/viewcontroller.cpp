@@ -141,6 +141,7 @@ void ViewController::setPreview(int row)
 
         if (child + 1 < dir->fileCount()) {
             QtConcurrent::run([=]() {
+                QThread::currentThread()->sleep(1000);
                 const auto nextpath = dir->filePath(child + 1);
                 QFile f(nextpath);
                 if (!f.open(QIODevice::ReadOnly)) {

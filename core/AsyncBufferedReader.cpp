@@ -9,7 +9,7 @@
 constexpr qint64 CHUNK_SIZE = 256 * 1024;
 
 qint64 AsyncBufferedReader::idealBufferCapacity(qint64 sourceSize) {
-    return std::clamp<qint64>(sourceSize * .1, qMin(sourceSize, 150 * 1024 * 1024), 250 * 1024 * 1024);
+    return std::clamp<qint64>(sourceSize * .1, qMin(sourceSize, 100 * 1024 * 1024), 250 * 1024 * 1024);
 }
 
 AsyncBufferedReader::AsyncBufferedReader(QObject *parent)
@@ -76,6 +76,12 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
     auto cleanup = qScopeGuard([&] {
         QMutexLocker locker(&m_mutex);
         m_workerRunning = false;
+
+        if (m_count == 0 && m_buffer)
+        {
+            std::free(m_buffer);
+        }
+
         m_dataWait.notify_all();
         m_threadFinishedWait.notify_all();
     });
@@ -85,8 +91,8 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
 
     qint64 currentPos = startPos;
 
-    if (m_buffer.size() != m_capacity)
-        m_buffer.resize(m_capacity);
+    if (!m_buffer)
+        m_buffer = (char *)std::malloc(m_capacity);
 
     QMutexLocker locker(&m_mutex);
     while (!m_aborted.load()) {
@@ -151,6 +157,7 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
         m_dataWait.notify_all();
         QMetaObject::invokeMethod(this, &AsyncBufferedReader::readyRead, Qt::QueuedConnection);
     }
+
 }
 
 void AsyncBufferedReader::handleSeekInWorker(QIODevice *source, qint64 &currentPos)
@@ -247,6 +254,9 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
         }
     }
 
+    if (m_count == 0 && m_buffer && !m_workerRunning)
+        std::free(m_buffer);
+
     return static_cast<qint64>(totalRead);
 }
 
@@ -269,6 +279,12 @@ bool AsyncBufferedReader::seek(qint64 pos)
     }
 
     return m_seekSuccess;
+}
+
+void AsyncBufferedReader::close()
+{
+    QIODevice::close();
+    abort();
 }
 
 qint64 AsyncBufferedReader::size() const

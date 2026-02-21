@@ -36,6 +36,7 @@ public:
     bool isSequential() const override { return false; }
     qint64 size() const override;
     bool seek(qint64 pos) override;
+    void close() override;
 
 protected:
     qint64 readData(char *data, qint64 maxlen) override;
@@ -58,13 +59,13 @@ private:
     QWaitCondition m_seekFinishedWait;
     QWaitCondition m_threadFinishedWait;
 
-    QVector<char> m_buffer;
+    char* m_buffer = nullptr;
     const size_t m_capacity;
 
     // denotes full circular queue with all the data
     size_t m_head = 0;
     size_t m_tail = 0;
-    size_t m_count = 0;
+    size_t m_count = 0; // m_buffer ptr is only valid if count>0
 
     // sub circular queue of next read
     // this is maintained to allow fast backward seeks

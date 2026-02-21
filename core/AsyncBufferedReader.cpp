@@ -21,14 +21,12 @@ AsyncBufferedReader::AsyncBufferedReader(size_t capacity, QObject *parent)
     : QIODevice(parent)
     , m_capacity(capacity)
 {
-    m_buffer.resize(m_capacity);
-
     auto timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, [this]()
     {
+        QMutexLocker lock(&m_mutex);
         if (!m_workerRunning) return;
 
-        QMutexLocker lock(&m_mutex);
         qDebug() << this << "buffer size" << (m_count / (1024. * 1024)) << "MiB"
                  << "readable size" << (m_readLeft / (1024. * 1024)) << "MiB";
     });
@@ -87,6 +85,9 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
 
     qint64 currentPos = startPos;
 
+    if (m_buffer.size() != m_capacity)
+        m_buffer.resize(m_capacity);
+
     QMutexLocker locker(&m_mutex);
     while (!m_aborted.load()) {
         if (m_seekRequested) {
@@ -101,6 +102,7 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
 
         if (m_aborted || m_seekRequested || m_sourceEof)
             continue;
+
 
         // --- 2. Calculate Contiguous Space ---
         // spaceAtTail is the linear memory available before we have to wrap

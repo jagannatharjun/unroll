@@ -131,7 +131,9 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
         locker.relock();
 
         if (bytesRead <= 0) {
-            m_sourceEof = (bytesRead == 0);
+            m_sourceEof = true;
+            if (bytesRead < 0)
+                qWarning() << "source failed to read" << source->errorString();
             m_dataWait.notify_all();
             continue;
         }

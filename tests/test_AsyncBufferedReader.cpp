@@ -5,28 +5,25 @@
 
 class VirtualDevice : public QIODevice {
 public:
-    VirtualDevice(qint64 size) : m_size(size), m_pos(0) { open(ReadOnly); }
+    VirtualDevice(qint64 size) : m_size(size) { open(ReadOnly); }
     bool isSequential() const override { return false; }
     qint64 size() const override { return m_size; }
-    qint64 pos() const override { return m_pos; }
-    bool seek(qint64 pos) override { m_pos = pos; return true; }
 
 protected:
     // Generates a repeating pattern 'ABC...'
     qint64 readData(char *data, qint64 maxlen) override {
-        qint64 remaining = m_size - m_pos;
+        qint64 startpos = pos();
+        qint64 remaining = m_size - startpos;
         qint64 len = std::min(maxlen, remaining);
         for (qint64 i = 0; i < len; ++i) {
-            data[i] = static_cast<char>('A' + ((m_pos + i) % 26));
+            data[i] = static_cast<char>('A' + ((startpos + i) % 26));
         }
-        m_pos += len;
         return len;
     }
     qint64 writeData(const char*, qint64) override { return -1; }
 
 private:
     qint64 m_size;
-    qint64 m_pos;
 };
 
 class AsyncBufferedReaderTest : public QObject
@@ -44,9 +41,9 @@ private slots:
     void testCircularBufferWrap();
 
     void testLargeVirtualReadBenchmark() {
-        const qint64 fileSize = 1024 * 1024 * 1024; // 1 GB
-        const size_t bufferCapacity = 10 * 1024 * 1024; // 10 MB
-        const qint64 chunkSize = 64 * 1024; // 64 KB reads
+        const qint64 fileSize = 4 * 1024ll * 1024 * 1024; // 1 GB
+        const size_t bufferCapacity = 100 * 1024 * 1024; // 10 MB
+        const qint64 chunkSize = 32 * 1024; // 64 KB reads
 
         // Setup the reader
         AsyncBufferedReader reader(bufferCapacity);
@@ -59,16 +56,45 @@ private slots:
             while (!reader.atEnd() || reader.bytesAvailable() > 0) {
                 QByteArray chunk = reader.read(chunkSize);
                 totalRead += chunk.size();
-
-                // If the producer is faster than our loop, we might need a small
-                // yield if bytesAvailable is 0 but atEnd is false
-                if (chunk.isEmpty() && !reader.atEnd()) {
-                    QThread::yieldCurrentThread();
-                }
             }
-            reader.abort();
             QCOMPARE(totalRead, fileSize);
         }
+    }
+
+    void testLargeVirtualReadSeekBenchmark() {
+        const qint64 fileSize = 4ll * 1024 * 1024 * 1024; // 1 GB
+        const size_t bufferCapacity = 100 * 1024 * 1024; // 10 MB
+        const int numSeeks = 4000;
+
+        AsyncBufferedReader reader(bufferCapacity);
+        reader.openSource(std::make_unique<VirtualDevice>(fileSize));
+
+        // Seed for reproducible "random" seeks
+        srand(42);
+
+        QBENCHMARK {
+            for (int i = 0; i < numSeeks; ++i) {
+                // Generate a random position within the 1GB file
+                qint64 targetPos = (static_cast<qint64>(rand()) % fileSize);
+
+                // Perform the seek
+                bool success = reader.seek(targetPos);
+                QVERIFY(success);
+
+                // Wait for data to be available at the new position
+                // We use a small QTRY_VERIFY to simulate a real-world consumer
+                // waiting for the buffer to fill after a long jump.
+                QTRY_VERIFY_WITH_TIMEOUT(reader.bytesAvailable() > 0 || reader.atEnd(), 1000);
+
+                // Read a small chunk to verify data integrity at the seek point
+                QByteArray data = reader.read(32 * 1024);
+                if (!data.isEmpty()) {
+                    char expected = static_cast<char>('A' + (targetPos % 26));
+                    QCOMPARE(data[0], expected);
+                }
+            }
+        }
+        reader.abort();
     }
 
     void testHistoryRetention() {

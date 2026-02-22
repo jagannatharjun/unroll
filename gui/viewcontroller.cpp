@@ -139,23 +139,23 @@ void ViewController::setPreview(int row)
         const QString path = dir->filePath(child);
         const auto mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(path)).name();
 
-        if (child + 1 < dir->fileCount()) {
-            QtConcurrent::run([=]() {
-                QThread::currentThread()->sleep(1);
-                const auto nextpath = dir->filePath(child + 1);
-                QFile f(nextpath);
-                if (!f.open(QIODevice::ReadOnly)) {
-                    qWarning("failed to open next path");
-                    return;
-                }
+        // if (child + 1 < dir->fileCount()) {
+        //     QtConcurrent::run([=]() {
+        //         QThread::currentThread()->sleep(1);
+        //         const auto nextpath = dir->filePath(child + 1);
+        //         QFile f(nextpath);
+        //         if (!f.open(QIODevice::ReadOnly)) {
+        //             qWarning("failed to open next path");
+        //             return;
+        //         }
 
-                const auto ReadSize = 4 * 1024 * 1024;
-                f.read(ReadSize);
-                f.seek(qMin(0, f.size() - ReadSize));
-                f.read(ReadSize);
-                qDebug("successfull pre read");
-            });
-        }
+        //         const auto ReadSize = 4 * 1024 * 1024;
+        //         f.read(ReadSize);
+        //         f.seek(qMin(0, f.size() - ReadSize));
+        //         f.read(ReadSize);
+        //         qDebug("successfull pre read");
+        //     });
+        // }
 
         PreviewData::FileType filetype = PreviewData::Unknown;
         const auto types =

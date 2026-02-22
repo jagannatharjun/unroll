@@ -2,14 +2,21 @@
 #include <QDebug>
 #include <QScopeGuard>
 #include <QThreadPool>
+#include <QTimer>
 #include <cstring>
 #include <qelapsedtimer.h>
-#include <QTimer>
 
 constexpr qint64 CHUNK_SIZE = 256 * 1024;
 
-qint64 AsyncBufferedReader::idealBufferCapacity(qint64 sourceSize) {
-    return std::clamp<qint64>(sourceSize * .1, qMin(sourceSize, 100 * 1024 * 1024), 250 * 1024 * 1024);
+// use macro to not get quotes in qDebug output
+#define formatMiB(bytes) (QString("%1 MiB").arg(QString::number(static_cast<double>(bytes) / (1024. * 1024), 'f')).toStdString().c_str())
+
+
+qint64 AsyncBufferedReader::idealBufferCapacity(qint64 sourceSize)
+{
+    return std::clamp<qint64>(sourceSize * .1,
+                              qMin(sourceSize, 100 * 1024 * 1024),
+                              250 * 1024 * 1024);
 }
 
 AsyncBufferedReader::AsyncBufferedReader(QObject *parent)
@@ -29,13 +36,13 @@ AsyncBufferedReader::AsyncBufferedReader(size_t capacity, QObject *parent)
     , m_capacity(capacity)
 {
     auto timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, this, [this]()
-    {
+    connect(timer, &QTimer::timeout, this, [this]() {
         QMutexLocker lock(&m_mutex);
-        if (!m_workerRunning) return;
+        if (!m_workerRunning)
+            return;
 
-        qDebug() << this << "buffer size" << (m_count / (1024. * 1024)) << "MiB"
-                 << "readable size" << (m_readLeft / (1024. * 1024)) << "MiB";
+        qDebug() << this << "buffer size" << formatMiB(m_count) << "read left"
+                 << formatMiB(m_readLeft);
     });
 
     timer->start(5000);
@@ -110,7 +117,6 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
         if (m_aborted || m_seekRequested || m_sourceEof)
             continue;
 
-
         // --- 2. Calculate Contiguous Space ---
         // spaceAtTail is the linear memory available before we have to wrap
         size_t spaceAtTail = m_capacity - m_tail;
@@ -158,7 +164,6 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
         m_dataWait.notify_all();
         QMetaObject::invokeMethod(this, &AsyncBufferedReader::readyRead, Qt::QueuedConnection);
     }
-
 }
 
 void AsyncBufferedReader::handleSeekInWorker(QIODevice *source, qint64 &currentPos)
@@ -174,7 +179,9 @@ void AsyncBufferedReader::handleSeekInWorker(QIODevice *source, qint64 &currentP
         m_sourceEof = false;
         makeSpaceForMoreReading();
     } else {
-        qDebug() << this << "seek outside buffer, relativepos" << currentPos - target;
+        qDebug() << this << "seek outside buffer, relativepos" << formatMiB(currentPos - target)
+                 << "discarding, count" << formatMiB(m_count) << "readleft"
+                 << formatMiB(m_readLeft);
         m_seekSuccess = source->seek(target);
         if (m_seekSuccess) {
             m_head = m_tail = m_count = m_readPos = m_readLeft = 0;
@@ -194,10 +201,11 @@ void AsyncBufferedReader::abortWorkerAndWait()
         m_threadFinishedWait.wait(&m_mutex);
 }
 
-bool AsyncBufferedReader::makeSpaceForMoreReading() {
-
+bool AsyncBufferedReader::makeSpaceForMoreReading()
+{
     if ((m_readLeft < m_capacity / 1.5 && m_count == m_capacity)) {
-        qDebug() << "AsyncBufferedReader::readData discarding front buffer" << m_readLeft << m_capacity << m_count;
+        qDebug() << "AsyncBufferedReader::readData discarding front buffer" << m_readLeft
+                 << m_capacity << m_count;
         m_head = m_readPos;
         m_count = m_readLeft;
         return true;

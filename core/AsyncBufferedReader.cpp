@@ -37,6 +37,10 @@ AsyncBufferedReader::AsyncBufferedReader(size_t capacity, QObject *parent)
 AsyncBufferedReader::~AsyncBufferedReader()
 {
     abortWorkerAndWait();
+    if (m_buffer)
+    {
+        free(m_buffer);
+    }
 }
 
 bool AsyncBufferedReader::openSource(std::unique_ptr<QIODevice> source,
@@ -80,6 +84,7 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
         if (m_count == 0 && m_buffer)
         {
             std::free(m_buffer);
+            m_buffer = nullptr;
         }
 
         m_dataWait.notify_all();
@@ -253,9 +258,6 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
             break;
         }
     }
-
-    if (m_count == 0 && m_buffer && !m_workerRunning)
-        std::free(m_buffer);
 
     return static_cast<qint64>(totalRead);
 }

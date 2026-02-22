@@ -180,7 +180,7 @@ void AsyncBufferedReader::handleSeekInWorker(QIODevice *source, qint64 &currentP
         makeSpaceForMoreReading();
     } else {
         qDebug() << this << "seek outside buffer, relativepos" << formatMiB(currentPos - target)
-                 << "discarding, count" << formatMiB(m_count) << "readleft"
+                 << "discarding - count" << formatMiB(m_count) << "readleft"
                  << formatMiB(m_readLeft);
         m_seekSuccess = source->seek(target);
         if (m_seekSuccess) {

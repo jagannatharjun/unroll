@@ -263,44 +263,43 @@ bool FileBrowser::setMediaSource(QMediaPlayer *player, const PreviewData &data)
         return false;
 
     qDebug() << "Setting setMediaSource" << player;
+
     auto device = data.readDevice();
-    if (device) {
-        if (!device->open(QIODevice::ReadOnly))
+    if (!device)
+    {
+
+        auto path = data.readUrl().toLocalFile();
+        if (!QFileInfo::exists(path))
+        {
             return false;
-
-        player->setSourceDevice(device.get());
-        auto lastSource = player->property("FileBrowser_Source");
-        if (lastSource.isValid() && lastSource.value<QObject *>()) {
-            lastSource.value<QObject *>()->deleteLater();
         }
-        player->setProperty("FileBrowser_Source",
-                            QVariant::fromValue(static_cast<QObject *>(device.get())));
 
-        device->setParent(player);
-
-        device.release();
-        return true;
+        device = std::make_unique<QFile>(path);
     }
 
-    auto url = data.readUrl();
-    if (url.isEmpty())
+    if (!device->open(QIODevice::ReadOnly))
         return false;
-    if (url.isLocalFile()) {
-        qDebug() << "using AsyncBufferedReader for" << url;
-        AsyncBufferedReader *f = new AsyncBufferedReader(AsyncBufferedReader::idealBufferCapacity(QFileInfo(url.toLocalFile()).size()));
-        f->openSource(std::make_unique<QFile>(url.toLocalFile()));
-        f->setParent(player);
-        player->setSourceDevice(f);
 
-        auto lastSource = player->property("FileBrowser_Source");
-        if (lastSource.isValid() && lastSource.value<QObject *>()) {
-            lastSource.value<QObject *>()->deleteLater();
+    AsyncBufferedReader::Buffer buffer;
+    auto lastSource = player->property("FileBrowser_Source").value<QObject *>();
+    if (lastSource)
+    {
+        if (auto asyncBuffer = qobject_cast<AsyncBufferedReader *>(lastSource))
+        {
+            buffer = asyncBuffer->closeAndReleaseBuffer();
         }
-        player->setProperty("FileBrowser_Source", QVariant::fromValue(static_cast<QObject *>(f)));
-        return true;
+
+        lastSource->setParent(nullptr);
+        lastSource->deleteLater();
+        lastSource = nullptr;
     }
 
-    player->setSource(url);
+    auto bufferSource = new AsyncBufferedReader(std::move(buffer), AsyncBufferedReader::idealBufferCapacity(device->size()), player);
+    if (!bufferSource->openSource(std::move(device)))
+        return false;
+
+    player->setSourceDevice(bufferSource);
+    player->setProperty("FileBrowser_Source", QVariant::fromValue(static_cast<QObject *>(bufferSource)));
     return true;
 }
 

@@ -730,40 +730,11 @@ public:
     std::unique_ptr<QIODevice> readDevice() override
     {
         auto p = sourcePath(r.get(), url);
-        if (p.isEmpty())
-            return nullptr;
-
         auto childPath = url.lastChild();
         if (childPath.startsWith("/"))
             childPath = childPath.removeFirst();
 
-        std::unique_ptr<QIODevice> archiveIODevice = nullptr;
-
-        // rar files support seemless seeking
-        if (p.endsWith(".rar")) {
-            std::unique_ptr<AsyncBufferedReader> reader(new AsyncBufferedReader(AsyncBufferedReader::idealBufferCapacity(size)));
-            if (!reader->openSource(std::make_unique<ArchiveIODevice>(p, childPath)))
-                return nullptr;
-            return reader;
-        } else
-            archiveIODevice.reset(new AsyncArchiveIODevice(p, childPath, size));
-
-        if (!archiveIODevice->open(QIODevice::ReadOnly))
-            return nullptr;
-
-        std::unique_ptr<CachedFileDevice> rDevice(new CachedFileDevice(archiveIODevice.get()));
-        archiveIODevice.release();
-
-        QObject::connect(rDevice.get(),
-                         &QIODevice::aboutToClose,
-                         archiveIODevice.get(),
-                         &QIODevice::close);
-        QObject::connect(rDevice.get(),
-                         &QIODevice::aboutToClose,
-                         archiveIODevice.get(),
-                         &QIODevice::deleteLater);
-
-        return std::move(rDevice);
+        return std::make_unique<ArchiveIODevice>(p, childPath);
     }
 };
 
@@ -775,8 +746,9 @@ std::unique_ptr<IODevice> ArchiveSystem::iodevice(Directory *dir, int child)
 
     const ArchiveUrl url{dir->fileUrl(child)};
     const auto p = sourcePath(wrapper->r.get(), url);
-    if (p.isEmpty())
-        return {};
+    // rar files support seemless seeking
+    if (p.isEmpty() || !p.endsWith(".rar"))
+        return nullptr;
 
     auto size = archiveChildfileSize(p, url.lastChild());
     auto result = std::make_unique<ArchiveTempIODevice>(url);

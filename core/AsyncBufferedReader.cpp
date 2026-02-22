@@ -14,8 +14,15 @@ qint64 AsyncBufferedReader::idealBufferCapacity(qint64 sourceSize) {
 
 AsyncBufferedReader::AsyncBufferedReader(QObject *parent)
     : AsyncBufferedReader(default_capacity, parent)
-
 {}
+
+AsyncBufferedReader::AsyncBufferedReader(AsyncBufferedReader::Buffer &&buffer,
+                                         size_t capacity,
+                                         QObject *parent)
+    : AsyncBufferedReader(capacity, parent)
+{
+    m_buffer = std::move(buffer);
+}
 
 AsyncBufferedReader::AsyncBufferedReader(size_t capacity, QObject *parent)
     : QIODevice(parent)
@@ -37,10 +44,6 @@ AsyncBufferedReader::AsyncBufferedReader(size_t capacity, QObject *parent)
 AsyncBufferedReader::~AsyncBufferedReader()
 {
     abortWorkerAndWait();
-    if (m_buffer)
-    {
-        free(m_buffer);
-    }
 }
 
 bool AsyncBufferedReader::openSource(std::unique_ptr<QIODevice> source,
@@ -80,13 +83,6 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
     auto cleanup = qScopeGuard([&] {
         QMutexLocker locker(&m_mutex);
         m_workerRunning = false;
-
-        if (m_count == 0 && m_buffer)
-        {
-            std::free(m_buffer);
-            m_buffer = nullptr;
-        }
-
         m_dataWait.notify_all();
         m_threadFinishedWait.notify_all();
     });
@@ -94,10 +90,10 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
     if (startPos > 0 && !source->seek(startPos))
         return;
 
-    qint64 currentPos = startPos;
+    if (m_buffer.capacity() < m_capacity)
+        m_buffer.alloc(m_capacity);
 
-    if (!m_buffer)
-        m_buffer = (char *)std::malloc(m_capacity);
+    qint64 currentPos = startPos;
 
     QMutexLocker locker(&m_mutex);
     while (!m_aborted.load()) {
@@ -287,6 +283,14 @@ void AsyncBufferedReader::close()
 {
     QIODevice::close();
     abort();
+}
+
+AsyncBufferedReader::Buffer AsyncBufferedReader::closeAndReleaseBuffer()
+{
+    abortWorkerAndWait();
+    QIODevice::close();
+    m_count = 0;
+    return std::move(m_buffer);
 }
 
 qint64 AsyncBufferedReader::size() const

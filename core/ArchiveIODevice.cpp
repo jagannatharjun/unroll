@@ -19,7 +19,7 @@ ArchiveIODevice::ArchiveIODevice(const QString &archivePath,
 
 ArchiveIODevice::~ArchiveIODevice()
 {
-    close();
+    cleanup();
 }
 
 bool ArchiveIODevice::isSequential() const

@@ -218,7 +218,7 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
 {
     QMutexLocker locker(&m_mutex);
     qint64 totalRead = 0;
-    qint64 target = static_cast<size_t>(maxlen);
+    qint64 target = maxlen;
 
     while (totalRead < target) {
         // 1. Wait if the buffer is empty but the worker is still producing
@@ -263,7 +263,7 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
         }
     }
 
-    return static_cast<qint64>(totalRead);
+    return (m_sourceEof || !m_workerRunning || m_aborted) && (totalRead == 0) ? - 1 : static_cast<qint64>(totalRead);
 }
 
 bool AsyncBufferedReader::seek(qint64 pos)

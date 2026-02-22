@@ -75,7 +75,7 @@ public:
     void stop() {
         QMutexLocker locker(&mutex);
         stopping = true;
-        condition.wakeOne();
+        condition.wakeAll();
     }
 
 private:
@@ -114,6 +114,7 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context, const Q
     m.msg = msg;
     g_logger->enqueue(m);
 }
+
 int main(int argc, char *argv[])
 {
 
@@ -130,7 +131,7 @@ int main(int argc, char *argv[])
     QObject::connect(&logThread, &QThread::started, g_logger, &LogWorker::process);
     logThread.start();
 
-    qInstallMessageHandler(myMessageHandler);
+    auto originalMessageHandler = qInstallMessageHandler(myMessageHandler);
 
 #ifdef DB_TEST
     qDebug("DB_TEST defined, test databases will be used");
@@ -161,7 +162,8 @@ int main(int argc, char *argv[])
 
     int result = app.exec();
 
-    // 3. Cleanup
+    // FIXME: even after app.exec the logger message handler was getting called
+    qInstallMessageHandler(originalMessageHandler);
     g_logger->stop();
     logThread.quit();
     logThread.wait();

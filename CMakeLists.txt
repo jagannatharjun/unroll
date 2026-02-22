@@ -3,6 +3,10 @@ cmake_minimum_required(VERSION 3.14)
 
 project(file-browser VERSION 0.1 LANGUAGES CXX)
 
+if (MSVC)
+    add_link_options(/PROFILE)
+endif(MSVC)
+
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)

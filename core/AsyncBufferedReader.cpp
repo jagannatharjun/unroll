@@ -9,7 +9,7 @@
 constexpr qint64 CHUNK_SIZE = 256 * 1024;
 
 qint64 AsyncBufferedReader::idealBufferCapacity(qint64 sourceSize) {
-    return std::clamp<qint64>(sourceSize * .1, qMin(sourceSize, 50 * 1024 * 1024), 100 * 1024 * 1024);
+    return std::clamp<qint64>(sourceSize * .1, qMin(sourceSize, 100 * 1024 * 1024), 250 * 1024 * 1024);
 }
 
 AsyncBufferedReader::AsyncBufferedReader(QObject *parent)

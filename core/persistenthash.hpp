@@ -1,12 +1,12 @@
 #ifndef PERSISTENTHASH_H
 #define PERSISTENTHASH_H
 
-#include <QString>
-#include <QVariant>
-#include <QStringList>
-#include <QDataStream>
 #include <QByteArray>
+#include <QDataStream>
 #include <QIODevice>
+#include <QString>
+#include <QStringList>
+#include <QVariant>
 
 // Forward declarations
 class QSqlError;
@@ -19,17 +19,11 @@ public:
     PersistentHashBase(const QString &dbName = "persistenthash.db");
     virtual ~PersistentHashBase();
 
-    // Basic operations that don't depend on the template type
-    bool contains(const QString &key) const;
-    bool remove(const QString &key);
-    bool clear();
-    QStringList keys() const;
-    int size() const;
     QString lastError() const;
 
 protected:
     // Protected methods for derived template class
-    bool storeData(const QString &key, const QByteArray &value);
+    bool storeData(const QList<QString> &key, const QList<QByteArray> &value);
     bool retrieveData(const QString &key, QByteArray &value) const;
     bool isOpen() const;
 
@@ -45,14 +39,18 @@ private:
 };
 
 // Template class that inherits from the base class
-template <typename T>
+template<typename T>
 class PersistentHash : public PersistentHashBase
 {
 public:
     // Constructor - uses the base class constructor
     PersistentHash(const QString &dbName = "persistenthash.db")
         : PersistentHashBase(dbName)
+    {}
+
+    ~PersistentHash()
     {
+        storeData(m_cache.keys(), m_cache.values());
     }
 
     // Insert or update a key-value pair
@@ -70,8 +68,8 @@ public:
         }
 
         qDebug() << "insert" << key << value.row << value.col;
-        // Use the base class method to store the data
-        return storeData(key, byteArray);
+        m_cache[key] = byteArray;
+        return true;
     }
 
     // Retrieve a value by key
@@ -82,7 +80,9 @@ public:
         }
 
         QByteArray byteArray;
-        if (!retrieveData(key, byteArray)) {
+        if (m_cache.contains(key)) {
+            byteArray = m_cache[key];
+        } else if (!retrieveData(key, byteArray)) {
             return false;
         }
 
@@ -100,6 +100,9 @@ public:
         value(key, result);
         return result;
     }
+
+public:
+    mutable QHash<QString, QByteArray> m_cache;
 };
 
 #endif // PERSISTENTHASH_H

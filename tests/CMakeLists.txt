@@ -59,3 +59,8 @@ add_test(NAME test_directorysystemmodel COMMAND test_directorysystemmodel)
 target_link_libraries(test_directorysystemmodel PRIVATE core Qt${QT_VERSION_MAJOR}::Test)
 
 
+add_executable(test_persistenthash test_persistenthash.cpp)
+add_test(NAME test_persistenthash COMMAND test_persistenthash)
+target_link_libraries(test_persistenthash PRIVATE core Qt${QT_VERSION_MAJOR}::Test)
+
+

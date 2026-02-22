@@ -56,14 +56,14 @@ bool PersistentHashBase::isOpen() const
     return m_db->isOpen();
 }
 
-bool PersistentHashBase::storeData(const QString &key, const QByteArray &value)
+bool PersistentHashBase::storeData(const QList<QString> &key, const QList<QByteArray> &value)
 {
     QSqlQuery query(*m_db);
     query.prepare("INSERT OR REPLACE INTO hash_data (key, value) VALUES (?, ?)");
     query.addBindValue(key);
-    query.addBindValue(value);
+    query.addBindValue(QVariant::fromValue(value));
 
-    if (!query.exec()) {
+    if (!query.execBatch()) {
         setLastError(query.lastError());
         qCritical() << "Failed to insert data:" << m_lastError;
         return false;
@@ -92,94 +92,6 @@ bool PersistentHashBase::retrieveData(const QString &key, QByteArray &value) con
     return true;
 }
 
-bool PersistentHashBase::contains(const QString &key) const
-{
-    if (!m_db->isOpen()) {
-        return false;
-    }
-
-    QSqlQuery query(*m_db);
-    query.prepare("SELECT 1 FROM hash_data WHERE key = ?");
-    query.addBindValue(key);
-
-    if (!query.exec()) {
-        const_cast<PersistentHashBase*>(this)->setLastError(query.lastError());
-        return false;
-    }
-
-    return query.next();
-}
-
-bool PersistentHashBase::remove(const QString &key)
-{
-    if (!m_db->isOpen()) {
-        return false;
-    }
-
-    QSqlQuery query(*m_db);
-    query.prepare("DELETE FROM hash_data WHERE key = ?");
-    query.addBindValue(key);
-
-    if (!query.exec()) {
-        setLastError(query.lastError());
-        qCritical() << "Failed to remove data:" << m_lastError;
-        return false;
-    }
-
-    return query.numRowsAffected() > 0;
-}
-
-bool PersistentHashBase::clear()
-{
-    if (!m_db->isOpen()) {
-        return false;
-    }
-
-    QSqlQuery query(*m_db);
-    if (!query.exec("DELETE FROM hash_data")) {
-        setLastError(query.lastError());
-        qCritical() << "Failed to clear data:" << m_lastError;
-        return false;
-    }
-
-    return true;
-}
-
-QStringList PersistentHashBase::keys() const
-{
-    QStringList keyList;
-
-    if (!m_db->isOpen()) {
-        return keyList;
-    }
-
-    QSqlQuery query(*m_db);
-    if (query.exec("SELECT key FROM hash_data")) {
-        while (query.next()) {
-            keyList << query.value(0).toString();
-        }
-    } else {
-        const_cast<PersistentHashBase*>(this)->setLastError(query.lastError());
-    }
-
-    return keyList;
-}
-
-int PersistentHashBase::size() const
-{
-    if (!m_db->isOpen()) {
-        return 0;
-    }
-
-    QSqlQuery query(*m_db);
-    if (query.exec("SELECT COUNT(*) FROM hash_data") && query.next()) {
-        return query.value(0).toInt();
-    } else {
-        const_cast<PersistentHashBase*>(this)->setLastError(query.lastError());
-    }
-
-    return 0;
-}
 
 QString PersistentHashBase::lastError() const
 {

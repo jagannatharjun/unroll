@@ -37,10 +37,6 @@ AsyncBufferedReader::AsyncBufferedReader(size_t capacity, QObject *parent)
 {
     auto timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, [this]() {
-        QMutexLocker lock(&m_mutex);
-        if (!m_workerRunning)
-            return;
-
         qDebug() << this << "buffer size" << formatMiB(m_count) << "read left"
                  << formatMiB(m_readLeft);
     });

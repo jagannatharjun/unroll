@@ -14,9 +14,9 @@ constexpr qint64 CHUNK_SIZE = 256 * 1024;
 
 qint64 AsyncBufferedReader::idealBufferCapacity(qint64 sourceSize)
 {
-    return std::clamp<qint64>(sourceSize * .1,
-                              qMin(sourceSize, 100 * 1024 * 1024),
-                              250 * 1024 * 1024);
+    return std::clamp<qint64>(sourceSize * .6,
+                              qMin(sourceSize, 200 * 1024 * 1024),
+                              700 * 1024 * 1024);
 }
 
 AsyncBufferedReader::AsyncBufferedReader(QObject *parent)
@@ -201,13 +201,17 @@ void AsyncBufferedReader::abortWorkerAndWait()
         m_threadFinishedWait.wait(&m_mutex);
 }
 
+bool AsyncBufferedReader::canMakeSpaceForMoreReading() {
+    return (m_readLeft < m_capacity / 1.25f && m_count == m_capacity);
+}
+
 bool AsyncBufferedReader::makeSpaceForMoreReading()
 {
-    if ((m_readLeft < m_capacity / 1.5 && m_count == m_capacity)) {
+    if (canMakeSpaceForMoreReading()) {
         qDebug() << "AsyncBufferedReader::readData discarding front buffer" << m_readLeft
                  << m_capacity << m_count;
         m_head = m_readPos;
-        m_count = m_readLeft;
+        m_count = m_readLeft.load();
         return true;
     }
 
@@ -216,9 +220,30 @@ bool AsyncBufferedReader::makeSpaceForMoreReading()
 
 qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
 {
+    qint64 target = maxlen;
+    while (m_readLeft > target && target > 0)
+    {
+        const size_t availableAtTail = m_capacity - m_readPos;
+        const size_t chunk = std::min<size_t>(availableAtTail, target);
+        std::memcpy(data + (maxlen - target), &m_buffer[m_readPos], chunk);
+        target -= chunk;
+        m_readPos = (m_readPos + chunk) % m_capacity;
+        m_readLeft -= chunk;
+    }
+
+    if (target == 0)
+    {
+        if (canMakeSpaceForMoreReading())
+        {
+            QMutexLocker locker(&m_mutex);
+            if (makeSpaceForMoreReading())
+                m_bufferSpaceWait.notify_all();
+        }
+        return maxlen;
+    }
+
     QMutexLocker locker(&m_mutex);
     qint64 totalRead = 0;
-    qint64 target = maxlen;
 
     while (totalRead < target) {
         // 1. Wait if the buffer is empty but the worker is still producing

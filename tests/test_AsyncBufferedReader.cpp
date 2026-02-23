@@ -104,20 +104,17 @@ private slots:
         reader.openSource(std::make_unique<QBuffer>(&data), 0, QIODevice::ReadOnly | QIODevice::Unbuffered);
 
         auto count = [&reader]() {
-            QMutexLocker l(&reader.m_mutex);
-            return reader.m_count;
+            return reader.m_count.load();
         };
 
         // Wait for full buffer
         QTRY_COMPARE(count(), capacity);
 
-        // Read 10 bytes. readLeft becomes 20.
-        // History is 10. (10 < 30/3), so no eviction should happen yet.
-        QCOMPARE(reader.read(9), data.left(9));
+        QCOMPARE(reader.read(1), data.left(1));
 
         QMutexLocker locker(&reader.m_mutex);
         size_t history = reader.m_count - reader.m_readLeft;
-        QCOMPARE(history, (size_t)9);
+        QCOMPARE(history, (size_t)1);
 
         // Internal Seek back to 0
         locker.unlock();
@@ -261,8 +258,7 @@ void AsyncBufferedReaderTest::testSeekInsideBuffer()
 
     // Wait until at least 1MB is buffered
     auto count = [&reader]() {
-        QMutexLocker l(&reader.m_mutex);
-        return reader.m_count;
+        return reader.m_count.load();
     };
 
     QTRY_VERIFY(count() == inputData.size());

@@ -115,6 +115,9 @@ private:
     void handleSeekInWorker(QIODevice *source, qint64 &currentPos);
     void abortWorkerAndWait();
 
+    // thread safe
+    bool canMakeSpaceForMoreReading();
+
     // requires mutex to be locked
     bool makeSpaceForMoreReading();
 
@@ -130,12 +133,12 @@ private:
     // denotes full circular queue with all the data
     size_t m_head = 0;
     size_t m_tail = 0;
-    size_t m_count = 0; // m_buffer ptr is only valid if count>0
+    std::atomic<size_t> m_count = 0; // m_buffer ptr is only valid if count>0, only reading from m_count is thread safe, modification should be under lock
 
     // sub circular queue of next read
     // this is maintained to allow fast backward seeks
-    size_t m_readPos = 0;
-    size_t m_readLeft = 0;
+    std::atomic<size_t> m_readPos = 0;
+    std::atomic<size_t> m_readLeft = 0;
 
     bool m_workerRunning {false};
     std::atomic<bool> m_aborted {false};

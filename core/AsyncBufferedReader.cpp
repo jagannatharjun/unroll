@@ -14,9 +14,9 @@ constexpr qint64 CHUNK_SIZE = 256 * 1024;
 
 qint64 AsyncBufferedReader::idealBufferCapacity(qint64 sourceSize)
 {
-    return std::clamp<qint64>(sourceSize * .6,
-                              qMin(sourceSize, 200 * 1024 * 1024),
-                              700 * 1024 * 1024);
+    return std::clamp<qint64>(sourceSize * .5,
+                              qMin(sourceSize, 50 * 1024 * 1024),
+                              200 * 1024 * 1024);
 }
 
 AsyncBufferedReader::AsyncBufferedReader(QObject *parent)
@@ -158,7 +158,6 @@ void AsyncBufferedReader::runWorker(std::unique_ptr<QIODevice> source, qint64 st
         currentPos += bytesRead;
 
         m_dataWait.notify_all();
-        QMetaObject::invokeMethod(this, &AsyncBufferedReader::readyRead, Qt::QueuedConnection);
     }
 }
 
@@ -198,7 +197,7 @@ void AsyncBufferedReader::abortWorkerAndWait()
 }
 
 bool AsyncBufferedReader::canMakeSpaceForMoreReading() {
-    return (m_readLeft < m_capacity / 1.25f && m_count == m_capacity);
+    return (m_readLeft < m_capacity * .25f && m_count >= m_capacity * .9f);
 }
 
 bool AsyncBufferedReader::makeSpaceForMoreReading()
@@ -206,8 +205,10 @@ bool AsyncBufferedReader::makeSpaceForMoreReading()
     if (canMakeSpaceForMoreReading()) {
         qDebug() << "AsyncBufferedReader::readData discarding front buffer" << m_readLeft
                  << m_capacity << m_count;
-        m_head = m_readPos;
-        m_count = m_readLeft.load();
+
+        size_t offset = std::min(m_count - m_readLeft, m_count / 3);
+        m_head = (m_head + offset) % m_capacity;
+        m_count -= offset;
         return true;
     }
 
@@ -263,10 +264,7 @@ qint64 AsyncBufferedReader::readData(char *data, qint64 maxlen)
             const size_t availableAtTail = m_capacity - m_readPos;
             const size_t chunk = std::min(availableToCopy - iterationCopied, availableAtTail);
 
-            locker.unlock();
-            // Consumer is blocked (this thread), no seek request possible
             std::memcpy(data + totalRead, &m_buffer[m_readPos], chunk);
-            locker.relock();
 
             m_readPos = (m_readPos + chunk) % m_capacity;
             m_readLeft -= chunk;

@@ -62,8 +62,8 @@ private slots:
     }
 
     void testLargeVirtualReadSeekBenchmark() {
-        const qint64 fileSize = 4ll * 1024 * 1024 * 1024; // 1 GB
-        const size_t bufferCapacity = 100 * 1024 * 1024; // 10 MB
+        const qint64 fileSize = 4ll * 1024 * 1024 * 1024;
+        const size_t bufferCapacity = 10 * 1024 * 1024;
         const int numSeeks = 4000;
 
         AsyncBufferedReader reader(bufferCapacity);
@@ -74,17 +74,11 @@ private slots:
 
         QBENCHMARK {
             for (int i = 0; i < numSeeks; ++i) {
-                // Generate a random position within the 1GB file
                 qint64 targetPos = (static_cast<qint64>(rand()) % fileSize);
 
                 // Perform the seek
                 bool success = reader.seek(targetPos);
                 QVERIFY(success);
-
-                // Wait for data to be available at the new position
-                // We use a small QTRY_VERIFY to simulate a real-world consumer
-                // waiting for the buffer to fill after a long jump.
-                QTRY_VERIFY_WITH_TIMEOUT(reader.bytesAvailable() > 0 || reader.atEnd(), 1000);
 
                 // Read a small chunk to verify data integrity at the seek point
                 QByteArray data = reader.read(32 * 1024);

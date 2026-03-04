@@ -17,10 +17,8 @@ ApplicationWindow {
     title: qsTr("File Browser")
     color: "#1E1E1E"
 
-    // row of which we are showing the preview of
-    // useful in changing the preview when model changes or resetFocus
     // last requested preview Row
-    property int previewRow: -1
+    property int requestedPreviewRow: -1
 
     // last ShowPreview call row
     property int currentPreviewRow: -1
@@ -118,7 +116,7 @@ ApplicationWindow {
             Preferences.lastSessionUrl = controller.url
             print("onUrlChanged", controller.url)
             root.currentPreviewRow = -1
-            root.previewRow = -1
+            root.requestedPreviewRow = -1
         }
 
         Component.onCompleted: controller.openUrl(Preferences.lastSessionUrl)
@@ -128,11 +126,12 @@ ApplicationWindow {
         target: selectionModel
 
         function onCurrentChanged(current, previous) {
-            if (root.previewRow === -1 || root.previewRow !== current.row) {
+            if ((root.requestedPreviewRow === -1 || root.currentPreviewRow === -1)
+                    || (root.requestedPreviewRow !== current.row && root.currentPreviewRow !== current.row)) {
                 root.updateProgress(previous)
 
                 controller.setPreview(current.row)
-                root.previewRow = current.row
+                root.requestedPreviewRow = current.row
             }
 
             root._previewCompleted = false
